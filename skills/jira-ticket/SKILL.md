@@ -208,9 +208,9 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 
 ---
 
-## Polishing non-native English drafts
+## Polishing drafts
 
-The user writes in English but it's not their first language, so drafts may have grammar issues that a native speaker wouldn't make. Fix these confidently. The user wants the text to read smoothly, not to preserve mistakes out of some misguided respect for the original.
+Drafts may have grammar issues. Fix these confidently. The user wants the text to read smoothly, not to preserve mistakes out of some misguided respect for the original.
 
 Common things to watch for and quietly fix:
 - **Articles** (`a`, `an`, `the`): often missing or used where not needed.
