@@ -53,7 +53,7 @@ def build_config_from_env(pipeline_name: str) -> Config:
 
 - **Never commit secrets.** `.env` files are gitignored; `.env.example` with placeholder keys is not. Scan with `git-secrets` or `detect-secrets` in CI.
 - **Never log secret values.** Not the key, not a prefix, not a "this looks safe" fragment. A single leaked token in CloudWatch lives forever.
-- **Fetch at point of use, hold briefly.** Don't pass secrets through five function boundaries; fetch from Secrets Manager / Parameter Store inside the module that needs them and pass only the resulting client/connection onward.
+- **Fetch at the composition/builder boundary, hold briefly.** Don't pass raw secrets through five function boundaries. Resolve them close to where the concrete client or connection is built, scrub error messages there, and pass only typed config, clients, or connections into downstream services.
 - **Ephemeral storage for key material.** If you must materialize a key (e.g., PGP private key for `gpg`), use a RAM-backed path (`/dev/shm` on Linux), create the directory with `mode=0o700`, and `shutil.rmtree(..., ignore_errors=True)` in a `finally`. Never write secrets to `/tmp`.
 - **Mask in exceptions.** When an exception bubbles up with a config dict in its message, you will leak every secret in the dict to the log pipeline. Wrap secret-bearing calls in try/except and re-raise with a scrubbed message.
 - **Rotate-friendly.** Read the secret fresh on each long-running invocation, or cache with a TTL. Hardcoding "fetch once at boot" makes rotation a deploy event.

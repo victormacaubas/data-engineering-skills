@@ -9,6 +9,10 @@ These are the canonical standards for writing production Python at this organiza
 
 The guiding principle: **write code that another engineer can read, test, and re-run six months from now without surprise.** Every rule below exists because something broke when it wasn't followed.
 
+## How to apply these standards
+
+Start by reading the repo in front of you: `pyproject.toml`, Ruff/Black/mypy settings, supported Python version, package layout, and the dominant local conventions. Explicit, coherent project configuration wins. Use this skill for decisions the repo has not already made; when local code is inconsistent, align with the safest checked-in pattern before introducing a new one.
+
 ## Operational concerns (in references/)
 
 For patterns specific to running Python code in production — CLI entrypoints, layered configuration, secrets handling, observability for long-running jobs, pipeline idempotency, streaming I/O, and packaging for distribution — read `references/operational.md` when the task touches any of them. The content stays out of context for pure library/algorithm work.
@@ -32,7 +36,7 @@ Documentation depth should scale with API surface — what a reader *outside* th
 
 **Private helpers** usually get by on clear naming. Add a docstring or comment only when there's something a reader wouldn't guess — an invariant the function assumes, a workaround for a specific bug, a performance-sensitive choice.
 
-**Module-level docstrings are not allowed.** They default to reading like spec notes or just restate the filename, and they rot as the module evolves. If a module needs context, put it in the README or a design doc — not at the top of the file.
+**Module-level docstrings should earn their keep.** Skip perfunctory file summaries that just restate the filename. Keep a module docstring when it explains public API shape, package-level contracts, unusual import behavior, or context a caller needs before using the module. If the context is broader than one module, put it in the README or a design doc instead.
 
 When you do write a docstring, pick a style (Google or NumPy) and use it consistently within a project. Include args, returns, and raised exceptions only when they're part of what callers need to handle:
 
@@ -192,7 +196,7 @@ def get_connection_pool() -> ConnectionPool:
     return ConnectionPool(...)
 ```
 
-`lru_cache(maxsize=1)` gives you lazy, thread-safe, one-time construction in three lines. It's testable (call `.cache_clear()` between tests), swappable (monkey-patch or override in fixtures), and readers don't need to recognize a pattern — just a cached function. **Avoid the classic `__new__`-override Singleton** — it hides construction, fights dependency injection, and makes tests painful. If you find yourself wanting a Singleton for configuration or clients, consider whether you could just pass the dependency in (back to DI) instead.
+`lru_cache(maxsize=1)` gives you lazy cached construction with coherent cache updates and an internal lock. It is not an exactly-once initializer: concurrent first callers may invoke the wrapped function more than once before either result is cached. That's fine for cheap, idempotent construction. If duplicate construction has side effects or races, use an explicit lock or build the dependency at the composition root. **Avoid the classic `__new__`-override Singleton** — it hides construction, fights dependency injection, and makes tests painful. If you find yourself wanting a Singleton for configuration or clients, consider whether you could just pass the dependency in (back to DI) instead.
 
 A plain function beats a class when there's no state. Three similar lines beats a premature base class. A module-level constant beats a Singleton.
 
@@ -263,9 +267,9 @@ Outside isolation boundaries, a broad catch is almost always the wrong answer �
 
 ## Context Managers & Resource Management
 
-Every resource that needs paired setup/teardown goes inside a `with` block. No exceptions.
+Every resource that needs paired setup/teardown should live in a context manager when the API supports it. If the API requires explicit `close()`, `abort()`, or process-group cleanup, keep the lifecycle in a tight `try/finally` or `ExitStack` so teardown cannot be skipped.
 
-- Files: `with open(path) as f:`, never bare `open()`.
+- Files: `with open(path) as f:`, not bare `open()`.
 - Connections: `with closing(conn):` or the client's own context-manager protocol.
 - Locks, temp directories, subprocess handles, multipart uploads — wrap them.
 - For anything custom, use `@contextlib.contextmanager`:
@@ -302,7 +306,7 @@ with ExitStack() as stack:
 
 ## Concurrency
 
-Read `references/concurrency.md` before writing any code that involves parallelism, async/await, locks, signals, or worker pools. It covers the decision between threads, processes, and asyncio; synchronization primitives; bounded queues and backpressure; cancellation and timeouts; graceful shutdown; subprocess pipe deadlocks; connection pooling under concurrency; and the bugs you will hit otherwise. The checklist below is the floor, not the standard.
+Read the relevant section of `references/concurrency.md` before writing code that involves parallelism, async/await, locks, signals, subprocess pipes, or worker pools. It covers the decision between threads, processes, and asyncio; synchronization primitives; bounded queues and backpressure; cancellation and timeouts; graceful shutdown; connection pooling under concurrency; and the bugs you will hit otherwise. The checklist below is the floor, not the standard.
 
 Quick rules:
 
@@ -313,13 +317,9 @@ Quick rules:
 - Bound your queues. An unbounded work queue fills memory until the process dies; `queue.Queue(maxsize=N)` is a two-line fix.
 - Graceful shutdown for long-running processes: handle `SIGTERM`, drain in-flight work, exit cleanly.
 
-## Streaming Over Buffering
+## Streaming & Production Packaging
 
-For any file whose size is unbounded (user upload, S3 object, API response):
-
-- Stream with iterators/generators, don't `.read()` the whole thing into memory.
-- For S3: use the `StreamingBody` from `get_object`; use multipart upload for anything potentially > 100 MB.
-- For subprocesses: pipe stdin/stdout through `subprocess.PIPE`, feed and drain concurrently (threaded feeder + main-thread reader) to avoid deadlocks on buffer-full.
+For unbounded files, user uploads, S3 objects, API responses, or subprocess pipes, stream instead of buffering the whole payload. For production CLIs, jobs, services, and distributed packages, read `references/operational.md`; it is the source of truth for runtime configuration, secrets, observability, idempotency, streaming details, and packaging.
 
 ## Performance
 
@@ -371,14 +371,3 @@ When the user explicitly asks for TDD — "do this test-first", "let's red-green
 **Don't weaken tests to fit an implementation that went a different direction.** The test encodes the requirement. If the implementation can't meet it, the first question is whether the requirement was wrong, not whether the test was too strict. When a test genuinely needs to change because the requirement was misunderstood or shifted, explain *why* — in the commit message, PR description, or directly to the user: "the original test asserted X; the requirement is actually Y because Z, so the test now asserts Y." Silent test edits that follow the implementation hollow out the discipline and hide real requirement drift.
 
 TDD isn't the default for every change — exploratory code, spikes, one-line fixes usually don't benefit. When the user asks for it, follow it. When they don't, use judgment: tests still matter, they just don't have to come first.
-
-## Packaging
-
-- Pin dependencies. `pyproject.toml` with a lockfile (`poetry.lock`, `uv.lock`) or a pinned `requirements.txt`.
-- Expose a console script in `pyproject.toml` so the CLI is installable:
-  ```toml
-  [tool.poetry.scripts]
-  my-tool = "my_pkg.main:main"
-  ```
-- Keep `main` small. If it's growing past ~100 lines, the extra logic belongs in `core/`.
-- Ship a `README.md` that explains: what the thing does, how to configure it, how to run it locally, and how to run it in production.
