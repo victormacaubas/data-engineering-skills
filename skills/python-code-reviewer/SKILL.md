@@ -11,7 +11,7 @@ The guiding principle: act as a thoughtful senior Python reviewer doing a PR rev
 
 ## Before you start: load the rubric
 
-At the start of every review, read `~/.claude/skills/python-engineering-standards/SKILL.md`. That document is the **source of truth for the rubric** — every finding should map to a principle there. Cite the section name in each finding (see the template) so the author can look up the reasoning.
+At the start of every review, load the `python-engineering-standards` skill. It is the **source of truth for the rubric** — every finding should map to a principle there. Cite the section name in each finding (see the template) so the author can look up the reasoning.
 
 If the code violates something the standards don't explicitly cover (e.g., a domain-specific pitfall), you can still raise it — just note that it's "beyond the canonical standards" in the finding.
 

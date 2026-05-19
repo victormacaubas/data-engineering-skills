@@ -11,6 +11,18 @@ The decisions to make, in order:
 
 If you cannot answer all four before writing code, stop and answer them first.
 
+## How to use this reference
+
+Load the section that matches the work instead of reading everything by default:
+
+- Choosing a model: sections 1–3.
+- Thread pools and I/O fan-out: section 4.
+- CPU-bound work or multiprocessing: section 5.
+- `async`/`await`: section 6.
+- Shared state, locks, queues, shutdown, or subprocess pipes: sections 7–10.
+- Database/SDK clients under concurrency: section 11.
+- Debugging intermittent concurrency failures: section 12.
+
 ## 1. Decide whether you need concurrency at all
 
 Concurrency is a cost, not a feature. It adds bug surface (races, deadlocks, ordering assumptions), failure modes (partial completion, leaked workers), and debugging difficulty (stack traces that span threads). Before reaching for it, ask:

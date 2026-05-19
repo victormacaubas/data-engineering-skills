@@ -5,11 +5,7 @@ description: Python coding standards for data analysis — pandas, numpy, notebo
 
 # Python Data Analysis Standards
 
-These extend `python-engineering-standards` with patterns specific to dataframe work, notebooks, and analytical pipelines. **Read the base standards first** — everything there (style, typing, docstrings, logging, error handling, testing, SOLID, dependency injection, idempotency, etc.) applies here unchanged:
-
-```
-/Users/victor-macaubas/.claude/skills/python-engineering-standards/SKILL.md
-```
+These extend `python-engineering-standards` with patterns specific to dataframe work, notebooks, and analytical pipelines. **Read the base standards first** — everything there (style, typing, docstrings, logging, error handling, testing, SOLID, dependency injection, idempotency, etc.) applies here unchanged.
 
 The content below is **additive**. It does not replace the base standards; it adds patterns that only make sense once pandas/numpy/notebooks are in the picture.
 
