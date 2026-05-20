@@ -120,6 +120,24 @@ ls -la ~/.codex/skills/my-new-skill
 
 Edit `skills/my-new-skill/SKILL.md` and test in your agent session. Changes are live immediately via the symlink.
 
+## Staging work-in-progress skills
+
+If your skill isn't ready to ship yet, put it in `skills/in-progress/` instead of `skills/`:
+
+```bash
+mkdir -p skills/in-progress/my-new-skill
+touch skills/in-progress/my-new-skill/SKILL.md
+```
+
+The install scripts only glob `skills/*/` (one level deep), so anything inside `in-progress/` is never installed. It's tracked in git, visible to collaborators, but harmless to end users.
+
+When the skill is ready, graduate it:
+
+```bash
+mv skills/in-progress/my-new-skill skills/my-new-skill
+./scripts/install.sh
+```
+
 ## Naming conventions
 
 | Convention | Example |
