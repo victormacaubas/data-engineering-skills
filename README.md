@@ -2,6 +2,17 @@
 
 My personal collection of agent skills for [Claude Code](https://claude.ai/code) and [OpenAI Codex](https://platform.openai.com/docs/codex). Author skills once, install them everywhere with a single command.
 
+## Skills
+
+| Skill | Description |
+|-------|-------------|
+| `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
+| `jira-ticket` | Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. |
+| `python-code-reviewer` | Non-destructive Python code review as a markdown report, scoring security, correctness, performance, and readability. |
+| `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
+| `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
+| `stash` | Park raw content into an Obsidian vault inbox for later processing. |
+
 ## Repository structure
 
 ```
