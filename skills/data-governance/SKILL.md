@@ -339,6 +339,26 @@ LATERAL FLATTEN(input => dcl.RESULT) f
 -- f.value:alternates (array of alternative classifications)
 ```
 
+## Troubleshooting Access & Masking Issues
+
+When a user reports that a query returns unexpected results (empty results, masked values, joins failing silently), the problem is often rooted in how data flows through our Snowflake layers.
+
+**Read `references/data-flow.md`** whenever you're troubleshooting:
+- A query that returns empty results or masked data
+- A service user that can't see data another role can see
+- Masking policy behavior that differs between PROD_SOURCE_DB and direct table access
+- Database role grants that don't seem to take effect
+
+Key things to remember during troubleshooting:
+
+1. **PROD_SOURCE_DB objects are views over raw tables.** Masking policies live on the raw tables in `PROD_ENT_LOAD_DB` (or `PROD_ESTUARY_LOAD_DB` / `PROD_FIVETRAN_LOAD_DB`), not on the PROD_SOURCE_DB views. Always check the raw load database for policies.
+
+2. **Schema names may differ between layers.** Raw schemas sometimes have a `_V1` suffix (e.g., `EXAMPLE_SCHEMA_V1`). Use ACCESS_HISTORY's `BASE_OBJECTS_ACCESSED` to find the actual underlying table.
+
+3. **PROD_ANALYTICS_DB tables have their own tags.** Since dbt materializes these as tables (not views), they get independent tag assignments and masking policies.
+
+4. **Database roles are scoped per-database.** Having `EXAMPLE_SCHEMA_RO` in PROD_SOURCE_DB does NOT satisfy a masking policy that checks for that role in PROD_ENT_LOAD_DB.
+
 ## Reference Files
 
 For complete column schemas of each view, consult:
@@ -346,5 +366,6 @@ For complete column schemas of each view, consult:
 - `references/views-security.md` — USERS, ROLES, GRANTS_TO_ROLES, GRANTS_TO_USERS, LOGIN_HISTORY
 - `references/views-protection.md` — MASKING_POLICIES, ROW_ACCESS_POLICIES, POLICY_REFERENCES, TAGS, TAG_REFERENCES, DATA_CLASSIFICATION_LATEST
 - `references/views-auditing.md` — ACCESS_HISTORY, QUERY_HISTORY
+- `references/data-flow.md` — Snowflake data flow, materialization layers, and troubleshooting access/masking issues
 
-Read these when you need exact column names/types for a specific view, or when the user asks about a column you're unsure about.
+Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
