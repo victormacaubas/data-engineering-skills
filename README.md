@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/personal-logo.png" alt="Personal logo" width="160">
+</p>
+
 # data-engineering-skills
 
 My personal collection of agent skills for [Claude Code](https://claude.ai/code) and [OpenAI Codex](https://platform.openai.com/docs/codex). Author skills once, install them everywhere with a single command.
