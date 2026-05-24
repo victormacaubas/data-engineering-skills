@@ -11,45 +11,11 @@ Pressure-test plans before implementation by challenging unclear terms, weak tra
 
 Determine the mode before asking design questions:
 
-1. **Active OpenSpec change mode**: Use when the user names an OpenSpec change, the conversation clearly identifies one, or exactly one active change exists.
+1. **Active OpenSpec change mode**: Use when the user names an OpenSpec change, the conversation clearly identifies one, or exactly one active change exists. If this mode applies, read `references/openspec-mode.md` for the full workflow.
 2. **Plan conversation mode**: Use when the user has a plan or has just finished a planning session, but there is no active OpenSpec change to update.
 3. **Idea mode**: Use when the user has a raw idea, early concept, or one-sentence change request and wants it challenged before turning it into a plan or OpenSpec change.
 
 If multiple active changes exist and the user did not name one, ask which change to grill. If no active change exists, do not create one from this skill; choose plan conversation mode or idea mode based on how formed the input is, and suggest `openspec-propose` only when the user wants files created.
-
-Before updating artifacts, read [artifact-routing.md](references/artifact-routing.md).
-
-## Active OpenSpec Change Mode
-
-1. Select the change.
-   - Prefer an explicitly named change.
-   - Infer from conversation only when the reference is unambiguous.
-   - Auto-select only when there is exactly one active non-archived change.
-   - Never select archived changes unless the user explicitly asks to review history.
-
-2. Load context.
-   - Run `openspec status --change "<name>" --json` when available to understand the schema and artifact state.
-   - Read the change artifacts that exist: `proposal.md`, `design.md`, `tasks.md`, and `specs/**/spec.md`.
-   - Read canonical specs under `openspec/specs/**` for affected capabilities.
-   - Inspect code instead of asking when the question can be answered from the repository.
-
-3. Grill one unresolved branch at a time.
-   - Ask exactly one question per turn.
-   - Provide a recommended answer with the question.
-   - Explain why the question matters when the trade-off is not obvious.
-   - Prefer concrete scenarios over abstract debate.
-   - Challenge terms that conflict with existing specs, artifacts, or code.
-   - Surface contradictions immediately before asking the next question.
-
-4. Update artifacts only after the user resolves the question.
-   - Route each resolved decision to the narrowest appropriate artifact.
-   - Do not batch unrelated artifact edits.
-   - Do not update files from a guess when the user has not accepted or corrected the recommendation.
-   - Update `tasks.md` only after the underlying proposal, design, or spec decision is stable.
-
-5. Continue until the change is coherent enough to implement or the user stops.
-   - Track the remaining unresolved branches conversationally.
-   - Stop if implementation work starts; this skill sharpens the change, it does not implement it.
 
 ## Plan Conversation Mode
 
@@ -90,16 +56,35 @@ Be direct and specific:
 - Challenge reversibility: "If this API shape is wrong later, how expensive is migration?"
 - Challenge observable behavior: "What should happen when the source emits the same event twice?"
 - Challenge implementation claims with code: "The code currently validates at ingestion, but the plan says validation happens during transformation. Which boundary is intended?"
+- Challenge actors: "Who actually triggers this? An admin, an end-user, a cron job? The answer changes the permission model."
+- Challenge sequencing: "Why does X need to happen before Y? What breaks if they're reversed?"
+- Challenge definition of done: "How will you know this is complete? What does the acceptance signal look like?"
+- Challenge failure modes: "What happens when the upstream service is down for 30 minutes? Is the behavior silent failure, retry, or user-visible error?"
+- Challenge prior attempts: "Has anyone tried solving this differently before? Why didn't it hold?"
+- Challenge implicit dependencies: "This assumes the auth service responds in under 100ms. Is that guaranteed, and what happens when it isn't?"
+- Challenge naming consistency: "This uses 'pipeline' here but 'job' in the existing spec. Are these the same concept?"
 
 Ask for decisions, not essays. When the user accepts the recommendation, make the smallest artifact update that preserves the decision.
 
-## Artifact Discipline
+## Convergence
 
-- Treat `proposal.md` as intent and scope, not implementation.
-- Treat `design.md` as the home for architecture, alternatives, trade-offs, risks, and sequencing.
-- Treat `specs/**/spec.md` as observable behavior written as requirements and scenarios.
-- Treat `tasks.md` as implementation work derived from resolved artifacts.
-- Treat canonical `openspec/specs/**` as the current contract to challenge against.
+After 6-8 questions without surfacing a new structural concern, shift from divergent questioning to convergent summary:
+
+- Offer a one-paragraph summary of resolved decisions and any known risks or assumptions.
+- Distinguish explicitly between remaining structural concerns (which block coherent implementation) and clarification questions (which can be deferred).
+- Say "I have no remaining structural concerns" when that is true. Do not manufacture more questions to fill space.
+- If the user has resolved all major branches, propose a concrete next step: start implementing, run `openspec-propose` to create a change, or name what to do first.
+
+Do not summarize prematurely. If a new structural concern arises mid-summary, surface it before closing.
+
+## Handling Pushback
+
+When the user pushes back on a question:
+
+- "Out of scope" or "not now" — accept it. If the dismissed point is a genuine risk, note it as a known assumption once, then move on. Do not return to it.
+- "I don't care" about a structural decision — push once with a concrete scenario showing why the choice has consequences. If the user still dismisses it, accept their position and move on.
+- New information that contradicts a prior recommendation — update your model. Do not defend the original recommendation.
+- Never repeat a question the user has already dismissed, even in different framing.
 
 ## Out Of Scope
 
