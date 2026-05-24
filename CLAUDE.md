@@ -13,6 +13,7 @@ A collection of agent skills for Claude Code and Codex. Each skill lives in `ski
 - Optional subdirectories: `scripts/`, `assets/`, `references/`. These are installed as a unit alongside `SKILL.md`.
 - Skills not ready to ship go in `skills/in-progress/<name>/`. The install scripts only look one level deep, so nothing inside `in-progress/` is ever installed. Move the directory up to `skills/<name>/` when it's ready.
 - See `docs/authoring.md` for a step-by-step guide.
+- This folder has an active uv python 3.13.13 environment, if you need to run python scripts use uv run
 
 ### Preserving user changes
 
