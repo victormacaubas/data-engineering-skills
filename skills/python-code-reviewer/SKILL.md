@@ -7,38 +7,11 @@ description: Produces a non-destructive Python code review as a markdown report 
 
 Produce a written review of Python code as a markdown artifact. **This skill is read-only with respect to source files** — it never edits code. The only file it creates is the review report under `./reviews/`.
 
-The guiding principle: act as a thoughtful senior Python reviewer doing a PR review. Every finding cites a specific line, names the principle from `python-engineering-standards`, and proposes a concrete before/after fix. The reader should be able to turn the report into PR comments and fixup commits without further interpretation.
+The guiding principle: act as a thoughtful senior Python reviewer doing a PR review. Every finding cites a specific line, names the violated principle (e.g., "bare except in production path", "missing type hints on public API"), and proposes a concrete before/after fix. The reader should be able to turn the report into PR comments and fixup commits without further interpretation.
 
-## Before you start: load the rubric
+## Step 0: OpenSpec pre-check (conditional)
 
-At the start of every review, load the `python-engineering-standards` skill. It is the **source of truth for the rubric** — every finding should map to a principle there. Cite the section name in each finding (see the template) so the author can look up the reasoning.
-
-If the code violates something the standards don't explicitly cover (e.g., a domain-specific pitfall), you can still raise it — just note that it's "beyond the canonical standards" in the finding.
-
-## Step 0: OpenSpec pre-check (skip if not applicable)
-
-Before anything else, check whether the repo uses OpenSpec to track in-flight work:
-
-```
-openspec/changes/               ← run `ls` on top level only, do not recurse into archive/
-openspec/changes/archive/       ← ignore this; archived changes are shipped
-openspec/specs/                 ← canonical capability specs
-```
-
-Three cases:
-
-1. **No `openspec/` directory, or only archived changes.** Skip this step entirely. Do not mention OpenSpec in the report — it adds noise when it doesn't apply.
-2. **`openspec/changes/` has non-archived entries but none touch your review scope.** Read each `proposal.md` headline to confirm they're unrelated. Note briefly in *Notes & limitations* that OpenSpec was checked and no active change overlaps. Do not generate a Specification Alignment section.
-3. **An active change's scope overlaps the files you're reviewing** (touches the same module / adds-or-modifies-requirements for the same capability). Read that change's `proposal.md`, `design.md` (if present), `tasks.md`, and any file under its `specs/`. Hold those specs in your head as the reviewer's source of truth — they describe what the code *should* be doing right now. Then when reading the source, compare behavior against the spec.
-
-Two signals count as contradiction, not stylistic drift:
-
-- The code contradicts a **SHALL / MUST** requirement in an active spec (e.g., spec says "freshness computation treats overdue jobs as stale", code marks overdue jobs as healthy).
-- The code has already implemented a `- [x]` checked task from `tasks.md` in a way that diverges from the proposal's design, *and* the diff is the one that introduced the divergence.
-
-Missing implementation of `- [ ]` (unchecked) tasks is **not** a contradiction — that work hasn't been done yet. Only flag it if the PR claims to complete the task but doesn't.
-
-Any contradictions become a dedicated **Specification Alignment — BLOCKER** section at the top of the report (see template). They don't lower the numeric scores — contradictions are a contract issue, not a quality issue — but they mark the PR as unmergeable until the author either fixes the code or amends the spec.
+If the repo has an `openspec/changes/` directory with non-archived entries, read `references/openspec-alignment.md` and follow its Specification Alignment workflow before proceeding. Otherwise, skip this step entirely.
 
 ## Step 1: Scope the review
 
@@ -66,7 +39,7 @@ Score six dimensions. Weights reflect that a silent-wrong-answer bug or a securi
 
 | Dimension | Weight | What it covers |
 |---|---|---|
-| **Security** | ×2.0 | Secret handling (never logged, never committed), input validation at boundaries, injection risks (shell, SQL, unsafe deserialization), ephemeral storage for key material, log-safe exception messages, rotation-friendly credential reads. |
+| **Security** | ×2.0 | Inline security issues catchable in a code review: secrets logged or hardcoded, disabled TLS verification (`verify=False`), injection risks (shell, SQL, unsafe deserialization), input validation missing at trust boundaries, overly broad file permissions. For a comprehensive security audit — including dependency CVEs, attack chains, deployment-context analysis, and capability abuse modeling — use the `security-analyst` skill. |
 | **Correctness & Hidden Bugs** | ×2.0 | Deep scan for bugs the compiler and tests won't catch. Off-by-one, boundary-condition, and range errors. Logic that silently diverges from the docstring or the caller's expectation. State leakage across invocations (mutable defaults, class-level mutable containers, module-level caches without eviction). Time-zone and DST assumptions; `datetime.utcnow()` vs `datetime.now(UTC)` mistakes. Floating-point equality and accumulation traps. `==` vs `is` confusion. Unreachable branches and dead code that signals a stale invariant. Iterator exhaustion footguns. Async/concurrency hazards: blocking I/O inside coroutines, unawaited awaitables, fire-and-forget `create_task` that swallows exceptions, `asyncio.gather` without `return_exceptions=` when failures should surface, thread-unsafe shared state, lock-ordering, GIL assumptions that break under multiprocessing. Resource leaks on exception paths (file/DB/socket handles not closed when the happy path doesn't reach `close()`). |
 | **Performance** | ×1.5 | N+1 patterns, unbounded `.read()` on streams, missing streaming for large objects, bad concurrency (unbounded queues, shared mutable state without locks, wrong pool type for the workload), hot-path allocations. |
 | **SOLID & Architecture** | ×1.5 | Single responsibility, dependency injection over construction-inside, Protocols for structural interfaces, one-way module dependencies (main → core → {models, utils}), no circular imports, thin `main.py`, no god classes. **Design-pattern fit** — flag both directions: (a) a pattern that would clarify the code but is missing (e.g., three parallel if/elif branches on a type tag crying out for Strategy; repeated try/connect/retry scaffolding begging for a context-manager helper); (b) a pattern applied gratuitously — Factory for a single concrete class, Singleton as global-state laundering, Observer where a direct callback would do, abstract base class with one implementation and no realistic second one coming. Patterns are tools, not goals; raise the finding as a *proposal* with the tradeoff, not a MUST. **Public API & backward compatibility** (diff / PR scope only) — flag renamed or removed public symbols, changed function signatures, changed return shapes, and silent behavior changes on existing entry points. Call out whether callers in the same repo would break; if callers are external, note that the change needs a deprecation path. |
@@ -103,7 +76,7 @@ overall = (Security*2.0 + Correctness*2.0 + Performance*1.5 + SOLID*1.5 + ErrorH
 
 Show this formula in the report so the reader can trace how the overall was computed.
 
-A Specification Alignment contradiction (from Step 0) **does not** enter this formula. Contract violations are surfaced as a top-of-report blocker instead of as a numeric penalty, because a PR can be technically clean and still violate the spec, and conversely a PR can be spec-aligned but quality-poor — they're independent signals.
+If the OpenSpec workflow (Step 0) surfaced Specification Alignment contradictions, they do **not** enter this formula — they're surfaced as a top-of-report blocker instead. See `references/openspec-alignment.md` for details.
 
 ### Calibration guardrails
 
@@ -149,31 +122,13 @@ Use this **exact template** — it's what downstream tooling expects and it's wh
 - **Commit:** <git SHA, `(dirty)` if uncommitted changes>
 - **Lines reviewed:** <approx loc>
 
-## Specification Alignment
-
-<Include this section only when Step 0 determined an active OpenSpec change overlaps the review scope. Use one of two forms.>
-
-<Form A — clean. One line:>
-✅ **Aligned.** Checked active OpenSpec changes (`<change-a>`, `<change-b>`); no contradictions found with the code under review.
-
-<Form B — contradiction(s). Upgrade to a blocker block:>
-🛑 **BLOCKER — code contradicts an active OpenSpec change.** Merge is not advised until the author either reconciles the code with the spec or amends the proposal.
-
-- **[SPEC-01] <short title>**
-  - **Active change:** `openspec/changes/<change-name>/`
-  - **Spec reference:** `specs/<capability>/spec.md` → `<requirement heading or anchor>` (quote the SHALL/MUST line verbatim)
-  - **Code location:** `path/to/file.py:42`
-  - **What the spec says:** <the normative requirement, quoted>
-  - **What the code does:** <the observed behavior, with enough detail to point at a specific branch or value>
-  - **Resolution options:** (1) change the code to match the spec, or (2) amend the change proposal to reflect the new intent and re-align the tasks list.
-
-<If there are multiple contradictions, list each as [SPEC-02], [SPEC-03], etc. Do not lower the numeric scores below on account of these findings — they're tracked separately because they're a contract issue, not a code-quality issue.>
+<If Step 0 triggered the OpenSpec workflow, insert the Specification Alignment section here — see `references/openspec-alignment.md` for the template. Otherwise, omit entirely.>
 
 ## Summary
 
 **Overall: X.X / 10** (weighted)
 
-<2–4 sentences: the top-line verdict. Lead with the biggest risk, then the biggest strength, then what to fix first. Written like a PR review comment, not a press release. If there is a Specification Alignment blocker, mention it in the first sentence so the reader doesn't miss it.>
+<2–4 sentences: the top-line verdict. Lead with the biggest risk, then the biggest strength, then what to fix first. Written like a PR review comment, not a press release.>
 
 ## Rubric
 
@@ -248,15 +203,14 @@ Findings are grouped by dimension, sorted by severity (Critical → Low) within 
 
 ## Suggested order of fixes
 
-1. <Specification Alignment contradictions first, if any — they block merge regardless of scores.>
-2. <Cluster of Critical + related High findings that should land in one PR.>
-3. <Next cluster.>
-4. <Medium cluster — can be a follow-up.>
-5. <Low cluster — optional polish.>
+1. <Critical + related High findings that should land in one PR.>
+2. <Next cluster.>
+3. <Medium cluster — can be a follow-up.>
+4. <Low cluster — optional polish.>
 
 ## Notes & limitations
 
-<What you couldn't assess: missing test suite, callers not in scope, external config not in repo, dynamic behavior not visible from static read, etc. Be explicit about the limits of the review so the reader knows what's not covered. If Step 0 found active OpenSpec changes that didn't overlap scope, mention that here: "Active OpenSpec changes `<change-a>`, `<change-b>` were checked; neither touches the files in scope.">
+<What you couldn't assess: missing test suite, callers not in scope, external config not in repo, dynamic behavior not visible from static read, etc. Be explicit about the limits of the review so the reader knows what's not covered.>
 ````
 
 ### How to write a good finding
@@ -342,7 +296,7 @@ The second form is the right default for Medium/Low findings in a file or direct
 - **Don't pad.** A clean module deserves a short report with high scores. Inventing Lows to fill a section is worse than leaving the section empty.
 - **Correctness bugs need a reproducible story.** Before raising a `[BUG-NN]` finding, write the failure scenario in one sentence: "input X, state Y, observed behavior Z, expected W". If you can't, you're speculating — either read more code until you can, or downgrade it to a Readability/SOLID finding that says "the invariant here is unclear; consider tightening the implementation or the docstring."
 - **Design-pattern findings are proposals, not mandates.** Patterns are tools. Raise "a pattern would help here" and "this pattern is carrying its weight" findings at Medium or Low unless the missing pattern is actively causing a Critical/High bug (in which case the underlying bug is the finding; the pattern is the fix). State the tradeoff so the author can disagree with context.
-- **Specification Alignment is a contract check, not a quality score.** If Step 0 finds contradictions, they live in their own top-of-report section and must not change the numeric scores. Conversely, don't bury a spec contradiction inside SOLID — readers skim for the blocker section.
+- **Specification Alignment (if applicable) is a contract check, not a quality score.** See `references/openspec-alignment.md` — contradictions live in their own top-of-report section and never change numeric scores.
 - **Tone is senior reviewer.** Direct, specific, actionable. Not cheerleading ("great job!!"), not scolding ("this is bad"). Assume the author is a competent peer who wants concrete feedback.
 - **Write once, to the reports folder.** Don't print the report to the terminal instead of writing it — the artifact is the deliverable. After writing, tell the user the path so they can open it.
 
@@ -350,7 +304,7 @@ The second form is the right default for Medium/Low findings in a file or direct
 
 - **"Just give me the score, skip the findings"** — still write the full report to `./reviews/`, and in your response, paste the Rubric table.
 - **"Review only security"** (or "only correctness" / "only bugs") — still run the rubric, but only fill in the requested dimension with findings. Mark other dimensions as "not reviewed in this pass" in the report. Note the reduced scope at the top.
-- **"Just do the bug scan"** / **"deep scan for hidden bugs"** — run Step 0 (OpenSpec) and focus on the Correctness & Hidden Bugs dimension only. Skip the other dimension findings, but keep the rubric table and mark the others as "not reviewed in this pass". Keep the Specification Alignment section if applicable — it's cheap and high-value.
-- **"Check if we're still aligned with the spec"** — run Step 0 thoroughly. If there are active changes overlapping scope, produce the Specification Alignment section as the primary deliverable; the rubric can be shorter or note "quality axes not reviewed in this pass". If there are no active changes, tell the user plainly — don't manufacture a section.
+- **"Just do the bug scan"** / **"deep scan for hidden bugs"** — focus on the Correctness & Hidden Bugs dimension only. Skip the other dimension findings, but keep the rubric table and mark the others as "not reviewed in this pass".
+- **"Check if we're still aligned with the spec"** — run the OpenSpec workflow from `references/openspec-alignment.md`. If there are no active changes, tell the user plainly — don't manufacture a section.
 - **"Compare against last review"** — find the most recent file in `./reviews/` for this scope, read it, and include a "Since last review" section summarizing which findings were resolved, which remain, and which are new. Put this section right after Summary.
 - **"Apply the fixes"** — decline politely: this skill is review-only. Offer to hand the findings to the user so they can ask you to apply specific ones in a fresh turn (a regular coding turn, not this skill).
