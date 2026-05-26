@@ -374,9 +374,6 @@ with os.fdopen(fd, "w") as file:
     file.write(secret)
 ```
 - **TLS with certificate verification.** Use HTTPS for all network calls, even internal. Never set `verify=False` in requests/httpx — it disables certificate validation entirely, making the connection vulnerable to interception. If you need a custom CA, point `verify=` at the CA bundle path.
-
-### Dangerous operations
-
 - **Never `pickle.load()`, `eval()`, or `exec()` on untrusted input.** These execute arbitrary code. Use safe serialization (JSON, MessagePack, protobuf) for data exchange.
 - **Use `yaml.safe_load()`, not `yaml.load()`.** The full loader can instantiate arbitrary Python objects from YAML.
 - **Avoid `shell=True` in subprocess calls.** Pass arguments as a list to prevent shell injection: `subprocess.run(["ls", "-la", path])`, not `subprocess.run(f"ls -la {path}", shell=True)`.
