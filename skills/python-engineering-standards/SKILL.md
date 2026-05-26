@@ -252,7 +252,7 @@ results: dict[str, str] = {}
 for pipeline in pipelines:
     try:
         results[pipeline.name] = refresh_pipeline(pipeline)
-    except Exception as e:  # isolate: one bad pipeline shouldn't abort the batch
+    except Exception as e:
         logger.exception("Pipeline %s failed; continuing", pipeline.name)
         results[pipeline.name] = f"FAILED: {type(e).__name__}: {e}"
 return results
@@ -295,7 +295,6 @@ with ExitStack() as stack:
     conn = stack.enter_context(closing(snowflake.connector.connect(**params)))
     keyring = stack.enter_context(ephemeral_keyring(Path("/dev/shm")))
     ...
-# Both cleaned up, in reverse order, even if the body raised.
 ```
 
 ## Time & Timezones
@@ -351,6 +350,47 @@ For unbounded files, user uploads, S3 objects, API responses, or subprocess pipe
 - **Avoid module-level side effects.** Code at import time runs every time something imports the module — don't open files, hit networks, or read config there. Put it in a function called from `main`.
 - **`from x import *`** is banned. It pollutes the namespace and breaks tooling.
 
+## Security
+
+- **Use `SecretStr` for any credential field.** Pydantic's `SecretStr` helps mask accidental exposure in `repr()`, `str()`, and serialization (exact JSON behavior varies by Pydantic version and serialization options). The value is only accessible via `.get_secret_value()` — an explicit, auditable call. `SecretStr` reduces accidental leaks but is not a security boundary: once you call `.get_secret_value()`, pass the result to a library, include it in an exception, or serialize it manually, it can still leak. If you're not using pydantic, wrap secrets in a type that hides them from `__repr__` and `__str__`.
+
+```python
+from pydantic import BaseModel, SecretStr
+
+class AirflowConfig(BaseModel):
+    host: str
+    airflow_password: SecretStr
+    airflow_token: SecretStr
+```
+
+- **No secrets in logs.** Not even at DEBUG. If you're logging a config object, `SecretStr` handles it — but also avoid logging raw request/response bodies from auth endpoints, connection strings, or headers that carry tokens. Configure request logging to redact `Authorization`, cookies, and sensitive headers — don't assume your framework does this by default.
+- **Parameterized queries only.** Never f-string or `.format()` user/external input into SQL. Every database driver supports parameterized queries — use them. Note: parameters work for *values*, not SQL identifiers (table/column names). Dynamic identifiers should come from an allowlist, never from user input directly.
+- **Prefer secret stores for production; env vars as a minimum.** CLI args are visible in `ps aux` and shell history — never use them for secrets. Environment variables are better but still leak through child processes, crash dumps, and misconfigured logging. For production systems, use Secrets Manager, Parameter Store, or Vault.
+- **Create files with restrictive permissions from the start.** Don't create a file and then `chmod` — there's a window where it's world-readable. `O_EXCL` avoids accidentally replacing an existing file:
+
+```python
+fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+with os.fdopen(fd, "w") as file:
+    file.write(secret)
+```
+- **TLS with certificate verification.** Use HTTPS for all network calls, even internal. Never set `verify=False` in requests/httpx — it disables certificate validation entirely, making the connection vulnerable to interception. If you need a custom CA, point `verify=` at the CA bundle path.
+
+### Dangerous operations
+
+- **Never `pickle.load()`, `eval()`, or `exec()` on untrusted input.** These execute arbitrary code. Use safe serialization (JSON, MessagePack, protobuf) for data exchange.
+- **Use `yaml.safe_load()`, not `yaml.load()`.** The full loader can instantiate arbitrary Python objects from YAML.
+- **Avoid `shell=True` in subprocess calls.** Pass arguments as a list to prevent shell injection: `subprocess.run(["ls", "-la", path])`, not `subprocess.run(f"ls -la {path}", shell=True)`.
+- **Validate and normalize file paths.** Prevent path traversal by resolving paths and checking they stay within the expected directory: `resolved.relative_to(base_dir)` raises `ValueError` if it escapes.
+
+### API endpoints
+
+When building or consuming APIs that handle credentials:
+
+- **Never send credentials in GET query parameters.** URLs end up in server access logs, proxy caches, browser history, CDN edge logs, and error reporting. Passwords and tokens go in the request body (POST) or the `Authorization` header — never in the URL.
+- **Use the `Authorization: Bearer <token>` header.** That's what it exists for. Configure your reverse proxy and application logging to redact it — don't assume this happens automatically.
+- **Don't echo secrets back in responses.** If an endpoint creates an API key, return it once. After that, return only a masked version (`"ak_...7f2d"`). Store API keys hashed — for long random API keys, HMAC-SHA-256 with a server-side pepper is acceptable for verification. Same for config endpoints that might expose connection strings.
+- **Hash passwords with Argon2, bcrypt, or scrypt.** General-purpose hashes (SHA-256, MD5) are designed to be fast — a GPU can compute billions per second, making password-space exhaustion feasible. Password-hashing algorithms are deliberately slow and memory-hard. Use `argon2-cffi` or `passlib`. Never reuse the pattern for API keys here — those are long random strings where speed isn't the threat model.
+
 ## Testing
 
 - `pytest`. Small, deterministic fixtures. No external network in unit tests — use `pytest-socket` (or equivalent) to enforce it.
@@ -358,16 +398,3 @@ For unbounded files, user uploads, S3 objects, API responses, or subprocess pipe
 - Test business logic (transforms, validators, config parsing) at high coverage. I/O boundaries get integration tests that can touch real infra with a `@pytest.mark.integration` marker.
 - Edge cases to hit explicitly: empty input, all-null column, duplicate keys, unexpected dtypes, retry exhaustion, partial batch failure, config missing required key.
 - Name tests by what they assert: `test_config_raises_when_bucket_missing`, not `test_config_1`.
-
-### TDD (when the user asks for it)
-
-When the user explicitly asks for TDD — "do this test-first", "let's red-green-refactor", "write the test before the implementation" — honor the order: failing test first, then implementation.
-
-1. Write the test for the behavior you're about to add.
-2. Run it and watch it fail for the *expected* reason (the assertion, not an import error or a typo). A test that fails for the wrong reason hasn't validated anything.
-3. Implement just enough to make it pass.
-4. Refactor with the test as a safety net.
-
-**Don't weaken tests to fit an implementation that went a different direction.** The test encodes the requirement. If the implementation can't meet it, the first question is whether the requirement was wrong, not whether the test was too strict. When a test genuinely needs to change because the requirement was misunderstood or shifted, explain *why* — in the commit message, PR description, or directly to the user: "the original test asserted X; the requirement is actually Y because Z, so the test now asserts Y." Silent test edits that follow the implementation hollow out the discipline and hide real requirement drift.
-
-TDD isn't the default for every change — exploratory code, spikes, one-line fixes usually don't benefit. When the user asks for it, follow it. When they don't, use judgment: tests still matter, they just don't have to come first.
