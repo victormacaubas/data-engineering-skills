@@ -87,7 +87,7 @@ For any file whose size is unbounded (user upload, S3 object, API response):
 
 ## Packaging
 
-- Pin dependencies. `pyproject.toml` with a lockfile (`poetry.lock`, `uv.lock`) or a pinned `requirements.txt`.
+- Pin dependencies. `pyproject.toml` with a lockfile (`poetry.lock`, `uv.lock`) or a pinned `requirements.txt`. Audit regularly with `pip-audit`, `uv audit`, or Dependabot/Renovate to catch known CVEs — a vulnerable transitive dependency is still your vulnerability.
 - Expose a console script in `pyproject.toml` so the CLI is installable:
   ```toml
   [tool.poetry.scripts]
