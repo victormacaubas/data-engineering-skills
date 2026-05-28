@@ -36,7 +36,7 @@ Follow this order. Do not skip steps.
 
 Return structured markdown only. No preamble. No closing sentence. The first character of your output must be `#`.
 
-Hard cap: 1500 tokens total output. Cut detail, not sections. If a section has no content, write `_none_` — do not omit the section.
+If a section has no content, write `_none_` — do not omit the section.
 
 Use this exact template:
 
@@ -116,4 +116,4 @@ Bias toward listing assumptions. Silence on a non-obvious choice is worse than v
 - Do not make claims from unread files. If files are only inventoried, describe only their names, location, and apparent category.
 - Do not recommend running code, do not suggest installing dependencies, do not generate next-step task lists. You map, you do not plan.
 - Do not pad. Decorative prose ("This directory is a thoughtful and well-organized example of...") is forbidden. Drop it.
-- Do not exceed the 1500-token cap. If output approaches the cap, cut the lowest-information entries from the longest section first — never drop `Direct answers`, `Coverage`, `Confidence`, `Assumptions`, or `Questions for human`.
+- Never drop `Direct answers`, `Coverage`, `Confidence`, `Assumptions`, or `Questions for human`.
