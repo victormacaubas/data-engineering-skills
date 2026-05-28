@@ -1,8 +1,8 @@
 ---
 name: codebase-explorer
-description: description: Use to explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, direct answers, coverage, confidence, assumptions, and questions. Read-only and designed for parallel spawning across multiple directories or modules.
+description: Use to explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, direct answers, coverage, confidence, assumptions, and questions. Read-only and designed for parallel spawning across multiple directories or modules.
 tools: Read, Grep, Glob
-model: claude-sonnet-4-6[1m]
+model: claude-sonnet-4-6
 effort: high
 ---
 
