@@ -14,6 +14,14 @@ A collection of agent skills for Claude Code and Codex. Each skill lives in `ski
 - Skills not ready to ship go in `skills/in-progress/<name>/`. The install scripts only look one level deep, so nothing inside `in-progress/` is ever installed. Move the directory up to `skills/<name>/` when it's ready.
 - See `docs/authoring.md` for a step-by-step guide.
 
+### Agent authoring
+
+- Each agent is a single `.md` file under `agents/` with a kebab-case name (e.g. `agents/my-agent.md`). Agents are not directories.
+- Every agent file starts with YAML frontmatter containing at minimum `name` and `description`. Optional fields: `model`, `tools`, `effort`.
+- `agents/README.md` is the agent index — update it when adding a new agent (name, model, description).
+- Agents install into `~/.claude/agents/<name>.md`. The install script is `scripts/install-agents.sh`.
+- See `docs/agents.md` for a full authoring guide.
+
 ### Preserving user changes
 
 **Never overwrite an existing `SKILL.md` without explicit confirmation.** Skills may contain hand-tuned instructions that the user doesn't want discarded.
@@ -44,6 +52,7 @@ Don't make large structural changes (new scripts, new conventions) without creat
 
 ```
 skills/          ← skill source of truth
+agents/          ← custom agent definitions (single .md files)
 scripts/         ← install automation
 docs/            ← developer documentation
 openspec/        ← tracked changes
@@ -52,4 +61,5 @@ openspec/        ← tracked changes
 ## What NOT to do
 
 - Don't create skills outside `skills/`.
+- Don't create agents outside `agents/`.
 - Don't edit `openspec/` artifact files unless running an OpenSpec workflow step.
