@@ -29,15 +29,19 @@ The system SHALL provide a script `scripts/install-codex.sh` that installs all s
 - **THEN** skills are installed into `/custom/path/<skill-name>/` instead of the default
 
 ### Requirement: Unified install dispatcher
-The system SHALL provide a script `scripts/install.sh` that dispatches to agent-specific install scripts.
+The system SHALL provide a script `scripts/install.sh` that dispatches to platform-specific and content-type install scripts.
 
-#### Scenario: Install for all agents
+#### Scenario: Install everything
 - **WHEN** user runs `./scripts/install.sh`
-- **THEN** both `install-claude.sh` and `install-codex.sh` are executed
+- **THEN** `install-claude.sh`, `install-codex.sh`, and `install-agents.sh` are all executed
 
-#### Scenario: Install for a specific agent
+#### Scenario: Install for a specific platform
 - **WHEN** user runs `./scripts/install.sh --target claude`
 - **THEN** only `install-claude.sh` is executed
+
+#### Scenario: Install custom agents only
+- **WHEN** user runs `./scripts/install.sh --target agents`
+- **THEN** only `install-agents.sh` is executed
 
 ### Requirement: Safe install with backup
 The system SHALL NOT overwrite existing files or directories that are not symlinks pointing to this repository without creating a backup first.
