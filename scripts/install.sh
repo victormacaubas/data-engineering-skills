@@ -6,7 +6,7 @@ TARGET="all"
 INSTALL_ARGS=()
 
 usage() {
-  echo "Usage: $0 [--target claude|codex|all] [--copy]"
+  echo "Usage: $0 [--target claude|codex|agents|all] [--copy]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -14,7 +14,7 @@ while [[ $# -gt 0 ]]; do
     --target=*) TARGET="${1#--target=}"; shift ;;
     --target)
       if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--target requires a value: claude, codex, or all" >&2
+        echo "--target requires a value: claude, codex, agents, or all" >&2
         usage >&2
         exit 1
       fi
@@ -34,13 +34,18 @@ case "$TARGET" in
   codex)
     bash "$SCRIPT_DIR/install-codex.sh" "${INSTALL_ARGS[@]}"
     ;;
+  agents)
+    bash "$SCRIPT_DIR/install-agents.sh" "${INSTALL_ARGS[@]}"
+    ;;
   all)
     bash "$SCRIPT_DIR/install-claude.sh" "${INSTALL_ARGS[@]}"
     echo ""
     bash "$SCRIPT_DIR/install-codex.sh" "${INSTALL_ARGS[@]}"
+    echo ""
+    bash "$SCRIPT_DIR/install-agents.sh" "${INSTALL_ARGS[@]}"
     ;;
   *)
-    echo "Unknown target: $TARGET. Valid options: claude, codex, all" >&2
+    echo "Unknown target: $TARGET. Valid options: claude, codex, agents, all" >&2
     usage >&2
     exit 1
     ;;

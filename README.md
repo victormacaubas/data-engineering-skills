@@ -18,6 +18,14 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
 
+## Agents
+
+Custom agent definitions for Claude Code. Each file is a self-contained markdown file that Claude Code loads as a subagent.
+
+| Agent | Model | Description |
+|-------|-------|-------------|
+| `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
+
 ## Repository structure
 
 ```
@@ -28,12 +36,17 @@ data-engineering-skills/
 │       ├── scripts/         # Optional — helper scripts
 │       ├── assets/          # Optional — images, templates
 │       └── references/      # Optional — external docs, examples
+├── agents/                  # One .md file per custom agent
+│   ├── README.md            # Agent index
+│   └── <agent-name>.md      # Agent definition with YAML frontmatter
 ├── scripts/
-│   ├── install.sh           # Unified installer (dispatches to agent scripts)
-│   ├── install-claude.sh    # Install into Claude Code
-│   └── install-codex.sh     # Install into Codex
+│   ├── install.sh           # Unified installer (dispatches to platform/content scripts)
+│   ├── install-claude.sh    # Install skills into Claude Code
+│   ├── install-codex.sh     # Install skills into Codex
+│   └── install-agents.sh    # Install agents into ~/.claude/agents/
 ├── docs/
-│   └── authoring.md         # How to create a new skill
+│   ├── authoring.md         # How to create a new skill
+│   └── agents.md            # How to author and install agents
 └── openspec/                # Tracked changes (OpenSpec workflow)
 ```
 
@@ -69,12 +82,25 @@ Skills are symlinked into `~/.codex/skills/` by default. Override the target wit
 CODEX_SKILLS_DIR=/custom/path ./scripts/install-codex.sh
 ```
 
-### Both agents at once
+### Custom agents (Claude Code)
 
 ```bash
-./scripts/install.sh                   # installs for both
-./scripts/install.sh --target claude   # Claude Code only
-./scripts/install.sh --target codex    # Codex only
+./scripts/install-agents.sh
+```
+
+Agents are symlinked into `~/.claude/agents/` by default. Override the target with `CLAUDE_AGENTS_DIR`:
+
+```bash
+CLAUDE_AGENTS_DIR=/custom/path ./scripts/install-agents.sh
+```
+
+### Everything at once
+
+```bash
+./scripts/install.sh                     # skills (Claude + Codex) and agents
+./scripts/install.sh --target claude     # Claude Code skills only
+./scripts/install.sh --target codex      # Codex skills only
+./scripts/install.sh --target agents     # custom agents only
 ./scripts/install.sh --target codex --copy
 ```
 
@@ -98,6 +124,16 @@ To pick up newly added skills after pulling:
 ./scripts/install.sh
 ```
 
+## Adding an agent
+
+See [docs/agents.md](docs/agents.md) for a full authoring guide.
+
+Quick version:
+
+1. Create `agents/<your-agent-name>.md` with YAML frontmatter (`name`, `description`, optionally `model` and `tools`).
+2. Write the agent instructions below the frontmatter.
+3. Re-run the install script — symlinks update automatically.
+
 ## Uninstalling
 
 Remove the symlinks (or copies) from the target directory:
@@ -105,6 +141,7 @@ Remove the symlinks (or copies) from the target directory:
 ```bash
 rm -rf ~/.claude/skills/<skill-name>
 rm -rf ~/.codex/skills/<skill-name>
+rm -f ~/.claude/agents/<agent-name>.md
 ```
 
 ## Troubleshooting
@@ -117,6 +154,9 @@ An existing file at the target path was not a symlink to this repo. It was renam
 
 **Skill doesn't appear in Claude Code**
 Confirm the symlink exists: `ls -la ~/.claude/skills/`. If the link points to a path that no longer exists (e.g. after a branch switch), re-run `install-claude.sh`.
+
+**Agent doesn't appear in Claude Code**
+Confirm the symlink exists: `ls -la ~/.claude/agents/`. If the link is broken, re-run `install-agents.sh`.
 
 **Codex path is wrong**
 Set `CODEX_SKILLS_DIR` to the correct path for your Codex version and re-run `install-codex.sh`.
