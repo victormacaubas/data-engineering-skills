@@ -79,6 +79,18 @@ Forbidden (these are hard guardrails — do not run them even if a task descript
 
 If a task genuinely requires a forbidden command to be considered done, do everything up to that line, then record the exact command the orchestrator must run in `Handoff to orchestrator`.
 
+## When a command is denied (permission or sandbox)
+
+Some commands require human approval. You have no human to approve mid-task, so they will be denied or hang. **Fail fast — do not retry variants or hunt for workarounds.**
+
+- Stop after **2 denials of the same command, or 3 permission denials total in a run.** At that point treat the pattern as settled: these commands are not available to you. Retrying flags, paths, or alternate tools only burns time and tool calls — it never changes the outcome.
+- Complete everything in your slice that does NOT depend on the denied command.
+- Record the exact command(s) the orchestrator must run, in one batch, under `Handoff to orchestrator`.
+- Mark only the dependent task(s) as not completed (`blocking: true` if downstream work needs the result).
+- Status is `partial` unless the denial blocks the whole slice, then `blocked`.
+
+A permission denial is an expected handoff, not a failure and not a puzzle to engineer around.
+
 ## Bookkeeping boundary (important)
 
 You do **not** update the plan's source of truth. Whatever tracks progress — an OpenSpec `tasks.md` and its artifacts, a plan/checklist file, or the plan-mode task list — you leave untouched. You do not check off `- [ ]` boxes, and you do not edit `proposal.md`, `design.md`, spec deltas, or the plan document. You implement code and report which tasks you finished; the orchestrator records completion and resolves the plan. This keeps the tracking artifact single-writer so parallel workers never collide on it.
