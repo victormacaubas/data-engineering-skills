@@ -90,7 +90,7 @@ The entire skill directory is installed as a unit — all subdirectories arrive 
 Symlink the skill into Claude Code:
 
 ```bash
-./scripts/install-claude.sh
+./scripts/install.sh --platform claude --skills my-new-skill --agents none
 ```
 
 The script prints which skills it installed and where. Because it uses symlinks, any edit to `SKILL.md` is immediately live — no re-install needed.
@@ -98,7 +98,7 @@ The script prints which skills it installed and where. Because it uses symlinks,
 To test with Codex:
 
 ```bash
-./scripts/install-codex.sh
+./scripts/install.sh --platform codex --skills my-new-skill
 ```
 
 ## 5. Verify the install
