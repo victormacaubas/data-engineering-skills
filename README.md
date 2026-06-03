@@ -40,7 +40,7 @@ data-engineering-skills/
 │   ├── README.md            # Agent index
 │   └── <agent-name>.md      # Agent definition with YAML frontmatter
 ├── scripts/
-│   ├── install.sh           # Unified installer (dispatches to platform/content scripts)
+│   ├── install.sh           # Interactive unified installer
 │   ├── install-claude.sh    # Install skills into Claude Code
 │   ├── install-codex.sh     # Install skills into Codex
 │   └── install-agents.sh    # Install agents into ~/.claude/agents/
@@ -52,57 +52,52 @@ data-engineering-skills/
 
 ## Installation
 
-### Claude Code
+Run the unified installer:
 
 ```bash
-./scripts/install-claude.sh
+./scripts/install.sh
 ```
 
-Skills are symlinked into `~/.claude/skills/` by default. Override the target with `CLAUDE_SKILLS_DIR`:
+The wizard asks which platform to install for, which skills to install, which Claude Code custom agents to install, and whether to use symlinks or copies.
+
+For automation, pass selections explicitly:
 
 ```bash
-CLAUDE_SKILLS_DIR=/custom/path ./scripts/install-claude.sh
+./scripts/install.sh --platform both --skills all --agents all
+./scripts/install.sh --platform claude --skills sql-data-analysis,data-governance --agents codebase-explorer
+./scripts/install.sh --platform codex --skills python-engineering-standards
+./scripts/install.sh --platform agents --agents codebase-explorer
 ```
 
-Use `--copy` for a copy-based install (e.g. CI):
+Use `--copy` for a copy-based install instead of symlinks:
 
 ```bash
-./scripts/install-claude.sh --copy
+./scripts/install.sh --platform both --skills all --agents all --copy
 ```
 
-### Codex
+When `--platform both` is selected, skills are installed for both Claude Code and Codex. Custom agents are installed for Claude Code only, and the installer prints a note explaining that Codex custom-agent installation is not supported yet.
+
+### Target directories
+
+Skills are symlinked into `~/.claude/skills/` and `~/.codex/skills/` by default. Custom agents are symlinked into `~/.claude/agents/`. Override targets with environment variables:
 
 ```bash
-./scripts/install-codex.sh
+CLAUDE_SKILLS_DIR=/custom/claude/skills ./scripts/install.sh --platform claude --skills all --agents none
+CODEX_SKILLS_DIR=/custom/codex/skills ./scripts/install.sh --platform codex --skills all
+CLAUDE_AGENTS_DIR=/custom/claude/agents ./scripts/install.sh --platform agents --agents all
 ```
 
-Skills are symlinked into `~/.codex/skills/` by default. Override the target with `CODEX_SKILLS_DIR`:
+### Direct helper scripts
+
+The platform-specific scripts remain available for direct use:
 
 ```bash
-CODEX_SKILLS_DIR=/custom/path ./scripts/install-codex.sh
+./scripts/install-claude.sh --skills all
+./scripts/install-codex.sh --skills sql-data-analysis
+./scripts/install-agents.sh --agents codebase-explorer
 ```
 
-### Custom agents (Claude Code)
-
-```bash
-./scripts/install-agents.sh
-```
-
-Agents are symlinked into `~/.claude/agents/` by default. Override the target with `CLAUDE_AGENTS_DIR`:
-
-```bash
-CLAUDE_AGENTS_DIR=/custom/path ./scripts/install-agents.sh
-```
-
-### Everything at once
-
-```bash
-./scripts/install.sh                     # skills (Claude + Codex) and agents
-./scripts/install.sh --target claude     # Claude Code skills only
-./scripts/install.sh --target codex      # Codex skills only
-./scripts/install.sh --target agents     # custom agents only
-./scripts/install.sh --target codex --copy
-```
+Calling a helper without a selection still installs all valid items for that helper.
 
 ## Adding a skill
 
@@ -121,7 +116,7 @@ Because installs use symlinks by default, edits to any `SKILL.md` in this repo a
 To pick up newly added skills after pulling:
 
 ```bash
-./scripts/install.sh
+./scripts/install.sh --platform both --skills all --agents all
 ```
 
 ## Adding an agent
@@ -153,10 +148,10 @@ Run `chmod +x scripts/*.sh` once, then retry.
 An existing file at the target path was not a symlink to this repo. It was renamed to `<path>.bak.<timestamp>` before installing. Check the backup if you had local edits.
 
 **Skill doesn't appear in Claude Code**
-Confirm the symlink exists: `ls -la ~/.claude/skills/`. If the link points to a path that no longer exists (e.g. after a branch switch), re-run `install-claude.sh`.
+Confirm the symlink exists: `ls -la ~/.claude/skills/`. If the link points to a path that no longer exists (e.g. after a branch switch), re-run `./scripts/install.sh`.
 
 **Agent doesn't appear in Claude Code**
-Confirm the symlink exists: `ls -la ~/.claude/agents/`. If the link is broken, re-run `install-agents.sh`.
+Confirm the symlink exists: `ls -la ~/.claude/agents/`. If the link is broken, re-run `./scripts/install.sh --platform agents --agents all`.
 
 **Codex path is wrong**
-Set `CODEX_SKILLS_DIR` to the correct path for your Codex version and re-run `install-codex.sh`.
+Set `CODEX_SKILLS_DIR` to the correct path for your Codex version and re-run `./scripts/install.sh --platform codex --skills all`.

@@ -6,9 +6,97 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 SKILLS_SRC="$REPO_DIR/skills"
 TARGET_DIR="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
 COPY_MODE=false
+SKILL_SELECTION="all"
+
+valid_skills=()
+invalid_skill_dirs=()
+selected_skills=()
 
 usage() {
-  echo "Usage: $0 [--copy]"
+  echo "Usage: $0 [--copy] [--skills all|name[,name...]]"
+}
+
+strip_spaces() {
+  local value="$1"
+  value="${value//[[:space:]]/}"
+  printf '%s\n' "$value"
+}
+
+name_in_list() {
+  local needle="$1"
+  shift
+  local item
+
+  for item in "$@"; do
+    if [ "$item" = "$needle" ]; then
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+discover_skills() {
+  local skill_dir
+  local skill_name
+
+  valid_skills=()
+  invalid_skill_dirs=()
+
+  for skill_dir in "$SKILLS_SRC"/*/; do
+    [ -d "$skill_dir" ] || continue
+    skill_name="$(basename "$skill_dir")"
+
+    if [ -f "$skill_dir/SKILL.md" ]; then
+      valid_skills+=("$skill_name")
+    else
+      invalid_skill_dirs+=("$skill_name")
+    fi
+  done
+}
+
+parse_skill_selection() {
+  local selection
+  local item
+  local invalid=()
+  local old_ifs
+
+  selection="$(strip_spaces "$SKILL_SELECTION")"
+  if [ -z "$selection" ]; then
+    echo "--skills requires a value: all or a comma-separated list of skill names" >&2
+    exit 1
+  fi
+
+  if [ "$selection" = "all" ]; then
+    selected_skills=("${valid_skills[@]}")
+    SKILL_SELECTION="$selection"
+    return
+  fi
+
+  if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
+    echo "Invalid --skills value: $SKILL_SELECTION" >&2
+    echo "Use all or a comma-separated list such as sql-data-analysis,data-governance." >&2
+    exit 1
+  fi
+
+  old_ifs="$IFS"
+  IFS=','
+  read -r -a selected_skills <<< "$selection"
+  IFS="$old_ifs"
+
+  for item in "${selected_skills[@]}"; do
+    if [ -z "$item" ] || ! name_in_list "$item" "${valid_skills[@]}"; then
+      invalid+=("$item")
+    fi
+  done
+
+  if [ "${#invalid[@]}" -gt 0 ]; then
+    echo "Unknown skill(s): ${invalid[*]}" >&2
+    echo "Available skills: ${valid_skills[*]:-(none)}" >&2
+    exit 1
+  fi
+
+  SKILL_SELECTION="$selection"
 }
 
 resolve_link_target() {
@@ -57,21 +145,48 @@ backup_existing_path() {
   done
 
   mv "$target_path" "$backup_path"
-  echo "  [BACKUP] $skill_name → $backup_path"
+  echo "  [BACKUP] $skill_name -> $backup_path"
 }
 
-for arg in "$@"; do
-  case "$arg" in
-    --copy) COPY_MODE=true ;;
-    -h|--help) usage; exit 0 ;;
-    *) echo "Unknown argument: $arg" >&2; usage >&2; exit 1 ;;
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --copy)
+      COPY_MODE=true
+      shift
+      ;;
+    --skills=*)
+      SKILL_SELECTION="${1#--skills=}"
+      shift
+      ;;
+    --skills)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "--skills requires a value: all or a comma-separated list of skill names" >&2
+        usage >&2
+        exit 1
+      fi
+      SKILL_SELECTION="$2"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 1
+      ;;
   esac
 done
+
+discover_skills
+parse_skill_selection
 
 echo "Installing skills for Codex"
 echo "  Source:  $SKILLS_SRC"
 echo "  Target:  $TARGET_DIR"
 echo "  Mode:    $([ "$COPY_MODE" = true ] && echo copy || echo symlink)"
+echo "  Skills:  $SKILL_SELECTION"
 echo ""
 
 mkdir -p "$TARGET_DIR"
@@ -79,16 +194,15 @@ mkdir -p "$TARGET_DIR"
 installed=0
 skipped=0
 
-for skill_dir in "$SKILLS_SRC"/*/; do
-  [ -d "$skill_dir" ] || continue
-  skill_name="$(basename "$skill_dir")"
-
-  if [ ! -f "$skill_dir/SKILL.md" ]; then
-    echo "  [SKIP] $skill_name — no SKILL.md found"
+if [ "$SKILL_SELECTION" = "all" ]; then
+  for skill_name in "${invalid_skill_dirs[@]}"; do
+    echo "  [SKIP] $skill_name - no SKILL.md found"
     skipped=$((skipped + 1))
-    continue
-  fi
+  done
+fi
 
+for skill_name in "${selected_skills[@]}"; do
+  skill_dir="$SKILLS_SRC/$skill_name"
   target_path="$TARGET_DIR/$skill_name"
 
   if [ -L "$target_path" ]; then
@@ -103,10 +217,10 @@ for skill_dir in "$SKILLS_SRC"/*/; do
 
   if [ "$COPY_MODE" = true ]; then
     cp -r "$skill_dir" "$target_path"
-    echo "  [COPY]   $skill_name → $target_path"
+    echo "  [COPY]   $skill_name -> $target_path"
   else
-    ln -s "${skill_dir%/}" "$target_path"
-    echo "  [LINK]   $skill_name → $target_path"
+    ln -s "$skill_dir" "$target_path"
+    echo "  [LINK]   $skill_name -> $target_path"
   fi
 
   installed=$((installed + 1))

@@ -1,33 +1,4 @@
-## Purpose
-Define how repository skills are installed into supported agent platforms and how the unified installer dispatches platform, selection, and safety behavior.
-## Requirements
-### Requirement: Single-command install for Claude Code
-The system SHALL provide a script `scripts/install-claude.sh` that installs all skills from the `skills/` directory into the Claude Code skills directory with one invocation.
-
-#### Scenario: Default install with symlinks
-- **WHEN** user runs `./scripts/install-claude.sh` without arguments
-- **THEN** each skill directory under `skills/` is symlinked into `~/.claude/skills/<skill-name>/`
-- **AND** the script prints the resolved target path and symlink status for each skill
-
-#### Scenario: Custom target directory via environment variable
-- **WHEN** user sets `CLAUDE_SKILLS_DIR=/custom/path` and runs the script
-- **THEN** skills are installed into `/custom/path/<skill-name>/` instead of the default
-
-#### Scenario: Copy mode install
-- **WHEN** user runs `./scripts/install-claude.sh --copy`
-- **THEN** skill directories are copied (not symlinked) into the target directory
-
-### Requirement: Single-command install for Codex
-The system SHALL provide a script `scripts/install-codex.sh` that installs all skills from the `skills/` directory into the Codex skills directory with one invocation.
-
-#### Scenario: Default install with symlinks
-- **WHEN** user runs `./scripts/install-codex.sh` without arguments
-- **THEN** each skill directory under `skills/` is symlinked into `~/.codex/skills/<skill-name>/`
-- **AND** the script prints the resolved target path and symlink status for each skill
-
-#### Scenario: Custom target directory via environment variable
-- **WHEN** user sets `CODEX_SKILLS_DIR=/custom/path` and runs the script
-- **THEN** skills are installed into `/custom/path/<skill-name>/` instead of the default
+## MODIFIED Requirements
 
 ### Requirement: Unified install dispatcher
 The system SHALL provide a script `scripts/install.sh` that acts as the primary installer entry point for platform-specific skills and supported custom agents.
@@ -52,28 +23,7 @@ The system SHALL provide a script `scripts/install.sh` that acts as the primary 
 - **WHEN** user runs `./scripts/install.sh` without explicit selection flags in a non-interactive context
 - **THEN** the script exits with an error explaining which non-interactive flags are required
 
-### Requirement: Safe install with backup
-The system SHALL NOT overwrite existing files or directories that are not symlinks pointing to this repository without creating a backup first.
-
-#### Scenario: Existing non-repo file at target path
-- **WHEN** the target path exists and is NOT a symlink to a path within this repository
-- **THEN** the existing path is renamed to `<path>.bak.<YYYYMMDD-HHMMSS>` before installing
-- **AND** a warning is printed showing the backup location
-
-#### Scenario: Existing symlink from this repo
-- **WHEN** the target path is already a symlink pointing into this repository
-- **THEN** the symlink is updated in place without creating a backup
-
-### Requirement: Clear success messaging
-The system SHALL print a summary after installation completes.
-
-#### Scenario: Successful install
-- **WHEN** install completes without errors
-- **THEN** the script prints: number of skills installed, target directory used, and any next-step instructions
-
-#### Scenario: No skills found
-- **WHEN** the `skills/` directory contains no valid skill directories
-- **THEN** the script prints a message explaining that no skills were found and how to add one
+## ADDED Requirements
 
 ### Requirement: Platform selection
 The unified installer SHALL allow users to choose the target platform before installing skills.
@@ -127,4 +77,3 @@ The system SHALL NOT remove unselected already-installed skills during selective
 - **WHEN** a repo-owned skill symlink already exists in the target directory
 - **AND** user runs a selective install that does not include that skill
 - **THEN** the existing symlink remains in place
-
