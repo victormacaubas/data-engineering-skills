@@ -115,7 +115,7 @@ Add a row to the table in `agents/README.md` with the agent's name, model, and d
 ### Step 5: Install and test
 
 ```bash
-./scripts/install-agents.sh
+./scripts/install.sh --platform agents --agents my-agent
 ```
 
 Verify the symlink:
@@ -132,17 +132,25 @@ Because the install uses a symlink by default, any edit to the agent file is imm
 ### Default install (symlinks)
 
 ```bash
-./scripts/install-agents.sh
+./scripts/install.sh --platform agents --agents all
 ```
 
 Symlinks each agent `.md` file (excluding `README.md`) into `~/.claude/agents/`.
+
+To choose interactively, run:
+
+```bash
+./scripts/install.sh
+```
+
+The wizard asks for platform, skill, custom-agent, and install-mode selections. Custom agents are installed for Claude Code only.
 
 ### Custom target directory
 
 Override the default path with `CLAUDE_AGENTS_DIR`:
 
 ```bash
-CLAUDE_AGENTS_DIR=/custom/path ./scripts/install-agents.sh
+CLAUDE_AGENTS_DIR=/custom/path ./scripts/install.sh --platform agents --agents all
 ```
 
 ### Copy mode
@@ -150,14 +158,23 @@ CLAUDE_AGENTS_DIR=/custom/path ./scripts/install-agents.sh
 For CI or environments where symlinks are unavailable:
 
 ```bash
-./scripts/install-agents.sh --copy
+./scripts/install.sh --platform agents --agents all --copy
 ```
 
-### Via the unified installer
+### Selective install
 
 ```bash
-./scripts/install.sh --target agents          # agents only
-./scripts/install.sh                           # skills + agents
+./scripts/install.sh --platform agents --agents codebase-explorer
+./scripts/install.sh --platform claude --skills all --agents codebase-explorer
+./scripts/install.sh --platform both --skills all --agents all
+```
+
+When both Claude Code and Codex are selected, selected skills install for both platforms. Selected custom agents install for Claude Code only, and the installer prints a note that Codex custom-agent installation is not supported yet.
+
+The direct helper script remains available:
+
+```bash
+./scripts/install-agents.sh --agents all
 ```
 
 ## 5. Naming conventions
