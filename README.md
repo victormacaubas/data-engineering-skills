@@ -10,10 +10,10 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 
 | Skill | Description |
 |-------|-------------|
+| `code-reviewer` | Non-destructive, language-agnostic code review as a markdown report, scoring security, correctness, performance, architecture, error handling, and readability. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas, drafted plans, and OpenSpec changes before implementation, sharpening scope, trade-offs, scenarios, specs, and tasks. |
 | `jira-ticket` | Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. |
-| `python-code-reviewer` | Non-destructive Python code review as a markdown report, scoring security, correctness, performance, and readability. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
@@ -25,6 +25,7 @@ Custom agent definitions for Claude Code. Each file is a self-contained markdown
 | Agent | Model | Description |
 |-------|-------|-------------|
 | `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
+| `apply-tasks` | `claude-sonnet-4-6[1m]` | Implement an assigned slice of tasks from a plan source (OpenSpec change, inline plan, or file path) — write code and tests, run the project's tooling, and return a structured report. Implementation-only; does not touch the plan's tracking artifact (the orchestrator owns bookkeeping). Read-only on git. Pins `python-engineering-standards`. Designed for parallel spawning across disjoint task slices. |
 
 ## Repository structure
 

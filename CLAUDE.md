@@ -1,5 +1,3 @@
-# Claude Code instructions for data-engineering-skills
-
 ## What this repo is
 
 A collection of agent skills for Claude Code and Codex. Each skill lives in `skills/<name>/SKILL.md`. Install scripts in `scripts/` deploy them via symlink or copy.
