@@ -10,7 +10,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 
 | Skill | Description |
 |-------|-------------|
-| `code-reviewer` | Non-destructive, language-agnostic code review as a markdown report, scoring security, correctness, performance, architecture, error handling, and readability. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). |
+| `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./reviews/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform, Bash). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas, drafted plans, and OpenSpec changes before implementation, sharpening scope, trade-offs, scenarios, specs, and tasks. |
 | `jira-ticket` | Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. |

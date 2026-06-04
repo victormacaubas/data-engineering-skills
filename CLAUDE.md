@@ -6,6 +6,8 @@ A collection of agent skills for Claude Code and Codex. Each skill lives in `ski
 
 ### Skill authoring
 
+**For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
+
 - Each skill is a directory under `skills/` with a kebab-case name.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
 - Optional subdirectories: `scripts/`, `assets/`, `references/`. These are installed as a unit alongside `SKILL.md`.
@@ -44,7 +46,14 @@ Non-trivial changes to this repo are tracked in `openspec/changes/`. Each change
 - Use `/opsx:apply` to implement tasks from an active change.
 - Use `/opsx:archive` to archive a completed change.
 
-Don't make large structural changes (new scripts, new conventions) without creating an OpenSpec change first, unless the user explicitly asks for a quick edit.
+**Use OpenSpec for any change that:**
+- Alters repo structure (new top-level directories, moving files around)
+- Adds or modifies install scripts or wizards
+- Introduces new tooling (npm, pip, brew, package managers)
+- Adds new scripts under `scripts/`
+- Changes the install contract in any way
+
+Don't make these changes without creating an OpenSpec change first, unless the user explicitly asks for a quick edit.
 
 ## Directory layout
 
