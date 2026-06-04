@@ -1,6 +1,6 @@
 # Language Pack: JavaScript / TypeScript
 
-Load when the review scope contains `.js`, `.ts`, `.mjs`, `.cjs`, or a Node `package.json` (non-React). For `.jsx`/`.tsx`, load this **and** `react.md`. This pack sharpens the universal review dimensions; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.js`, `.ts`, `.mjs`, `.cjs`, or a Node `package.json` (non-React). For `.jsx`/`.tsx`, load this **and** `react.md`. This pack sharpens the universal review categories; the category keys in parentheses match `../SKILL.md`. Read it fully before scoring.
 
 ## Idiom & formatter
 
