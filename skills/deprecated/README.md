@@ -6,6 +6,7 @@ They are kept here for reference and history rather than deleted outright.
 
 | Skill | Replaced by | Reason |
 |---|---|---|
-| `python-code-reviewer` | `code-reviewer` | Superseded by the language-agnostic `code-reviewer` skill, which reuses the same rubric, severity model, and report template but works across languages via on-demand language packs and carries no OpenSpec coupling. The Python-specific footgun depth lives in `code-reviewer/references/python.md`. |
+| `code-reviewer` | `code-audit` | Superseded by `code-audit`, which emits a machine-parseable JSON artifact instead of a graded markdown report. The JSON is a cross-session work order that downstream agents can act on. Language packs carried over unchanged. |
+| `python-code-reviewer` | `code-audit` | Superseded by the language-agnostic `code-audit` skill. Python-specific footguns live in `code-audit/references/languages/python.md`. |
 
 To revive a deprecated skill, move its directory back up to `skills/<name>/`.
