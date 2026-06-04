@@ -1,6 +1,6 @@
 # Language Pack: Python
 
-Load when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. This pack sharpens the universal review dimensions with Python-specific footguns; the dimension keys in parentheses match `review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. This pack sharpens the universal review dimensions with Python-specific footguns; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
 
 ## Idiom & formatter
 
@@ -13,6 +13,7 @@ Load when the review scope contains `.py` files, `pyproject.toml`, or `requireme
 - Hardcoded secrets or secrets logged (`logger.info("config: %s", config)` dumping a dict with a token).
 - `verify=False` on `requests`/`httpx`, or a custom `ssl` context that disables verification.
 - Injection: `subprocess` with `shell=True` on interpolated input; raw f-string SQL instead of parameterized queries; `eval`/`exec`/`pickle.loads`/`yaml.load` (without `SafeLoader`) on untrusted input.
+- **Path traversal via `os.path`**: `os.path.join(base, user_input)` does NOT sandbox — if `user_input` is absolute it replaces `base` entirely; `os.path.normpath` preserves leading `../` sequences. Any code that builds a filesystem or S3 key path from external/config-sourced input using `os.path.join`/`normpath` is a traversal surface. Grep for `os.path.join` and `os.path.normpath` and trace whether the second argument can come from outside the trust boundary.
 - `tempfile.mktemp` (race) instead of `mkstemp`/`NamedTemporaryFile`; world-readable file perms on secret files.
 - `assert` used to enforce a security/validation invariant — stripped under `python -O`.
 
@@ -27,7 +28,8 @@ Load when the review scope contains `.py` files, `pyproject.toml`, or `requireme
 - Late binding in closures inside loops (`lambda: i` capturing the variable, not the value).
 - `except ... as e` then referencing `e` outside the block (cleared after the block in Py3).
 - **Async/concurrency** (`concurrency`): blocking I/O (`requests`, `time.sleep`, heavy CPU) inside a coroutine; unawaited coroutine (returns a coroutine object, never runs); fire-and-forget `asyncio.create_task` whose exceptions are never retrieved; `asyncio.gather(...)` without `return_exceptions=` when one failure should surface; thread-unsafe shared state under `threading`; GIL assumptions that break under `multiprocessing`.
-- **Resource leaks** (`resource-lifecycle`): file/DB/socket opened without a `with` block and not closed on the exception path; missing timeout on a network call.
+- **Type annotations that lie** (`correctness`): dataclass/Pydantic fields annotated as `str` but populated with `None` (no `Optional`), or vice versa. Python doesn't enforce annotations at runtime — the object is silently invalid and any downstream `.split()`, `len()`, or f-string use crashes with `AttributeError`/`TypeError`. Check every dataclass/model instantiation site: does the value actually match the declared type?
+- **Resource leaks** (`resource-lifecycle`): file/DB/socket opened without a `with` block and not closed on the exception path; missing timeout on a network call. **Also**: HTTP response bodies and S3 `GetObject["Body"]` (StreamingBody) — these hold open a connection from the pool. If not explicitly closed (or used inside `with`), they leak under exception paths and eventually exhaust the connection pool under load. Grep for `.get_object(`, `requests.get(`, `httpx.` and trace whether the response body is closed on both success and error paths.
 
 ## Performance (`performance`)
 
@@ -71,6 +73,9 @@ def .*=\[\]|def .*=\{\}      # mutable default args
 datetime.utcnow|datetime.now\(\)       # naive datetimes
 print\(                      # debug prints in prod paths
 import \*                    # wildcard imports
+os\.path\.join|os\.path\.normpath     # path traversal surface — trace second arg origin
+get_object\(|\.get\(.*stream  # S3/HTTP body — verify .close() or `with` on both paths
+@dataclass|BaseModel          # check annotations match actual values at construction sites
 ```
 
 ## Calibration hints
