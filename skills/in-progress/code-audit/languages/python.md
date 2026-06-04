@@ -1,6 +1,6 @@
 # Language Pack: Python
 
-Load when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. This pack sharpens the universal review dimensions with Python-specific footguns; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. This pack sharpens the universal review categories with Python-specific footguns; the category keys in parentheses match `../SKILL.md`. Read it fully before scoring.
 
 ## Idiom & formatter
 
