@@ -1,6 +1,6 @@
 # Language Pack: React
 
-Load **in addition to** `javascript-typescript.md` when the scope contains `.jsx`/`.tsx` React components or hooks. This pack adds React-specific footguns on top of the JS/TS pack; the dimension keys in parentheses match `../references/review-dimensions.md`. Read both before scoring.
+Load **in addition to** `javascript-typescript.md` when the scope contains `.jsx`/`.tsx` React components or hooks. This pack adds React-specific footguns on top of the JS/TS pack; the category keys in parentheses match `../SKILL.md`. Read both before scoring.
 
 ## Idiom
 

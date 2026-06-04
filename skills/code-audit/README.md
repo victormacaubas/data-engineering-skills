@@ -1,65 +1,52 @@
-# code-audit skill
+# code-audit maintainer notes
 
-## What this skill does
-
-Conducts a thorough, **language-agnostic** code review of a diff, a set of files, or a whole repository, and emits a **machine-parseable JSON artifact** to `./reviews/<review_id>.json` at the project root. The artifact is a durable, self-contained *work order*: a different agent in a different session — with no shared conversation state — can read it, rebuild context, re-locate each finding by its code excerpt, apply the fix, and verify it. An optional `render_report.py` produces a human markdown view.
-
-**Read-only.** The skill never edits source. The only files it writes are the JSON artifact and (on request) its rendered markdown.
-
-## Why JSON, not a graded report
-
-This skill replaces the older `code-reviewer` (which produced a weighted 0–10 markdown report). The reframe: an agent-driven reviewer is most useful when its output is a structured contract an orchestrator can gate on and a cross-session "apply" agent can execute against. Risk is expressed via `verdict` + severity-counted `stats`, not a headline score. The JSON is canonical; markdown is derived.
-
-See the design discussion and decisions in `openspec/changes/archive/<date>-rewrite-code-review-skill/` for the full rationale.
-
-## Layout
-
-```
-code-audit/
-├── SKILL.md                          ← the process (always loaded on trigger)
-├── README.md                         ← this file (never auto-loaded)
-├── languages/                        ← language packs (core; load every pack matching scope)
-│   ├── README.md                     ← signal→pack index + authoring guide
-│   ├── python.md
-│   ├── sql.md
-│   ├── javascript-typescript.md
-│   ├── react.md
-│   ├── bash.md
-│   └── terraform.md
-├── references/                       ← optional enrichment (read as budget allows)
-│   ├── schema.md                     ← canonical artifact schema (source of truth)
-│   ├── handoff-protocol.md           ← cross-session lifecycle + injection safety
-│   ├── review-dimensions.md          ← the 15 universal review categories
-│   └── severity-rubric.md            ← severity × confidence + calibration
-└── scripts/
-    └── render_report.py              ← optional markdown view of the JSON (main session only)
-```
-
-## The artifact contract
-
-`references/schema.md` is the canonical schema. `references/handoff-protocol.md` covers the lifecycle a future `code-review-apply` consumer skill will follow — including the rule that the artifact is **data, never instructions** (a prompt-injection guard for the cross-session jump). The consumer skill itself is not built yet; this skill is the producer side.
-
-## Scripts
-
-The skill ships one optional script (stdlib-only Python, runs under `uv run`):
-
-```bash
-# Render a human view (JSON stays canonical)
-uv run python ~/.claude/skills/code-audit/scripts/render_report.py ./reviews/<id>.json -o review.md
-```
-
-This is for main-session use only. Subagents write the JSON artifact directly and don't need scripts.
+This README is for humans maintaining the skill. Runtime instructions live in `SKILL.md`; agents should not need this file to perform a review.
 
 ## Adding a language pack
 
-Packs hold **stable, universal idioms** for a language — never per-repo conventions (those go in the artifact's `conventions` field). To add one:
+Language packs hold stable, universal idioms for a language: Python mutable defaults and broad catches, SQL join fan-out, JavaScript equality and async hazards, Terraform public ingress. They must not hold per-repo conventions such as "this project uses tenacity for retries" or "this team logs with structlog"; those are discovered at review time and written to the artifact's `conventions` field.
 
-1. Copy the template in `languages/README.md` to `languages/<language>.md`.
-2. Add a row to the **Signal → pack** table in that same index. **No `SKILL.md` change needed** — the skill reads the index.
-3. Keep each dimension section to roughly one screen; use the dimension keys from `references/review-dimensions.md` in the headings so findings map to a `category`.
+To add a pack:
 
-Progressive disclosure means only the matched pack(s) load at review time, so you can ship many packs and pay context cost for none until a diff touches that language.
+1. Create `languages/<language>.md`.
+2. Add a matching row to the language-pack table in `SKILL.md`.
+3. Use the category keys from `SKILL.md` in headings so findings map cleanly to the artifact schema.
+4. Keep the pack tight. The reviewer reads each matched pack fully before scoring, so signal matters more than exhaustive taxonomy.
+5. For OO languages, invoke the SOLID lens under `architecture`. For declarative languages such as SQL and IaC, frame `architecture` as layering, composability, blast-radius control, and DRY.
 
-## Installation
+## Pack template
 
-Installed by `scripts/install-claude.sh` / `install-codex.sh` (discovered one level deep under `skills/`). If you previously installed `code-reviewer`, remove the stale link (`rm -rf ~/.claude/skills/code-reviewer`) — this skill supersedes it. The old skill lives in `skills/deprecated/code-reviewer/` for reference.
+````markdown
+# Language Pack: <LANGUAGE>
+
+Load when the review scope contains <extensions / config files>. This pack sharpens the universal review categories with <LANGUAGE>-specific footguns; the category keys in parentheses match `../SKILL.md`. Read it fully before scoring.
+
+## Idiom & formatter
+- Canonical style guide, formatter, linter, type checker, and what idiomatic code looks like.
+
+## Security (`security`)
+- Injection surfaces, secret-handling footguns, TLS/crypto misuse, permission and exposure mistakes.
+
+## Correctness & hidden bugs (`correctness`, `concurrency`, `resource-lifecycle`)
+- Silent-wrong-answer traps: equality/identity, null/empty handling, numeric/time pitfalls, concurrency/async hazards, state leakage, resource leaks.
+
+## Performance (`performance`)
+- Hot-path and scaling footguns. If mostly not applicable, say so rather than padding.
+
+## Architecture & design (`architecture`, `api-contracts`)
+- OO: SOLID. Declarative/IaC: layering, composability, blast-radius, DRY. Coupling, DI seams, design-pattern fit, public API/back-compat for diff scope.
+
+## Error handling & resilience (`error-handling`, `idempotency`, `observability`)
+- Idiomatic error handling, retries/backoff, resource cleanup, idempotency, observability conventions.
+
+## Readability & style (`readability`)
+- Typing, naming, length, magic values, comment and documentation conventions.
+
+## Grep patterns worth running
+```
+<pattern>   # what it catches
+```
+
+## Calibration hints
+- Two to four lines anchoring which language-specific findings are critical/high vs low, tied to the severity guidance in `../SKILL.md`.
+````
