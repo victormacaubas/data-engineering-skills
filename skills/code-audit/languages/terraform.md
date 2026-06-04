@@ -1,6 +1,6 @@
 # Language Pack: Terraform / HCL
 
-Load when the review scope contains `.tf` or `.tfvars` files. This pack sharpens the universal review dimensions for infrastructure-as-code; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.tf` or `.tfvars` files. This pack sharpens the universal review categories for infrastructure-as-code; the category keys in parentheses match `../SKILL.md`. Read it fully before scoring.
 
 > IaC remaps the dimensions: `correctness` is dominated by state/drift and resource-replacement hazards, `performance` is largely N/A (note it and move on), and `security` carries extra weight because a misconfigured resource is a live exposure, not a latent bug. Detect the provider (aws/gcp/azure) from `provider` blocks and resource prefixes, and adapt examples accordingly.
 
