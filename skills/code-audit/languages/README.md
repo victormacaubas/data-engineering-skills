@@ -1,6 +1,6 @@
 # Language Packs — index
 
-Each pack sharpens the universal review dimensions (`../review-dimensions.md`) with stable, language-specific footguns. Packs are loaded **lazily**: only the pack(s) matching the languages in scope get read, so shipping many packs costs no context until a review touches that language.
+Each pack sharpens the universal review dimensions (`../references/review-dimensions.md`) with stable, language-specific footguns. Packs are loaded **lazily**: only the pack(s) matching the languages in scope get read, so shipping many packs costs no context until a review touches that language.
 
 ## Signal → pack
 
@@ -30,14 +30,14 @@ Packs hold **stable, universal idioms** for a language — Python's mutable defa
 2. Add a row to the **Signal → pack** table above. No `SKILL.md` change is needed — the skill reads this index.
 3. Keep it tight — roughly one screen per dimension at most. The reviewer reads the whole pack before scoring, so signal beats completeness.
 4. For OO languages, invoke the SOLID lens under `architecture`. For declarative languages (SQL, IaC), state that SOLID doesn't apply and frame `architecture` as layering / blast-radius / DRY.
-5. Use the dimension keys from `../review-dimensions.md` in the section headings (in parentheses) so findings map cleanly to a `category`.
+5. Use the dimension keys from `../references/review-dimensions.md` in the section headings (in parentheses) so findings map cleanly to a `category`.
 
 ### Pack template
 
 ````markdown
 # Language Pack: <LANGUAGE>
 
-Load when the review scope contains <extensions / config files>. This pack sharpens the universal review dimensions with <LANGUAGE>-specific footguns; the dimension keys in parentheses match `review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains <extensions / config files>. This pack sharpens the universal review dimensions with <LANGUAGE>-specific footguns; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
 
 ## Idiom & formatter
 - The canonical style guide, formatter, linter, type checker. What "idiomatic" looks like here.

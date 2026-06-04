@@ -1,6 +1,6 @@
 # Language Pack: SQL
 
-Load when the review scope contains `.sql` files, dbt models, or warehouse queries. Covers analytical SQL across BigQuery, Snowflake, Redshift, Postgres, DuckDB, Trino, and Spark SQL — **adapt syntax to the active dialect** (detect from `dbt_project.yml` profile, file path, or function names). This pack sharpens the universal review dimensions; the dimension keys in parentheses match `review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.sql` files, dbt models, or warehouse queries. Covers analytical SQL across BigQuery, Snowflake, Redshift, Postgres, DuckDB, Trino, and Spark SQL — **adapt syntax to the active dialect** (detect from `dbt_project.yml` profile, file path, or function names). This pack sharpens the universal review dimensions; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
 
 > SQL maps onto the dimensions a little differently from imperative code: `correctness` is dominated by join fan-out and NULL semantics, `performance` by scan/shuffle cost, and `error-handling`/`idempotency` by rerun safety rather than try/catch. The category keys stay the same; the content shifts.
 

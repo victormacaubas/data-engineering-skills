@@ -18,19 +18,19 @@ See the design discussion and decisions in `openspec/changes/archive/<date>-rewr
 code-audit/
 ├── SKILL.md                          ← the process (always loaded on trigger)
 ├── README.md                         ← this file (never auto-loaded)
-├── references/
+├── languages/                        ← language packs (core; load every pack matching scope)
+│   ├── README.md                     ← signal→pack index + authoring guide
+│   ├── python.md
+│   ├── sql.md
+│   ├── javascript-typescript.md
+│   ├── react.md
+│   ├── bash.md
+│   └── terraform.md
+├── references/                       ← optional enrichment (read as budget allows)
 │   ├── schema.md                     ← canonical artifact schema (source of truth)
 │   ├── handoff-protocol.md           ← cross-session lifecycle + injection safety
 │   ├── review-dimensions.md          ← the 15 universal review categories
-│   ├── severity-rubric.md            ← severity × confidence + calibration
-│   └── languages/                    ← language packs (loaded only when scope matches)
-│       ├── README.md                 ← signal→pack index + authoring guide
-│       ├── python.md
-│       ├── sql.md
-│       ├── javascript-typescript.md
-│       ├── react.md
-│       ├── bash.md
-│       └── terraform.md
+│   └── severity-rubric.md            ← severity × confidence + calibration
 └── scripts/
     └── render_report.py              ← optional markdown view of the JSON (main session only)
 ```
@@ -54,7 +54,7 @@ This is for main-session use only. Subagents write the JSON artifact directly an
 
 Packs hold **stable, universal idioms** for a language — never per-repo conventions (those go in the artifact's `conventions` field). To add one:
 
-1. Copy the template in `references/languages/README.md` to `references/languages/<language>.md`.
+1. Copy the template in `languages/README.md` to `languages/<language>.md`.
 2. Add a row to the **Signal → pack** table in that same index. **No `SKILL.md` change needed** — the skill reads the index.
 3. Keep each dimension section to roughly one screen; use the dimension keys from `references/review-dimensions.md` in the headings so findings map to a `category`.
 

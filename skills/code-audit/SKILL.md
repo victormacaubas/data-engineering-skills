@@ -18,10 +18,23 @@ You are a senior code reviewer. Your job: read code, find real issues, write a s
 Determine what you're reviewing — one of three modes:
 
 - **`diff`** — a PR, branch, or "the changes." Review only changed hunks plus enough context to understand the contract. Never flag unchanged code.
-- **`paths`** — named files or directories. Review every source file in scope.
+- **`paths`** — named files or directories. Review every source file in scope. Read directly-imported helpers that live outside the named paths far enough to understand the contract the in-scope code relies on. If you find a real defect in one of those imported helpers, report it — but mark its `confidence` no higher than `medium`, set `anchor.scope` to note it's outside the requested paths, and say so in the explanation. Don't expand into a full repo crawl; follow imports one hop, not transitively.
 - **`repo`** — whole repository. Triage first: deep-review entry points, security-sensitive paths, high-complexity files, churn hotspots. Skim the rest. Record what you covered in the artifact's `coverage` block.
 
 Use `git diff`, `git log`, `git ls-files`, Grep, Glob — whatever gets you the scope fastest.
+
+**Then load the language packs for your scope — do this before you read code.** Glob extensions in scope and load every matching pack from `~/.claude/skills/code-audit/languages/`:
+
+| If scope contains… | Load |
+|---|---|
+| `.py`, `pyproject.toml`, `requirements.txt` | `languages/python.md` |
+| `.sql`, dbt models, `dbt_project.yml` | `languages/sql.md` |
+| `.js`, `.ts`, `.mjs`, `.cjs`, `package.json` (non-React) | `languages/javascript-typescript.md` |
+| `.jsx`, `.tsx`, React components/hooks | `languages/react.md` **+** `languages/javascript-typescript.md` |
+| `.tf`, `.tfvars`, Terraform/HCL | `languages/terraform.md` |
+| `.sh`, `.bash`, shebang `#!/bin/bash`, `Makefile` | `languages/bash.md` |
+
+Read every matched pack in full. They're the language-specific half of the review — not optional enrichment. A Python file in scope with no `python.md` loaded is an incomplete review. Languages with no pack (Go, Rust, YAML, etc.) fall back to the universal dimensions; note the gap in the artifact's `summary`.
 
 ### 2. Read the code and find issues
 
@@ -47,15 +60,25 @@ Read each in-scope file completely. Then review it.
 | `readability` | Naming, function size, magic values, dead code, missing types on public APIs |
 | `documentation` | Missing API docs, undocumented breaking changes |
 
-**Probe explicitly** for `idempotency`, `concurrency`, and `resource-lifecycle` — they're invisible on a happy-path read and are what reviewers most often miss. For each function, ask: what happens on empty input, null input, error return from a callee, concurrent invocation, and retry?
+**Probe explicitly** for `idempotency`, `concurrency`, `resource-lifecycle`, and `error-handling` — they're invisible on a happy-path read and are what reviewers most often miss. For each function, ask: what happens on empty input, null input, error return from a callee, concurrent invocation, and retry?
+
+Specific actions per probe:
+
+- **`error-handling`:** chase every `except` block — does any caught exception let the program report success while the work silently didn't happen? A swallowed error that drops a record from a result list, returns a partial collection, or exits 0 on partial failure is among the highest-impact bugs and the easiest to miss.
+- **`resource-lifecycle`:** for every resource acquisition (file open, HTTP response body, S3 streaming body, DB connection/cursor, subprocess), trace whether it is released on **both** success and exception paths. A resource opened outside a `with` block and not closed in a `finally` is a finding. Pay special attention to responses from API calls whose body you must read or close — they hold a connection from the pool.
+- **`correctness` (empty/zero-length):** trace what happens when the "normal" input is empty or zero-length and that empty value propagates to the next function or API call. A zero-item list passed to an API that rejects empty input (batch calls, multipart uploads) is a runtime error hiding behind a rarely-tested edge case.
 
 **Be thorough.** Report every real issue you find. A thorough review with 8 findings is better than a timid one with 3. The only constraint: every finding must cite code you actually read. Don't fabricate issues, don't speculate without evidence, don't invent line numbers.
 
-**Language packs.** If the scope contains Python, SQL, JS/TS, React, Terraform, or Bash, and you have budget remaining, read the matching pack from `~/.claude/skills/code-audit/references/languages/` (the index at `references/languages/README.md` maps extensions to packs). Packs sharpen your review with language-specific footguns and grep patterns. They're valuable but not mandatory — a review without them is still valid.
+**Apply the language packs you loaded in step 1.** As you read each file, run its language's footguns and grep patterns against it (Python's mutable defaults and bare `except`, SQL join fan-out, JS `==` vs `===`, Terraform `0.0.0.0/0`, etc.) and map each finding onto the universal `category` keys. If you reach a file whose language you haven't loaded a pack for and one exists, load it now before scoring that file.
 
 ### 3. Write the artifact
 
-**Do this as soon as you have findings.** Don't defer it. Don't plan it. Write it now.
+**Sequence matters: coverage first, serialization second.** Complete the read pass across every in-scope file and enumerate your candidate findings as terse notes (category + file:line + one-line claim) *before* you start serializing JSON. Then write the artifact. Don't interleave a full read with full JSON authoring per file — the per-finding schema is expensive to emit, and front-loading it pulls budget away from reading and costs you findings. Get the complete list of real issues first; richness comes after.
+
+The rich per-finding fields — `acceptance_criteria`, `verification`, `proposed_patch` — are **best-effort. Never sacrifice coverage for them.** A finding with a solid `explanation` and a null `verification` is far more valuable than a missed bug. Fill them in if cheap; skip them rather than drop a finding or cut the read short.
+
+Once your candidate list is complete, write the artifact promptly — don't keep polishing prose in chat.
 
 The artifact path: `./reviews/<review_id>.json` at the project root. Create `./reviews/` if it doesn't exist (the Write tool creates parent directories automatically). `review_id` = `review-<YYYY-MM-DD>-<scope-slug>-<short>` (short = a few chars from head SHA).
 
@@ -88,7 +111,7 @@ The artifact path: `./reviews/<review_id>.json` at the project root. Create `./r
 Target fields by mode:
 - `diff` → requires `base_ref`, `head_ref`
 - `paths` / `repo` → requires `ref`, `scope`
-- `coverage` is required in `repo` mode: `{ "files_in_scope": N, "deep_reviewed": N, "skimmed": N, "skipped": N, "notes": "..." }`
+- `coverage` is required in `repo` mode: `{ "files_in_scope": N, "deep_reviewed": N, "skimmed": N, "skipped": N, "notes": "..." }`. In `diff` and `paths` mode, set `coverage: null`.
 
 #### Finding structure
 
@@ -149,13 +172,14 @@ When uncertain: **lower confidence, never inflate severity.**
 - **Don't fabricate issues.** Clean code gets `verdict: approve`, `findings: []`. That's a valid, valuable result.
 - **Don't flag unchanged code in diff mode.** The scope is the change.
 - **Correctness bugs need a failure scenario** — "input X, state Y, observed Z, expected W" — or they're downgraded to observations.
+- **Couldn't verify it? Lower the confidence.** If a finding depends on dynamic behavior you wanted to confirm by running code but couldn't (sandbox denial, no runtime, missing fixture), cap its `confidence` at `medium` and name the unconfirmed assumption in the explanation. The `verification` field records *how a future consumer would confirm the fix* — emitting it does not mean you verified the bug. Never raise severity to compensate for low confidence.
 - **Be thorough, not timid.** Report every real issue. A comprehensive review is the goal. The constraint is reality (you actually found it and can cite it), not quantity.
 - **Write the artifact.** This is your primary deliverable. A review without a written artifact is a failed review, regardless of how good the analysis was. Write to `./reviews/` at the project root. If anything blocks that, write `code-audit-review.json` in the project root as a fallback.
 - **Tone: senior reviewer.** Direct, specific, actionable. The author is a competent peer.
 
 ## References (optional enrichment)
 
-These files deepen your review when time and budget allow. They are **not prerequisites** — a valid review can be completed without reading any of them.
+These files deepen your review when time and budget allow. They are **not prerequisites** — a valid review can be completed without reading any of them (the language packs in step 1 are the required reading). If budget is limited, prioritize `severity-rubric.md` for calibration.
 
 | File | What it adds |
 |------|-------------|
@@ -163,5 +187,3 @@ These files deepen your review when time and budget allow. They are **not prereq
 | `references/severity-rubric.md` | Calibration anchors, severity-by-category quick reference |
 | `references/schema.md` | Full schema docs with field-level notes |
 | `references/handoff-protocol.md` | Cross-session lifecycle, finding states, reconciliation by content hash |
-| `references/languages/README.md` | Index mapping file extensions to language packs |
-| `references/languages/<lang>.md` | Language-specific footguns, grep patterns, calibration hints |
