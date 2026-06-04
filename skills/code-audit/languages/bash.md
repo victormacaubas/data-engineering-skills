@@ -1,6 +1,6 @@
 # Language Pack: Bash / Shell
 
-Load when the review scope contains `.sh`, `.bash` files, a shebang `#!/bin/bash` or `#!/bin/sh`, or `Makefile`. This pack sharpens the universal review dimensions with shell-specific footguns; the dimension keys in parentheses match `review-dimensions.md`. Read it fully before scoring.
+Load when the review scope contains `.sh`, `.bash` files, a shebang `#!/bin/bash` or `#!/bin/sh`, or `Makefile`. This pack sharpens the universal review dimensions with shell-specific footguns; the dimension keys in parentheses match `../references/review-dimensions.md`. Read it fully before scoring.
 
 ## Idiom & formatter
 
