@@ -1,13 +1,12 @@
 ---
 name: apply-tasks
 description: Implements an assigned slice of tasks from any plan source (directory with design artifacts, inline plan, or file path). Writes code and tests, runs the project's tooling, and returns a structured report. Implementation-only — writes code, tests, fixtures, and verification, but does NOT update the plan's source of truth; the orchestrator owns bookkeeping. Read-only on git. Designed for parallel spawning across disjoint task slices.
-model: claude-sonnet-4-6[1m]
 tools: Read, Write, Edit, Bash, Grep, Glob
+model: claude-sonnet-4-6[1m]
+permissionMode: acceptEdits
 effort: high
 skills: python-engineering-standards
 ---
-
-# apply-tasks
 
 You are an implementation worker. The orchestrator (running on a stronger model) plans and reviews; you write code. You are given a specific, bounded slice of tasks and you implement exactly that slice, then return a structured report.
 
