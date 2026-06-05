@@ -1,0 +1,199 @@
+{
+  "reviewer": "free-form baseline",
+  "review_type": "read-only local code review",
+  "target_paths": [
+    "apps/backend/src/airflow_status",
+    "apps/backend/tests"
+  ],
+  "reviewed_files": [
+    "apps/backend/src/airflow_status/__init__.py",
+    "apps/backend/src/airflow_status/api/__init__.py",
+    "apps/backend/src/airflow_status/api/deps.py",
+    "apps/backend/src/airflow_status/api/health.py",
+    "apps/backend/src/airflow_status/api/pipelines.py",
+    "apps/backend/src/airflow_status/api/schemas.py",
+    "apps/backend/src/airflow_status/config.py",
+    "apps/backend/src/airflow_status/core/__init__.py",
+    "apps/backend/src/airflow_status/core/airflow_state.py",
+    "apps/backend/src/airflow_status/core/snapshot_builder.py",
+    "apps/backend/src/airflow_status/core/snapshot_cache.py",
+    "apps/backend/src/airflow_status/core/status.py",
+    "apps/backend/src/airflow_status/errors.py",
+    "apps/backend/src/airflow_status/logging_setup.py",
+    "apps/backend/src/airflow_status/main.py",
+    "apps/backend/src/airflow_status/models/__init__.py",
+    "apps/backend/src/airflow_status/models/airflow.py",
+    "apps/backend/src/airflow_status/models/registry.py",
+    "apps/backend/src/airflow_status/models/states.py",
+    "apps/backend/src/airflow_status/models/wire.py",
+    "apps/backend/src/airflow_status/utils/__init__.py",
+    "apps/backend/src/airflow_status/utils/airflow_client.py",
+    "apps/backend/src/airflow_status/utils/airflow_urls.py",
+    "apps/backend/src/airflow_status/utils/freshness.py",
+    "apps/backend/src/airflow_status/utils/registry_loader.py",
+    "apps/backend/tests/__init__.py",
+    "apps/backend/tests/conftest.py",
+    "apps/backend/tests/integration/__init__.py",
+    "apps/backend/tests/integration/test_api_pipelines.py",
+    "apps/backend/tests/unit/__init__.py",
+    "apps/backend/tests/unit/test_airflow_client.py",
+    "apps/backend/tests/unit/test_airflow_state.py",
+    "apps/backend/tests/unit/test_config.py",
+    "apps/backend/tests/unit/test_freshness.py",
+    "apps/backend/tests/unit/test_registry_loader.py",
+    "apps/backend/tests/unit/test_snapshot_builder.py",
+    "apps/backend/tests/unit/test_snapshot_cache.py",
+    "apps/backend/tests/unit/test_status.py"
+  ],
+  "summary": "The implementation is generally well-covered and degrades per-pipeline Airflow failures to unknown status. The main residual risks are operational: noncritical startup validation can block service readiness serially across the registry, task-instance history queries are effectively unbounded within MAX_HISTORY_DAYS, and missing DAGs still trigger the full downstream Airflow call chain.",
+  "verdict": "pass_with_operational_risks",
+  "finding_counts": {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 0
+  },
+  "findings": [
+    {
+      "id": "FF-001",
+      "severity": "high",
+      "confidence": "high",
+      "category": "operational availability",
+      "summary": "Best-effort startup validation can block application readiness for every registered DAG when Airflow is slow or unreachable.",
+      "details": "The FastAPI lifespan awaits _run_startup_validation before yielding the app. That validation loops over registry.pipelines serially and calls list_dag_task_ids for each entry. AirflowClient retries timeouts and 5xx errors by default, so an unreachable Airflow can delay startup by roughly registry_size * 3 * 10 seconds before /api/healthz or any pipeline endpoint becomes available. The comments say validation should never fail startup, but this still makes process readiness depend on a noncritical Airflow drift check.",
+      "anchors": [
+        {
+          "file": "apps/backend/src/airflow_status/main.py",
+          "line": 73,
+          "excerpt": "await _run_startup_validation(resolved_registry, client)"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/main.py",
+          "line": 135,
+          "excerpt": "for entry in registry.pipelines:"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/main.py",
+          "line": 137,
+          "excerpt": "task_ids = await airflow_client.list_dag_task_ids(entry.dag_id)"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 21,
+          "excerpt": "DEFAULT_TIMEOUT_SECONDS = 10.0"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 22,
+          "excerpt": "DEFAULT_MAX_RETRIES = 2"
+        }
+      ],
+      "risk": "A restart during an Airflow incident or with a large registry can leave the backend unavailable even though its health endpoint and stale/cacheable status behavior could otherwise serve users.",
+      "suggested_fix": "Move validation after readiness into a background task, add a startup-validation timeout/concurrency limit, or make validation optional/nonblocking. Cache task lists by dag_id if multiple registry entries share a DAG.",
+      "test_gap": "The integration tests use a fast fake list_dag_task_ids and do not cover slow validation, timeout multiplication, large registries, or health readiness while validation is pending."
+    },
+    {
+      "id": "FF-002",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "performance and upstream load",
+      "summary": "Each refresh fetches and parses all task instances in the history window twice per pipeline.",
+      "details": "get_latest_task_instance and get_latest_successful_task_instance both call _list_task_instances. That helper queries the Airflow batch taskInstances endpoint with only execution_date_gte, then parses every returned row client-side. The code intentionally avoids truncation because the endpoint does not provide server-side ordering or limit, but MAX_HISTORY_DAYS defaults to 30 and permits up to 365. For frequent schedules, one pipeline can return tens or hundreds of thousands of task-instance rows per refresh, twice, every cache TTL.",
+      "anchors": [
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 132,
+          "excerpt": "items = await self._list_task_instances("
+        },
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 141,
+          "excerpt": "items = await self._list_task_instances("
+        },
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 215,
+          "excerpt": "cutoff = (datetime.now(UTC) - timedelta(days=self._max_history_days)).isoformat()"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/utils/airflow_client.py",
+          "line": 235,
+          "excerpt": "raw = response.json().get(\"task_instances\", [])"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/config.py",
+          "line": 33,
+          "excerpt": "max_history_days: int = Field(default=30, ge=1, le=365)"
+        }
+      ],
+      "risk": "A minutely DAG over the default 30-day window can produce around 43k rows per task-instance query; over 365 days it can exceed 500k rows. This can overload Airflow's API/database and create high backend memory/latency spikes during snapshot refreshes.",
+      "suggested_fix": "Use a more bounded retrieval strategy where possible, combine latest and latest-success selection into one history fetch, lower/shape max_history_days by schedule tier, or add explicit hard caps and degraded status when the result set is too large.",
+      "test_gap": "The regression test covers correctness when the newest row is deep in a 201-row response, but there is no test or benchmark for large payload behavior, duplicate history fetches, memory pressure, or warning-to-degradation behavior."
+    },
+    {
+      "id": "FF-003",
+      "severity": "medium",
+      "confidence": "medium",
+      "category": "error handling and upstream load",
+      "summary": "Missing DAGs do not short-circuit the Airflow state resolver, so a known missing DAG still triggers the rest of the call chain.",
+      "details": "resolve_airflow_state calls get_dag first, but even when it returns None the resolver continues through active run, latest task instance, latest successful task instance, recent runs, and freshness states. This can turn a simple 'DAG not found' condition into extra upstream traffic and, depending on Airflow endpoint behavior, a later generic AirflowError that obscures the clearer DAG-missing reason. The current unit test explicitly locks in the non-short-circuit behavior.",
+      "anchors": [
+        {
+          "file": "apps/backend/src/airflow_status/core/airflow_state.py",
+          "line": 44,
+          "excerpt": "dag_info = await airflow_client.get_dag(entry.dag_id)"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/core/airflow_state.py",
+          "line": 45,
+          "excerpt": "active_run = await airflow_client.get_active_dag_run(entry.dag_id)"
+        },
+        {
+          "file": "apps/backend/src/airflow_status/core/airflow_state.py",
+          "line": 46,
+          "excerpt": "latest_ti = await airflow_client.get_latest_task_instance("
+        },
+        {
+          "file": "apps/backend/tests/unit/test_airflow_state.py",
+          "line": 169,
+          "excerpt": "async def test_missing_dag_returns_none_and_does_not_short_circuit() -> None:"
+        },
+        {
+          "file": "apps/backend/tests/unit/test_airflow_state.py",
+          "line": 188,
+          "excerpt": "# All remaining calls must still have been made."
+        }
+      ],
+      "risk": "Registry drift or a deleted DAG can cause avoidable Airflow traffic on every refresh. If downstream endpoints respond differently for missing DAGs, the UI may receive a generic fetch-failed reason instead of the more actionable DAG-not-found status reason.",
+      "suggested_fix": "After get_dag returns None, return a ResolvedAirflowState with dag_info=None and empty downstream fields. Update tests to assert the short-circuit and preserve compute_status_reason's DAG-not-found message.",
+      "test_gap": "Existing tests assert the opposite behavior and do not verify the end-to-end status reason when a real AirflowClient returns None for get_dag but later endpoints fail."
+    }
+  ],
+  "positive_observations": [
+    "Per-pipeline snapshot failures are isolated and converted to unknown status instead of failing the whole snapshot.",
+    "Configuration validates authentication, HTTPS-by-default for non-local Airflow URLs, bounded recent run limits, and bounded history days.",
+    "The cache uses a single-flight lock and retains the previous snapshot after warm-cache refresh failures.",
+    "Tests cover status precedence, config validation, registry validation, cache behavior, Airflow retry behavior, and API response envelopes."
+  ],
+  "verification": {
+    "commands": [
+      {
+        "command": "uv run pytest -q apps/backend/tests -p no:cacheprovider",
+        "working_directory": "/Users/victor-macaubas/Documents/Projects/jw-data-outpost",
+        "result": "failed: pytest executable not found from repository root"
+      },
+      {
+        "command": "uv run pytest -q tests -p no:cacheprovider",
+        "working_directory": "/Users/victor-macaubas/Documents/Projects/jw-data-outpost/apps/backend",
+        "result": "passed: 97 tests passed in 0.66s"
+      }
+    ]
+  },
+  "limitations": [
+    "This was a local static review plus targeted test execution, not a live Airflow integration test.",
+    "No source files outside reviews/ were modified.",
+    "The review did not inspect registry data outside the requested airflow_status source tree and tests.",
+    "Performance risks were reasoned from code paths and configuration bounds; no load test or memory profile was run.",
+    "The code-audit skill and its prescribed artifact format were intentionally not used."
+  ]
+}

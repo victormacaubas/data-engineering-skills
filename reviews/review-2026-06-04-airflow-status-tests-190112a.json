@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.0",
+  "review_id": "review-2026-06-04-airflow-status-tests-190112a",
+  "created_at": "2026-06-04T23:28:24Z",
+  "reviewer": "code-audit skill",
+  "repo": "/Users/victor-macaubas/Documents/Projects/jw-data-outpost",
+  "target": {
+    "mode": "paths",
+    "ref": "main@190112a78597e2d2d96cd157daca5ee92e345a1e",
+    "scope": [
+      "apps/backend/src/airflow_status",
+      "apps/backend/tests"
+    ],
+    "excludes": []
+  },
+  "conventions": "Loaded repo guidance from README.md, CLAUDE.md, apps/backend/README.md, apps/backend/pyproject.toml, active OpenSpec change deepen-airflow-state-seam, relevant OpenSpec backend specs, and the code-audit Python language pack. Backend conventions: FastAPI + uv on Python 3.13, httpx async Airflow client, pydantic-settings Config injected at startup, strict mypy on src, ruff with no print, module-level loggers, dependency flow main -> api -> core -> {models, utils}, frontend never calls Airflow directly, credentials only from env/.env.",
+  "verdict": "approve",
+  "summary": "Deep-reviewed the Airflow status backend package and its tests in paths mode. The new Airflow state resolver preserves the documented v1 call budget and ordering, skips the freshness-state batch call for empty recent runs, and propagates client exceptions back to snapshot-builder isolation. The surrounding cache, API, config, registry, freshness, status, and Airflow client code match the loaded repo/spec conventions closely enough that no actionable findings were confirmed.",
+  "rubric": {
+    "overall": 8.7,
+    "formula": "(9*2.0 + 9*2.0 + 8*1.5 + 9*1.5 + 9*1.0 + 8*1.0) / 9.0 = 8.7",
+    "dimensions": [
+      {
+        "id": "security",
+        "label": "Security",
+        "weight": 2.0,
+        "score": 9,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      {
+        "id": "correctness",
+        "label": "Correctness & Hidden Bugs",
+        "weight": 2.0,
+        "score": 9,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      {
+        "id": "performance",
+        "label": "Performance",
+        "weight": 1.5,
+        "score": 8,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      {
+        "id": "architecture",
+        "label": "Architecture & Design",
+        "weight": 1.5,
+        "score": 9,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      {
+        "id": "error-handling",
+        "label": "Error Handling & Resilience",
+        "weight": 1.0,
+        "score": 9,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      },
+      {
+        "id": "readability",
+        "label": "Readability & Style",
+        "weight": 1.0,
+        "score": 8,
+        "stats": {
+          "critical": 0,
+          "high": 0,
+          "medium": 0,
+          "low": 0
+        }
+      }
+    ]
+  },
+  "stats": {
+    "critical": 0,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "coverage": {
+    "files_in_scope": 38,
+    "deep_reviewed": 38,
+    "skimmed": 0,
+    "skipped": 0,
+    "notes": "Read every tracked Python file under apps/backend/src/airflow_status and apps/backend/tests completely. Also read directly relevant repo guidance, pyproject configuration, active OpenSpec proposal/design/tasks/spec deltas, base backend OpenSpec specs, and local Airflow 2.x endpoint/schema source for the taskInstances/list payload question."
+  },
+  "what_went_well": [
+    "The new core/airflow_state.py seam localizes Airflow call choreography and keeps snapshot_builder focused on projection, failure isolation, and bounded concurrency.",
+    "AirflowClient applies bounded timeouts, retries only transport/timeouts/5xx, uses timezone-aware UTC parsing, and avoids per-run HTTP calls for freshness states.",
+    "Tests cover resolver call ordering, skip-on-empty behavior, exception propagation, snapshot failure isolation, cache single-flight behavior, config validation, registry validation, freshness formatting, status precedence, and API envelopes."
+  ],
+  "suggested_order_of_fixes": [],
+  "notes_limitations": [
+    "No tests, lint, or typecheck commands were run because the user constrained writes to the JSON artifact only; pytest/ruff/mypy may create cache artifacts in the workspace.",
+    "The working tree already had unrelated graphify-out modifications before the artifact write; they were not inspected as part of the requested paths and were left untouched.",
+    "Airflow API payload behavior was checked against local installed Airflow 2.x source plus official documentation search results; no live Airflow 2.9.1 instance was exercised.",
+    "Dependency vulnerability scanning, production deployment hardening, authN/authZ threat modeling, and frontend behavior were outside this paths-mode audit."
+  ],
+  "findings": []
+}
