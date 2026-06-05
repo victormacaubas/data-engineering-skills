@@ -181,7 +181,7 @@ validate_agent_selection() {
 
   if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
     echo "Invalid --agents value: $AGENT_SELECTION" >&2
-    echo "Use all, none, or a comma-separated list such as codebase-explorer,apply-tasks." >&2
+    echo "Use all, none, or a comma-separated list such as codebase-explorer,implementer." >&2
     exit 1
   fi
 
