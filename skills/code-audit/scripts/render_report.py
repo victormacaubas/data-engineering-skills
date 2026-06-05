@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Render a code-review JSON artifact into a human-readable markdown report.
 
 The JSON artifact is canonical; this markdown is a *derived view* and is never
