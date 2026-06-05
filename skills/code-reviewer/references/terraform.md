@@ -4,6 +4,19 @@ Load when the review scope contains `.tf` or `.tfvars` files. This pack sharpens
 
 > IaC remaps the rubric: "Correctness" is dominated by state/drift and resource-replacement hazards, "Performance" is largely N/A (note it and move on), and "Security" carries extra weight because a misconfigured resource is a live exposure, not a latent bug. Detect the provider (aws/gcp/azure) from `provider` blocks and resource prefixes, and adapt examples accordingly.
 
+## Standing audits — run these in paths/whole-config mode, not just on diffs
+
+Many footguns below are phrased as "a change that…". That framing fits a `diff` review, but in a `paths` or `repo` review there is no diff — you audit the configuration **as it stands**. The most-missed Terraform classes hide exactly here, because a property that's simply *absent* never shows up as a "change". Run these as explicit enumerations, tied to Sweep A — judge *every* matching resource, not the first one that catches your eye:
+
+- **Stateful-resource protection.** For every S3 bucket, RDS/Aurora instance, EBS volume, DynamoDB table, EFS, or other stateful resource, confirm each protection is present or flag its absence — independent of any diff:
+  - `lifecycle { prevent_destroy = true }` on anything whose loss is unrecoverable.
+  - Versioning (`aws_s3_bucket_versioning`) and backups (`deletion_protection`, RDS backup retention, snapshots).
+  - Encryption at rest (SSE/KMS) and a public-access block.
+  A stateful bucket carrying none of these is an accidental-`terraform destroy` or fat-fingered-delete away from unrecoverable data loss, in any scope.
+- **S3 per-bucket checklist.** For *each* bucket, walk the whole list: public-access-block, SSE encryption, versioning, an SSL-enforcing bucket policy (`aws:SecureTransport`), and access logging. Catching one bucket's gap and missing the identical gap on the bucket declared 20 lines down is the classic enumeration miss.
+- **Container-image supply chain.** `image_tag_mutability = "MUTABLE"` on a production ECR repo lets a pushed tag be overwritten — a published image can change underneath you (supply-chain + rollback hazard). A `:latest` or otherwise unpinned image tag in an ECS/EKS task definition makes deploys non-reproducible and rollback unreliable; prefer an immutable tag pinned to a digest.
+- **Scoped-resource validation.** A wildcard *action* isn't the only over-broad shape. A *narrow* action on `resources = ["*"]` (e.g. `ecr:InitiateLayerUpload`, `s3:PutObject`) that could be scoped to a specific ARN is still a finding — sweep for `resources = ["*"]` and ask whether each statement could name the resource it actually needs.
+
 ## Idiom & formatter
 
 - `terraform fmt` clean; `terraform validate` / `tflint` / `tfsec`/`checkov` in the toolchain. Snake_case names; one resource concern per module. Variables typed and described; outputs documented.
@@ -22,7 +35,7 @@ Load when the review scope contains `.tf` or `.tfvars` files. This pack sharpens
 
 ## Correctness & Hidden Bugs (×2.0)
 
-- **Destroy/replace hazards:** a change to a `ForceNew` attribute (name, AZ, engine) that silently triggers destroy-and-recreate of a stateful resource (DB, volume) — data loss. Flag any diff that would replace a stateful resource.
+- **Destroy/replace hazards:** a change to a `ForceNew` attribute (name, AZ, engine) that silently triggers destroy-and-recreate of a stateful resource (DB, volume) — data loss. Flag any diff that would replace a stateful resource. In paths/whole-config mode there's no diff to inspect — instead confirm each stateful resource carries the protections in *Standing audits* above (`prevent_destroy`, versioning, backups).
 - **`count` vs `for_each`:** `count` on a list where removing a middle element shifts indices and destroys/recreates the wrong resources; should be `for_each` over a map/set.
 - **Implicit dependencies missing:** resources that need ordering but lack a reference or `depends_on`, causing race/apply failures.
 - **Hardcoded values that drift:** region/account/AMI IDs hardcoded instead of `data` sources or variables; an AMI lookup without owners filter picking an unexpected image.
@@ -67,6 +80,10 @@ prevent_destroy|deletion_protection   # presence on stateful resources
 encryption|encrypted         # check it's enabled, not disabled
 publicly_accessible|public-read        # public exposure
 awslogs-group|log_group_name # referenced log groups — are they declared in scope?
+image_tag_mutability         # MUTABLE on a prod ECR repo — image can be overwritten
+:latest                      # unpinned image tag in a task def — non-reproducible deploys
+versioning                   # check it's enabled on stateful buckets
+resources\s*=\s*\["\*"\]      # action scoped to every resource — could it name an ARN?
 ```
 
 ## Calibration hints
@@ -75,5 +92,9 @@ awslogs-group|log_group_name # referenced log groups — are they declared in sc
 - A change that force-replaces a stateful resource (DB/volume) is **Critical** under Correctness (data-loss risk) — call it out as a ship-blocker even if `terraform plan` output isn't in scope; infer it from the changed attribute.
 - `count` over a list of stateful resources (index-shift destroy hazard) is **High**.
 - `iam:PassRole` on an application/task role, or scoped to `*`/a broad resource, is **High** under Security (escalation path); on a deploy principal scoped to the exact role ARNs it deploys, it's expected — don't flag. A service-level action wildcard (`ecr:*`, `s3:*`) on a named resource is **High**; `"*":"*"` is **Critical**.
-- A referenced-but-undeclared CloudWatch log group is **Medium** under Error Handling (silent logging failure + unbounded-cost / no-retention risk), unless clearly owned by another module (then a Notes item).
+- A referenced-but-undeclared CloudWatch log group is **Medium** under Error Handling (silent logging failure + unbounded-cost / no-retention risk), unless clearly owned by another module (then a Notes item). In a multi-workspace repo (sibling `prod/`, `staging/` directories that each `terraform apply` separately), a by-name reference to a resource declared in another workspace is a normal, established pattern — before flagging it as missing, confirm it's genuinely absent repo-wide; if a sibling workspace plausibly owns it, default to a low-confidence Notes item rather than a finding.
 - Unpinned provider/module versions is **Medium** (reproducibility), **High** if the module is widely consumed.
+- A stateful resource (S3, RDS, EBS, DynamoDB) missing `prevent_destroy` *and* versioning/backups is **High** under Correctness — an accidental delete or `destroy` is unrecoverable. Missing one but not both, or on a non-critical resource, is **Medium**.
+- `image_tag_mutability = "MUTABLE"` on a production ECR repo is **Medium–High** (supply-chain / rollback hazard); a `:latest` or unpinned image tag in a task definition is **Medium** (non-reproducible deploys, unreliable rollback).
+- A narrow action on `resources = ["*"]` that could be scoped to a named ARN (`ecr:InitiateLayerUpload`, `s3:PutObject`) is **Medium** under Security; raise to **High** when the action is mutating and the blast radius is account-wide.
+- Missing SSE encryption or a public-access block on an S3 bucket is **High** under Security (live exposure); missing only versioning is **Medium** under Correctness (recoverability).
