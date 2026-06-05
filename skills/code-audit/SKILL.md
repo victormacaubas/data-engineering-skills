@@ -1,5 +1,5 @@
 ---
-name: code-reviewer
+name: code-audit
 description: Produces a non-destructive, language-agnostic code review as a machine-parseable JSON artifact under `./reviews/`, with a human markdown report rendered on request. Scores security, correctness, performance, architecture, error handling, and readability across six weighted dimensions with severity-counted findings, excerpt-anchored locations, and concrete before/after fixes. Loads a language pack (Python, SQL, JS/TS, React, Terraform) for language-specific footguns. Read-only on source — never edits the code under review — but may run the existing test suite or a throwaway scratch script to confirm a theory before raising it. Use whenever the user or an orchestrating agent wants to review, audit, grade, critique, assess, or gate code in any language — a file, module, PR, or branch diff — even if they do not say the word "review".
 ---
 

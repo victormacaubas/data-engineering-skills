@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a code-review JSON artifact into a human-readable markdown view.
+"""Render a code-review JSON artifact into a human-readable markdown report.
 
 The JSON artifact is canonical; this markdown is a *derived view* and is never
 the source of truth. The script only reads the artifact — it never mutates it.
@@ -26,9 +26,19 @@ from typing import Any
 # Order findings worst-first within each grouping.
 SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
 
+# Canonical dimension order + display labels. Findings are grouped by these.
+DIMENSIONS: list[tuple[str, str]] = [
+    ("security", "Security"),
+    ("correctness", "Correctness & Hidden Bugs"),
+    ("performance", "Performance"),
+    ("architecture", "Architecture & Design"),
+    ("error-handling", "Error Handling & Resilience"),
+    ("readability", "Readability & Style"),
+]
+
 
 def _severity_rank(finding: dict[str, Any]) -> int:
-    return SEVERITY_ORDER.get(finding.get("severity", "low"), 99)
+    return SEVERITY_ORDER.get(str(finding.get("severity", "low")).lower(), 99)
 
 
 def _fmt_target(target: dict[str, Any]) -> str:
@@ -46,20 +56,21 @@ def _render_anchor(finding: dict[str, Any]) -> list[str]:
     antipattern); ``file``/``scope`` live inside ``anchor`` (located/systemic).
     """
     lines: list[str] = []
-    anchor = finding.get("anchor", {})
+    anchor = finding.get("anchor", {}) or {}
     locations = finding.get("locations")
+
+    def _span(hint: Any) -> str:
+        if isinstance(hint, list) and len(hint) == 2:
+            return f":{hint[0]}-{hint[1]}"
+        return ""
 
     if locations:
         occ = finding.get("occurrences", len(locations))
         lines.append(f"- **Occurrences:** {occ} location(s)")
         for loc in locations:
-            hint = loc.get("line_hint")
-            span = f":{hint[0]}-{hint[1]}" if isinstance(hint, list) and len(hint) == 2 else ""
-            lines.append(f"  - `{loc.get('file', '?')}{span}`")
+            lines.append(f"  - `{loc.get('file', '?')}{_span(loc.get('line_hint'))}`")
     elif "file" in anchor:
-        hint = anchor.get("line_hint")
-        span = f":{hint[0]}-{hint[1]}" if isinstance(hint, list) and len(hint) == 2 else ""
-        lines.append(f"- **Where:** `{anchor.get('file', '?')}{span}`")
+        lines.append(f"- **Where:** `{anchor.get('file', '?')}{_span(anchor.get('line_hint'))}`")
         excerpt = anchor.get("excerpt")
         if excerpt:
             lines.append("")
@@ -79,11 +90,12 @@ def _render_finding(finding: dict[str, Any]) -> list[str]:
     lines = [
         f"#### [{finding.get('id', '?')}] {finding.get('title', '(untitled)')} "
         f"— **{sev}** · confidence: {conf}",
-        f"- **Category:** {finding.get('category', '?')}",
     ]
     lines += _render_anchor(finding)
-    lines.append(f"- **Problem:** {finding.get('explanation', '')}")
-    lines.append(f"- **Suggestion:** {finding.get('suggestion', '')}")
+    if finding.get("explanation"):
+        lines.append(f"- **Problem:** {finding['explanation']}")
+    if finding.get("suggestion"):
+        lines.append(f"- **Proposed change:** {finding['suggestion']}")
     if finding.get("acceptance_criteria"):
         lines.append(f"- **Done when:** {finding['acceptance_criteria']}")
     if finding.get("verification"):
@@ -97,10 +109,33 @@ def _render_finding(finding: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _render_rubric(rubric: dict[str, Any]) -> list[str]:
+    lines = ["## Rubric", ""]
+    dims = {d.get("id"): d for d in rubric.get("dimensions", [])}
+    lines.append("| Dimension | Score | Weight | Critical | High | Medium | Low |")
+    lines.append("|---|---|---|---|---|---|---|")
+    for dim_id, label in DIMENSIONS:
+        d = dims.get(dim_id, {})
+        s = d.get("stats", {}) or {}
+        score = d.get("score", "?")
+        weight = d.get("weight", "?")
+        lines.append(
+            f"| {label} | {score}/10 | ×{weight} | "
+            f"{s.get('critical', 0)} | {s.get('high', 0)} | "
+            f"{s.get('medium', 0)} | {s.get('low', 0)} |"
+        )
+    lines.append("")
+    if rubric.get("formula"):
+        lines.append(f"**Weighted formula:** `{rubric['formula']}`")
+        lines.append("")
+    return lines
+
+
 def render(artifact: dict[str, Any]) -> str:
     """Return the full markdown rendering of an artifact."""
     lines: list[str] = []
-    target = artifact.get("target", {})
+    target = artifact.get("target", {}) or {}
+    rubric = artifact.get("rubric", {}) or {}
 
     lines.append(f"# Code Review — {artifact.get('review_id', '(no id)')}")
     lines.append("")
@@ -113,17 +148,23 @@ def render(artifact: dict[str, Any]) -> str:
         lines.append(f"- **Conventions:** {artifact['conventions']}")
     lines.append("")
 
-    stats = artifact.get("stats", {})
+    stats = artifact.get("stats", {}) or {}
     lines.append("## Summary")
     lines.append("")
+    if rubric.get("overall") is not None:
+        lines.append(f"**Overall: {rubric['overall']} / 10** (weighted)")
+        lines.append("")
     lines.append(artifact.get("summary", ""))
     lines.append("")
     lines.append(
-        f"**Findings:** {stats.get('critical', 0)} critical · "
-        f"{stats.get('high', 0)} high · {stats.get('medium', 0)} medium · "
-        f"{stats.get('low', 0)} low"
+        f"**Totals:** {stats.get('critical', 0)} Critical · "
+        f"{stats.get('high', 0)} High · {stats.get('medium', 0)} Medium · "
+        f"{stats.get('low', 0)} Low"
     )
     lines.append("")
+
+    if rubric.get("dimensions"):
+        lines += _render_rubric(rubric)
 
     coverage = artifact.get("coverage")
     if isinstance(coverage, dict):
@@ -139,15 +180,44 @@ def render(artifact: dict[str, Any]) -> str:
             lines.append(f"- {coverage['notes']}")
         lines.append("")
 
-    findings = artifact.get("findings", [])
+    verification = artifact.get("verification") or []
+    if verification:
+        lines.append("## Verification run")
+        lines.append("")
+        for v in verification:
+            confirms = ", ".join(v.get("confirms", [])) if v.get("confirms") else ""
+            suffix = f" → confirms {confirms}" if confirms else ""
+            lines.append(f"- `{v.get('command', '?')}` — {v.get('result', '?')}{suffix}")
+        lines.append("")
+
+    findings = artifact.get("findings", []) or []
     lines.append("## Findings")
     lines.append("")
     if not findings:
         lines.append("_No findings — the reviewed code is clean in scope._")
         lines.append("")
     else:
-        for finding in sorted(findings, key=_severity_rank):
-            lines += _render_finding(finding)
+        by_dim: dict[str, list[dict[str, Any]]] = {}
+        for f in findings:
+            by_dim.setdefault(str(f.get("dimension", "other")), []).append(f)
+        # Known dimensions in canonical order, then any leftovers.
+        seen: set[str] = set()
+        for dim_id, label in DIMENSIONS:
+            group = by_dim.get(dim_id)
+            seen.add(dim_id)
+            if not group:
+                continue
+            lines.append(f"### {label}")
+            lines.append("")
+            for f in sorted(group, key=_severity_rank):
+                lines += _render_finding(f)
+        for dim_id, group in by_dim.items():
+            if dim_id in seen:
+                continue
+            lines.append(f"### {dim_id}")
+            lines.append("")
+            for f in sorted(group, key=_severity_rank):
+                lines += _render_finding(f)
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -157,11 +227,7 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         description="Render a code-review JSON artifact as markdown (read-only)."
     )
     parser.add_argument("artifact", help="Path to the JSON artifact.")
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="Write markdown here instead of stdout.",
-    )
+    parser.add_argument("-o", "--output", help="Write markdown here instead of stdout.")
     return parser.parse_args(argv)
 
 
