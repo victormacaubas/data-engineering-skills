@@ -25,7 +25,7 @@ Custom agent definitions for Claude Code. Each file is a self-contained markdown
 | Agent | Model | Description |
 |-------|-------|-------------|
 | `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
-| `apply-tasks` | `claude-sonnet-4-6[1m]` | Implement an assigned slice of tasks from a plan source (OpenSpec change, inline plan, or file path) — write code and tests, run the project's tooling, and return a structured report. Implementation-only; does not touch the plan's tracking artifact (the orchestrator owns bookkeeping). Read-only on git. Pins `python-engineering-standards`. Designed for parallel spawning across disjoint task slices. |
+| `implementer` | `claude-sonnet-4-6[1m]` | Implements code from a plan, task list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
 
 ## Repository structure
 
@@ -50,6 +50,10 @@ data-engineering-skills/
 │   └── agents.md            # How to author and install agents
 └── openspec/                # Tracked changes (OpenSpec workflow)
 ```
+
+## Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) — used by the `implementer` agent for Python execution. Install with `curl -LsSf https://astral.sh/uv/install.sh | sh` or `brew install uv`.
 
 ## Installation
 
