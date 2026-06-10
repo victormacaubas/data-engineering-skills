@@ -7,7 +7,7 @@ Custom agent definitions for [Claude Code](https://claude.ai/code). Each file is
 | Agent | Model | Description |
 |-------|-------|-------------|
 | `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, direct answers, coverage, confidence, assumptions, and questions. Read-only and designed for parallel spawning across multiple directories or modules. |
-| `implementer` | `claude-sonnet-4-6[1m]` | Implements code from a plan, task list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Does not commit or update plan tracking; the orchestrator owns those. Designed for parallel spawning across disjoint task slices. |
+| `implementer` | `claude-sonnet-4-6[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Does not commit or update plan tracking; the orchestrator owns those. Designed for parallel spawning across disjoint task slices. |
 | `code-reviewer` | `claude-opus-4-6[1m]` | Use to review, audit, grade, critique, or gate code in any language — a file, module, PR, or branch diff — runs the code-audit skill end-to-end and returns the JSON artifact path plus the headline verdict and score. |
 
 ## Installing
