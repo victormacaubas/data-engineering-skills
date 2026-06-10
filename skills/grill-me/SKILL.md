@@ -1,51 +1,36 @@
 ---
 name: grill-me
-description: Pressure-test a raw idea, drafted implementation plan, or active OpenSpec change before work begins. Use when the user asks to be grilled, challenged, stress-tested, or questioned about an idea, plan, proposal, design, spec delta, or OpenSpec change; sharpen value, scope, terminology, trade-offs, requirements, scenarios, and tasks one question at a time, updating OpenSpec artifacts only when an active change exists and the user confirms the decision.
+description: Pressure-test and sharpen any change-shaped idea or artifact before implementation or commitment. Use when the user asks to be grilled, challenged, stress-tested, questioned, or pushed on an idea, proposal, design, spec, task list, ADR, PRD, BRD, plan, or similar artifact; clarify value, scope, terminology, trade-offs, requirements, scenarios, risks, sequencing, testability, and definition of done through a focused conversational critique.
 ---
 
 # Grill Me
 
-Pressure-test plans before implementation by challenging unclear terms, weak trade-offs, missing scenarios, and mismatches between the plan, OpenSpec artifacts, and code.
+Pressure-test a change before the user commits to it. Treat any supplied idea, plan, proposal, design, spec, task list, ADR, PRD, BRD, or similar artifact as material to sharpen through conversation.
 
 ## Start
 
-Determine the mode before asking design questions:
+Build just enough context to challenge the change well:
 
-1. **Active OpenSpec change mode**: Use when the user names an OpenSpec change, the conversation clearly identifies one, or exactly one active change exists. If this mode applies, read `references/openspec-mode.md` for the full workflow.
-2. **Plan conversation mode**: Use when the user has a plan or has just finished a planning session, but there is no active OpenSpec change to update.
-3. **Idea mode**: Use when the user has a raw idea, early concept, or one-sentence change request and wants it challenged before turning it into a plan or OpenSpec change.
+1. Identify the change the user wants to improve.
+2. Read any artifact or file the user explicitly points to.
+3. Inspect surrounding repo or project context only when it can answer a factual question or reveal a contradiction.
+4. Restate the change in one concise sentence if the user's intent is fuzzy.
+5. Ask the first pressure question instead of giving a full review upfront.
 
-If multiple active changes exist and the user did not name one, ask which change to grill. If no active change exists, do not create one from this skill; choose plan conversation mode or idea mode based on how formed the input is, and suggest `openspec-propose` only when the user wants files created.
+Do not create, edit, or route artifacts during a grilling session. If the user asks to turn resolved decisions into file edits, pause the critique loop and use the appropriate editing or planning workflow.
 
-## Plan Conversation Mode
+## Critique Loop
 
-Use this mode when the user wants to be grilled about a plan but there is no active OpenSpec change.
+Keep the session conversational and demanding:
 
-1. Reconstruct the plan from the conversation and any files the user points to.
-2. Ask one question at a time, with a recommended answer.
-3. Inspect the codebase when repository facts can answer the question.
-4. Maintain a conversational artifact mapping:
-   - What belongs in `proposal.md`
-   - What belongs in `design.md`
-   - What belongs in `specs/<capability>/spec.md`
-   - What belongs in `tasks.md`
-5. Do not create or update OpenSpec files in this mode unless the user explicitly asks to turn the plan into a change.
-
-## Idea Mode
-
-Use this mode when the user has a raw idea but not yet a plan.
-
-1. Restate the idea in one sentence before challenging it.
-2. Ask one question at a time, with a recommended answer.
-3. Focus on whether the idea is coherent, valuable, scoped, and worth turning into an OpenSpec change.
-4. Inspect the codebase or existing specs when they can reveal whether the idea already exists, conflicts with current behavior, or affects a known capability.
-5. Maintain a conversational change seed:
-   - Possible change name
-   - Proposal seed: problem, motivation, scope, non-goals, and impact
-   - Open design questions
-   - Likely affected specs or capabilities
-   - Reasons not to proceed yet
-6. Do not create or update OpenSpec files in this mode unless the user explicitly asks to convert the idea into a change.
+- Ask one direct question at a time.
+- Ask for decisions, not essays.
+- Do not provide a recommended answer by default. The user should supply the answer.
+- Do not offer multiple-choice options unless the user asks for them or the decision space is otherwise hard to see.
+- Explain why a question matters when the trade-off is not obvious.
+- Prefer concrete scenarios over abstract debate.
+- Use discovered project facts to challenge claims instead of asking the user to restate facts available in the repo.
+- Track resolved decisions, assumptions, and remaining structural concerns conversationally.
 
 ## Question Style
 
@@ -63,17 +48,18 @@ Be direct and specific:
 - Challenge prior attempts: "Has anyone tried solving this differently before? Why didn't it hold?"
 - Challenge implicit dependencies: "This assumes the auth service responds in under 100ms. Is that guaranteed, and what happens when it isn't?"
 - Challenge naming consistency: "This uses 'pipeline' here but 'job' in the existing spec. Are these the same concept?"
-
-Ask for decisions, not essays. When the user accepts the recommendation, make the smallest artifact update that preserves the decision.
+- Challenge artifact quality: "This task list names work, but not acceptance signals. What outcome proves each task is done?"
+- Challenge business fit: "What decision will this PRD let the business make that it cannot make today?"
 
 ## Convergence
 
-After 6-8 questions without surfacing a new structural concern, shift from divergent questioning to convergent summary:
+Continue while each question exposes structural uncertainty. Converge when the next questions would only polish wording, fill minor detail, or repeat already-settled trade-offs.
 
-- Offer a one-paragraph summary of resolved decisions and any known risks or assumptions.
+- There is no fixed question limit. A session may take many questions if each one is still exposing a real structural issue.
+- Offer a concise digest of resolved decisions, known risks, assumptions, and the next best action.
 - Distinguish explicitly between remaining structural concerns (which block coherent implementation) and clarification questions (which can be deferred).
 - Say "I have no remaining structural concerns" when that is true. Do not manufacture more questions to fill space.
-- If the user has resolved all major branches, propose a concrete next step: start implementing, run `openspec-propose` to create a change, or name what to do first.
+- If the change is not ready, name the smallest unresolved branch that still blocks it.
 
 Do not summarize prematurely. If a new structural concern arises mid-summary, surface it before closing.
 
@@ -83,13 +69,12 @@ When the user pushes back on a question:
 
 - "Out of scope" or "not now" — accept it. If the dismissed point is a genuine risk, note it as a known assumption once, then move on. Do not return to it.
 - "I don't care" about a structural decision — push once with a concrete scenario showing why the choice has consequences. If the user still dismisses it, accept their position and move on.
-- New information that contradicts a prior recommendation — update your model. Do not defend the original recommendation.
+- New information that contradicts a prior challenge — update your model. Do not defend the original framing.
 - Never repeat a question the user has already dismissed, even in different framing.
 
 ## Out Of Scope
 
-- Do not create standalone ADRs.
-- Do not create new OpenSpec changes.
+- Do not create or edit the artifact being grilled.
 - Do not implement code changes.
-- Do not replace `openspec-propose`, `openspec-apply-change`, or `openspec-archive-change`.
-- Do not update archived OpenSpec artifacts unless the user explicitly asks for historical correction.
+- Do not turn the session into a broad review dump; keep pressure on one unresolved branch at a time.
+- Do not score the artifact unless the user asks for a verdict or readiness rating.
