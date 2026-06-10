@@ -10,9 +10,9 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 
 | Skill | Description |
 |-------|-------------|
-| `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./reviews/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform, Bash). Works reliably in subagent contexts. |
+| `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./reviews/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
-| `grill-me` | Pressure-test raw ideas, drafted plans, and OpenSpec changes before implementation, sharpening scope, trade-offs, scenarios, specs, and tasks. |
+| `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
 | `jira-ticket` | Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
@@ -25,7 +25,7 @@ Custom agent definitions for Claude Code. Each file is a self-contained markdown
 | Agent | Model | Description |
 |-------|-------|-------------|
 | `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
-| `implementer` | `claude-sonnet-4-6[1m]` | Implements code from a plan, task list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
+| `implementer` | `claude-sonnet-4-6[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
 | `code-reviewer` | `claude-opus-4-6[1m]` | Runs the `code-audit` skill against a diff, path, or whole repo and writes a machine-parseable JSON review artifact to `./reviews/`. Returns a thin receipt — artifact path, verdict, score, and blocking findings — rather than the full report. Read-only on the source under review. |
 
 ## Repository structure
@@ -58,7 +58,14 @@ data-engineering-skills/
 
 ## Installation
 
-Run the unified installer:
+Clone the repo and enter the project directory:
+
+```bash
+git clone https://github.com/victormacaubas/data-engineering-skills.git
+cd data-engineering-skills
+```
+
+Then run the unified installer:
 
 ```bash
 ./scripts/install.sh
