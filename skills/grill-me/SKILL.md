@@ -13,11 +13,11 @@ Build just enough context to challenge the change well:
 
 1. Identify the change the user wants to improve.
 2. Read any artifact or file the user explicitly points to.
-3. Inspect surrounding repo or project context only when it can answer a factual question or reveal a contradiction.
+3. Inspect surrounding repo or project context only when it can answer a factual question or reveal a contradiction. If a `CONTEXT.md` glossary exists, read it — you'll use it to challenge terminology against the project's established language.
 4. Restate the change in one concise sentence if the user's intent is fuzzy.
 5. Ask the first pressure question instead of giving a full review upfront.
 
-Do not create, edit, or route artifacts during a grilling session. If the user asks to turn resolved decisions into file edits, pause the critique loop and use the appropriate editing or planning workflow.
+Keep the critique loop read-only: do not create, edit, or route artifacts while questioning. Capturing the outcome as an ADR is a sanctioned capstone *after* convergence, with the user's go-ahead — see "Capturing the Outcome." For anything beyond that (turning decisions into code or spec edits), pause the loop and use the appropriate editing or planning workflow.
 
 ## Critique Loop
 
@@ -48,6 +48,7 @@ Be direct and specific:
 - Challenge prior attempts: "Has anyone tried solving this differently before? Why didn't it hold?"
 - Challenge implicit dependencies: "This assumes the auth service responds in under 100ms. Is that guaranteed, and what happens when it isn't?"
 - Challenge naming consistency: "This uses 'pipeline' here but 'job' in the existing spec. Are these the same concept?"
+- Challenge against the glossary: "Your `CONTEXT.md` defines 'cancellation' as a full-order action, but you're using it for a single line item. Which is it?"
 - Challenge artifact quality: "This task list names work, but not acceptance signals. What outcome proves each task is done?"
 - Challenge business fit: "What decision will this PRD let the business make that it cannot make today?"
 
@@ -63,6 +64,22 @@ Continue while each question exposes structural uncertainty. Converge when the n
 
 Do not summarize prematurely. If a new structural concern arises mid-summary, surface it before closing.
 
+## Capturing the Outcome
+
+The loop produces decisions; some are worth recording. Once you have converged — not before — consider whether the session resolved a decision that earns an Architectural Decision Record (ADR).
+
+Offer an ADR only when all three hold:
+
+1. **Hard to reverse** — changing course later carries real cost.
+2. **Surprising without context** — a future reader will ask "why this way?"
+3. **The product of a real trade-off** — genuine alternatives existed and one was chosen for specific reasons.
+
+If any is missing, skip it. An easy-to-reverse decision will just be reversed; an unsurprising one needs no explanation; a decision with no alternative records nothing. Offering an ADR every session trains the user to ignore the offer — reserve it for decisions that will actually puzzle someone later.
+
+When the test holds, offer once: "This decision is worth recording as an ADR — want me to capture it?" Do not write it unprompted. The loop stays read-only until the user accepts.
+
+On acceptance, write the ADR following [adr-format.md](./references/adr-format.md). Write it to the project's ADR home when one exists or clearly belongs; when you are grilling a loose idea with no project around it, present the ADR inline and offer to place it. The format file covers both paths.
+
 ## Handling Pushback
 
 When the user pushes back on a question:
@@ -74,7 +91,7 @@ When the user pushes back on a question:
 
 ## Out Of Scope
 
-- Do not create or edit the artifact being grilled.
+- Do not create or edit the artifact being grilled. (The optional ADR capstone is a new record of the session's outcome — not an edit to the grilled artifact — and only with the user's go-ahead.)
 - Do not implement code changes.
 - Do not turn the session into a broad review dump; keep pressure on one unresolved branch at a time.
 - Do not score the artifact unless the user asks for a verdict or readiness rating.
