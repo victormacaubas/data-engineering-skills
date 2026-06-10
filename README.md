@@ -12,7 +12,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 |-------|-------------|
 | `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./reviews/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
-| `grill-me` | Pressure-test raw ideas, drafted plans, and OpenSpec changes before implementation, sharpening scope, trade-offs, scenarios, specs, and tasks. |
+| `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
 | `jira-ticket` | Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
@@ -58,7 +58,14 @@ data-engineering-skills/
 
 ## Installation
 
-Run the unified installer:
+Clone the repo and enter the project directory:
+
+```bash
+git clone https://github.com/victormacaubas/data-engineering-skills.git
+cd data-engineering-skills
+```
+
+Then run the unified installer:
 
 ```bash
 ./scripts/install.sh
