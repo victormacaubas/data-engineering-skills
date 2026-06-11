@@ -1,9 +1,9 @@
 ---
-name: jira-ticket
-description: Write Jira tickets and comments in plain, human-sounding language via the Atlassian MCP. Use when the user wants to create a ticket ("file a ticket", "open an issue", "track this as a task") OR respond to an existing ticket ("respond to PROJ-123", "update the ticket", "comment on this", "post a status update"). Also use after finishing work that needs reporting on a ticket. Asks the user which project to use if not specified.
+name: write-ticket
+description: Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. Use when the user wants to create a ticket ("file a ticket", "open an issue", "track this as a task") OR respond to an existing ticket ("respond to PROJ-123", "update the ticket", "comment on this", "post a status update"). Also use after finishing work that needs reporting on a ticket. Asks the user which project to use if not specified.
 ---
 
-# Jira Ticket
+# Write Ticket
 
 Your job is to help the user write things in Jira that read like a teammate wrote them, not a language model. That means both creating new tickets and posting comments on existing ones. Same voice, same care, two different actions.
 
@@ -183,6 +183,18 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 
 **Opening with a greeting when the thread doesn't use them.** If the rest of the thread is "ok thanks" and "pushed the fix", don't open yours with "Hi team, I wanted to follow up regarding...". Match the thread.
 
+**Forced groups of three.** Bundling things into a tidy triple ("faster, cleaner, and more reliable") to sound thorough is a strong tell. Real updates rarely have exactly three of everything. Say the number of things you actually mean, even if that's one or two.
+
+**Dressed-up "is".** "The job serves as the entry point", "this stands as the root cause", "the script functions as a wrapper". Just write "is" or "does". Dodging the plain verb is one of the most recognizable AI habits.
+
+**Negative parallelism and tail negations.** "It's not just a retry bug, it's a config problem", or clipped fragments tacked on the end like "fixed it, no guesswork". Write the plain clause: "The retry bug was actually a config problem" / "Fixed it so you don't have to guess".
+
+**`-ing` clauses that fake depth.** "Reverted the change, ensuring stability and improving reliability." The trailing participle adds words, not information. Cut it, or replace it with a specific fact: "Reverted the change. The nightly run passed clean afterward."
+
+**Significance inflation.** "This plays a crucial role in the pipeline", "this underscores the importance of monitoring". Say what the thing does, not how important it is. The reader can judge importance themselves.
+
+**Cutting-through-noise phrases.** "The real question is...", "at its core...", "what really matters here is...". They promise a deep insight and then usually restate the obvious with extra ceremony. Drop the windup and say the point.
+
 ### Things to do
 
 - Use contractions (`don't`, `we'll`, `can't`, `lmk`). They read naturally.
@@ -191,6 +203,7 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 - Admit uncertainty when it's real. "Not sure if this fully fixes it, but it clears the symptom we were seeing" is fine.
 - Match the tone of the thread. If prior comments are casual, stay casual. If the ticket has a PM or external stakeholder asking formally, lift slightly but don't go corporate.
 - Use second person or first person plural naturally. "We need to" or "You'll hit this when".
+- **Do a quick self-audit before showing the draft.** Reread it once and ask yourself: "what here would give away that a model wrote it?" Then fix those specific spots. It takes seconds and catches the tells that slip through while you're focused on getting the facts right.
 
 ### Before/after examples
 
