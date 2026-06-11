@@ -1,11 +1,11 @@
 ---
 name: code-audit
-description: Produces a non-destructive, language-agnostic code review as a machine-parseable JSON artifact under `./reviews/`, with a human markdown report rendered on request. Scores security, correctness, performance, architecture, error handling, and readability across six weighted dimensions with severity-counted findings, excerpt-anchored locations, and concrete before/after fixes. Loads a language pack (Python, SQL, JS/TS, React, Terraform) for language-specific footguns. Read-only on source — never edits the code under review — but may run the existing test suite or a throwaway scratch script to confirm a theory before raising it. Use whenever the user or an orchestrating agent wants to review, audit, grade, critique, assess, or gate code in any language — a file, module, PR, or branch diff — even if they do not say the word "review".
+description: Produces a non-destructive, language-agnostic code review as a machine-parseable JSON artifact under `./.code-audit/`, with a human markdown report rendered on request. Scores security, correctness, performance, architecture, error handling, and readability across six weighted dimensions with severity-counted findings, excerpt-anchored locations, and concrete before/after fixes. Loads a language pack (Python, SQL, JS/TS, React, Terraform) for language-specific footguns. Read-only on source — never edits the code under review — but may run the existing test suite or a throwaway scratch script to confirm a theory before raising it. Use whenever the user or an orchestrating agent wants to review, audit, grade, critique, assess, or gate code in any language — a file, module, PR, or branch diff — even if they do not say the word "review".
 ---
 
 # Code Reviewer
 
-Act as a thoughtful senior reviewer doing a PR review. Read the code, find the real issues, and emit a structured review. **This skill is read-only with respect to source files** — it never edits the code under review. The only files it writes are the review artifact under `./reviews/` and, on request, a rendered markdown view.
+Act as a thoughtful senior reviewer doing a PR review. Read the code, find the real issues, and emit a structured review. **This skill is read-only with respect to source files** — it never edits the code under review. The only files it writes are the review artifact under `./.code-audit/` and, on request, a rendered markdown view.
 
 The guiding principle: every finding cites a specific location, names the violated principle ("bare catch-all in a production path", "missing types on a public API", "unbounded read of user-supplied data"), and proposes a concrete before/after fix. A downstream reader — human or agent — should be able to turn the finding into a code change without further interpretation.
 
@@ -169,9 +169,9 @@ A clean module deserves a short artifact with high scores and few findings; neve
 
 ## Step 5: Write the artifact
 
-Finish the prose review first (both sweeps, all six dimensions scored, every finding's failure story narrated). *Then* serialize. Write to `reviews/<review_id>.json` under the **current working directory** — the project root you were launched in. Resolve it as `reviews/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates parent directories automatically, so just write the file — do **not** `mkdir reviews/` first (a Bash `mkdir` is often denied in a restricted harness, and a failed `mkdir` can wrongly look like "I can't write here").
+Finish the prose review first (both sweeps, all six dimensions scored, every finding's failure story narrated). *Then* serialize. Write to `.code-audit/<review_id>.json` under the **current working directory** — the project root you were launched in. Resolve it as `.code-audit/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates parent directories automatically, so just write the file — do **not** `mkdir .code-audit/` first (a Bash `mkdir` is often denied in a restricted harness, and a failed `mkdir` can wrongly look like "I can't write here").
 
-If writing is blocked: first try `code-review.json` at the working-directory root; if *all* file writes are denied by the environment, emit the complete JSON inline in your final message (and say that writing was denied) so the artifact is never lost. The proper fix for a denied write is granting the environment a `Write(reviews/**)` permission — note that in your reply.
+If writing is blocked: first try `code-review.json` at the working-directory root; if *all* file writes are denied by the environment, emit the complete JSON inline in your final message (and say that writing was denied) so the artifact is never lost. The proper fix for a denied write is granting the environment a `Write(.code-audit/**)` permission — note that in your reply.
 
 `review_id = <YYYY-MM-DD>-<scope-slug>-<short-sha>`. `<scope-slug>`: a file's basename without extension, a directory's name, or `pr-<branch>` for a diff. Include a short SHA from `git rev-parse --short HEAD` when in a git repo (mark `dirty` if the tree is dirty). Use UTC for `created_at`.
 
@@ -264,7 +264,7 @@ Finding field rules:
 The JSON is canonical and is what you write by default. Render markdown only when the user asks for a human report. Don't build it speculatively — that's wasted work for an orchestrator consumer that only reads JSON.
 
 ```bash
-uv run python <skill-dir>/scripts/render_report.py ./reviews/<review_id>.json -o ./reviews/<review_id>.md
+uv run python <skill-dir>/scripts/render_report.py ./.code-audit/<review_id>.json -o ./.code-audit/<review_id>.md
 ```
 
 ## Handoff contract
@@ -321,6 +321,6 @@ The finding is the atomic unit. Each must stand alone for a downstream consumer.
 
 - **"Just the score"** — still write the full JSON artifact; in your reply, paste the rubric (overall + six dimension scores).
 - **"Review only security / only correctness / just the bug scan"** — run the full review but populate only the requested dimension's findings; mark the others `"not reviewed in this pass"` in the summary and leave their `stats` zero with a note.
-- **"Compare against last review"** — find the most recent artifact for this scope in `./reviews/`, reconcile by `anchor.excerpt` + `dimension`, and add a "since last review" note in the summary (resolved / still-open / new).
+- **"Compare against last review"** — find the most recent artifact for this scope in `./.code-audit/`, reconcile by `anchor.excerpt` + `dimension`, and add a "since last review" note in the summary (resolved / still-open / new).
 - **"Give me the markdown"** — render it from the JSON via `scripts/render_report.py`.
 - **"Apply the fixes"** — decline politely; this skill is review-only. Offer to hand the findings over for a separate coding turn.

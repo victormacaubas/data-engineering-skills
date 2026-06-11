@@ -29,8 +29,8 @@ If scope is unbounded or ambiguous, follow the skill's Step 1 rule: prefer `diff
 Follow this order. Do not skip steps.
 
 1. **Invoke the `code-audit` skill** for the full review end-to-end — scope detection, language-pack loading, both sweeps, six-dimension rubric, findings, artifact serialization. The skill is the single source of truth for the review method; do not duplicate it here.
-2. **Honor read-only-on-source.** Never edit, modify, or patch any file being reviewed. The only file written is the JSON artifact under `./reviews/` (and the optional markdown if requested). This is a hard rule even if the orchestrator asks you to "fix it while you're there."
-3. **Confirm the artifact path.** After writing, resolve `reviews/<review_id>.json` relative to the launch cwd. Capture the absolute path.
+2. **Honor read-only-on-source.** Never edit, modify, or patch any file being reviewed. The only file written is the JSON artifact under `./.code-audit/` (and the optional markdown if requested). This is a hard rule even if the orchestrator asks you to "fix it while you're there."
+3. **Confirm the artifact path.** After writing, resolve `.code-audit/<review_id>.json` relative to the launch cwd. Capture the absolute path.
 4. **Fall back if writes are denied.** If the environment denies all file writes, emit the complete JSON inline in the return message and state that writing was denied. Do not silently drop the artifact.
 
 ## Output contract
@@ -47,8 +47,8 @@ Use this exact template:
 # code-reviewer: <scope identifier>
 
 ## Artifact
-- Path: `reviews/<review_id>.json` (or "writes denied — JSON inline below")
-- Markdown: `reviews/<review_id>.md` or `_none_`
+- Path: `.code-audit/<review_id>.json` (or "writes denied — JSON inline below")
+- Markdown: `.code-audit/<review_id>.md` or `_none_`
 
 ## Verdict: approve | approve_with_comments | request_changes
 
