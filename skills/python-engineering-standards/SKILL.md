@@ -1,6 +1,6 @@
 ---
 name: python-engineering-standards
-description: Canonical Python coding standards for production code — services, CLIs, pipelines, libraries, ETL jobs, and internal tooling. Use when writing, reviewing, or refactoring any Python beyond a throwaway snippet. Covers layout, typing, config, logging, error handling, retries, concurrency, testing, and packaging. Domain-specific Python skills (e.g., python-data-analysis) build on top of it.
+description: Canonical Python coding standards for production code — services, CLIs, pipelines, libraries, ETL jobs, and internal tooling. Use when writing, reviewing, or refactoring any Python beyond a throwaway snippet. Covers layout, typing, config, logging, error handling, retries, concurrency, security, testing, tooling, and packaging. Domain-specific Python skills (e.g., python-data-analysis) build on top of it.
 ---
 
 # Python Engineering Standards
@@ -13,16 +13,23 @@ The guiding principle: **write code that another engineer can read, test, and re
 
 Start by reading the repo in front of you: `pyproject.toml`, Ruff/Black/mypy settings, supported Python version, package layout, and the dominant local conventions. Explicit, coherent project configuration wins. Use this skill for decisions the repo has not already made; when local code is inconsistent, align with the safest checked-in pattern before introducing a new one.
 
-## Operational concerns (in references/)
+If there's no tooling config to read — a fresh repo, or you're scaffolding one — read `references/tooling.md` for the baseline `pyproject.toml` toolchain before writing one from memory. That's the one case where this skill, not the repo, is the source of truth for tooling.
 
-For patterns specific to running Python code in production — CLI entrypoints, layered configuration, secrets handling, observability for long-running jobs, pipeline idempotency, streaming I/O, and packaging for distribution — read `references/operational.md` when the task touches any of them. The content stays out of context for pure library/algorithm work.
+## Reference files
+
+The deeper material lives in `references/`. Read the file whose territory the task touches; skip the rest so they stay out of context.
+
+- `references/operational.md` — running code in production: CLI entrypoints and exit codes, layered configuration, secrets lifecycle, observability for long-running jobs (correlation/run ids, health checks, metrics, heartbeats, alerting), making a pipeline idempotent or re-runnable (skip-if-exists, deterministic keys, manifests), streaming I/O, and packaging for distribution (lockfiles, console scripts, dependency auditing). Several of these topics have no section in this file — this reference is their only home, so reach for it whenever a task is about *running* a job rather than *writing* one.
+- `references/concurrency.md` — threads vs. processes vs. asyncio, synchronization, bounded queues, cancellation, graceful shutdown. Read before writing any parallel code.
+- `references/security.md` — the full security standard: credential handling, SQL, file permissions, path handling, API endpoints. The non-negotiable floor is in the Security section below.
+- `references/tooling.md` — baseline `pyproject.toml` toolchain (uv, Ruff, mypy, pytest, pre-commit). For new projects or repos with no checked-in tooling config; existing repo config wins.
 
 ## Style
 
 - PEP 8. 4-space indents, `snake_case` for functions/variables, `PascalCase` for classes, `UPPER_SNAKE_CASE` for module-level constants, 88-char lines (Black-compatible).
 - f-strings for constructing strings — except in **log calls**, where `%s`-style is required (lazy formatting; skipped when the level is filtered out).
 - No magic numbers. If a value has meaning, name it: `DEFAULT_PART_SIZE_BYTES = 128 * 1024 * 1024`, not `128 * 1024 * 1024` scattered through the code.
-- `from __future__ import annotations` is useful in modules with heavy type hints, forward references, or support for Python < 3.10 — it makes hints lazy and keeps runtime cheap. On 3.10+ with native `X | Y` syntax it earns its keep less often. Add it where it helps; skip it where it doesn't.
+- `from __future__ import annotations` is useful in modules with heavy type hints, forward references, or support for Python < 3.10 — it makes hints lazy and keeps runtime cheap. On 3.10+ with native `X | Y` syntax there's less need for it. Add it where it helps; skip it where it doesn't.
 - Imports in three groups, separated by a blank line and sorted alphabetically within each: stdlib, third-party, local. Never `from x import *`.
 - Prefer `pathlib.Path` over string concatenation and `os.path.join`. `Path("/data") / pipeline_name / "raw"` is safer and reads like what it does.
 
@@ -36,7 +43,7 @@ Documentation depth should scale with API surface — what a reader *outside* th
 
 **Private helpers** usually get by on clear naming. Add a docstring or comment only when there's something a reader wouldn't guess — an invariant the function assumes, a workaround for a specific bug, a performance-sensitive choice.
 
-**Module-level docstrings should earn their keep.** Skip perfunctory file summaries that just restate the filename. Keep a module docstring when it explains public API shape, package-level contracts, unusual import behavior, or context a caller needs before using the module. If the context is broader than one module, put it in the README or a design doc instead.
+**Module docstrings need a reason to exist.** Skip perfunctory file summaries that just restate the filename. Keep a module docstring when it explains public API shape, package-level contracts, unusual import behavior, or context a caller needs before using the module. If the context is broader than one module, put it in the README or a design doc instead.
 
 When you do write a docstring, pick a style (Google or NumPy) and use it consistently within a project. Include args, returns, and raised exceptions only when they're part of what callers need to handle:
 
@@ -93,6 +100,8 @@ class ObjectStore(Protocol):
 
 Split by responsibility. A well-organized package has a shape like:
 
+For what goes *inside* the entrypoint — argparse wiring, config layering, secrets, exit codes, dryrun flags — read `references/operational.md` when the task involves a runnable job, CLI, or service rather than a pure library.
+
 ```
 package/
 ├── main.py              # CLI entrypoint. argparse, wire dependencies, call runner. Nothing else.
@@ -115,13 +124,24 @@ Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.p
 
 **`__init__.py` stays thin.** Export what the package offers, don't execute work on import. Heavy computation at import time turns every CLI startup into a tax.
 
-## SOLID Applied
+## Design Principles
+
+SOLID, applied:
 
 - **Single Responsibility** — one function does one thing, one class owns one concern. A `DataLoader` does not also validate schemas.
 - **Open/Closed** — extend behavior through composition, new subclasses, or strategy callables rather than modifying working code.
 - **Liskov Substitution** — subtypes must be drop-in replacements. If a function accepts `BaseTransformer`, any subclass must honor its contract without surprises.
 - **Interface Segregation** — prefer small, focused protocols over fat interfaces. A consumer that only reads should not depend on an interface that also writes.
 - **Dependency Inversion** — depend on abstractions, not concretions. Pass dependencies (DB connections, S3 clients, file readers) into the consumer rather than constructing them inside.
+
+And the broader habits:
+
+- **DRY** — extract repeated logic to shared functions or constants.
+- **YAGNI** — no speculative abstractions. Add complexity when a concrete requirement demands it, not before.
+- **Fail fast** — assert invariants at boundaries so bugs surface close to their cause, not three layers down.
+- **Prefer immutability** — return new objects from transforms; avoid in-place mutation. Especially important for shared config, DataFrames, and anything passed between threads.
+- **Explicit over implicit** — name your constants, type-hint your functions, keyword your arguments, raise your specific exceptions.
+- **Trust framework guarantees** — don't validate what the type system or framework already enforces. Validate at system boundaries (user input, external APIs), not between internal functions.
 
 ## Dependency Injection & Testability
 
@@ -245,7 +265,7 @@ def retryable_call(
 
 ### Broad `except Exception` at isolation boundaries
 
-Broad catches don't belong scattered through ordinary code, but they earn their keep at **isolation boundaries** — places where one unit's failure shouldn't abort a larger run. Processing 10,000 records, refreshing 50 pipelines, serving the next request after the last one raised: these are all boundaries where `except Exception` is the right tool.
+Broad catches don't belong scattered through ordinary code. Their place is at **isolation boundaries** — places where one unit's failure shouldn't abort a larger run. Processing 10,000 records, refreshing 50 pipelines, serving the next request after the last one raised: these are all boundaries where `except Exception` is the right tool.
 
 ```python
 results: dict[str, str] = {}
@@ -286,7 +306,7 @@ def ephemeral_keyring(base: Path) -> Iterator[Path]:
         shutil.rmtree(home, ignore_errors=True)
 ```
 
-Why it matters: `finally` blocks are easy to forget after three levels of nested exceptions. A context manager makes cleanup impossible to skip, regardless of which exception or early return fires.
+`finally` blocks are easy to forget after three levels of nested exceptions. A context manager makes cleanup impossible to skip, regardless of which exception or early return fires.
 
 For **multi-resource cleanup** (abort this multipart upload, close that connection, remove that temp dir), use `contextlib.ExitStack`:
 
@@ -316,26 +336,14 @@ Quick rules:
 - Bound your queues. An unbounded work queue fills memory until the process dies; `queue.Queue(maxsize=N)` is a two-line fix.
 - Graceful shutdown for long-running processes: handle `SIGTERM`, drain in-flight work, exit cleanly.
 
-## Streaming & Production Packaging
-
-For unbounded files, user uploads, S3 objects, API responses, or subprocess pipes, stream instead of buffering the whole payload. For production CLIs, jobs, services, and distributed packages, read `references/operational.md`; it is the source of truth for runtime configuration, secrets, observability, idempotency, streaming details, and packaging.
-
 ## Performance
 
 - Measure before optimizing. `cProfile`, `timeit`, `line_profiler`. Assumptions about where time goes are usually wrong.
 - `set` for membership, generators for large iterations, lazy evaluation where possible.
 - Avoid N+1 patterns: a single bulk `list` + in-memory filter beats N individual `HEAD`s or `GET`s.
+- Stream unbounded inputs — large files, user uploads, S3 objects, API responses, subprocess pipes — instead of buffering the whole payload. Streaming details are in `references/operational.md`.
 
-## Good Programming Practices
-
-- **DRY** — extract repeated logic to shared functions or constants. Duplication rots.
-- **YAGNI** — no speculative abstractions. Three similar lines beats a premature base class. Add complexity when a concrete requirement demands it, not before.
-- **Fail fast** — assert invariants at boundaries so bugs surface close to their cause, not three layers down.
-- **Immutability preference** — return new objects from transforms; avoid in-place mutation. Especially important for shared config, DataFrames, and anything passed between threads.
-- **Explicit over implicit** — name your constants, type-hint your functions, keyword your arguments, raise your specific exceptions.
-- **Trust framework guarantees** — don't validate what the type system or framework already enforces. Validate at system boundaries (user input, external APIs), not between internal functions.
-
-### Python-Specific Footguns
+## Python-Specific Footguns
 
 - **Never use mutable default arguments.** `def f(items=[])` shares that list across every call. Use `None` and assign inside:
 
@@ -352,41 +360,15 @@ For unbounded files, user uploads, S3 objects, API responses, or subprocess pipe
 
 ## Security
 
-- **Use `SecretStr` for any credential field.** Pydantic's `SecretStr` helps mask accidental exposure in `repr()`, `str()`, and serialization (exact JSON behavior varies by Pydantic version and serialization options). The value is only accessible via `.get_secret_value()` — an explicit, auditable call. `SecretStr` reduces accidental leaks but is not a security boundary: once you call `.get_secret_value()`, pass the result to a library, include it in an exception, or serialize it manually, it can still leak. If you're not using pydantic, wrap secrets in a type that hides them from `__repr__` and `__str__`.
+The floor, in every codebase:
 
-```python
-from pydantic import BaseModel, SecretStr
+- **Parameterized queries only.** Never f-string or `.format()` external input into SQL.
+- **No secrets in logs, CLI args, or URLs.** Use Pydantic's `SecretStr` (or an equivalent repr-hiding wrapper) for credential fields.
+- **Never `pickle.load()`, `eval()`, or `exec()` on untrusted input.** Use `yaml.safe_load()`, not `yaml.load()`.
+- **No `shell=True`.** Pass subprocess arguments as a list: `subprocess.run(["ls", "-la", path])`.
+- **TLS verification stays on.** Never `verify=False` in requests/httpx.
 
-class AirflowConfig(BaseModel):
-    host: str
-    airflow_password: SecretStr
-    airflow_token: SecretStr
-```
-
-- **No secrets in logs.** Not even at DEBUG. If you're logging a config object, `SecretStr` handles it — but also avoid logging raw request/response bodies from auth endpoints, connection strings, or headers that carry tokens. Configure request logging to redact `Authorization`, cookies, and sensitive headers — don't assume your framework does this by default.
-- **Parameterized queries only.** Never f-string or `.format()` user/external input into SQL. Every database driver supports parameterized queries — use them. Note: parameters work for *values*, not SQL identifiers (table/column names). Dynamic identifiers should come from an allowlist, never from user input directly.
-- **Prefer secret stores for production; env vars as a minimum.** CLI args are visible in `ps aux` and shell history — never use them for secrets. Environment variables are better but still leak through child processes, crash dumps, and misconfigured logging. For production systems, use Secrets Manager, Parameter Store, or Vault.
-- **Create files with restrictive permissions from the start.** Don't create a file and then `chmod` — there's a window where it's world-readable. `O_EXCL` avoids accidentally replacing an existing file:
-
-```python
-fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-with os.fdopen(fd, "w") as file:
-    file.write(secret)
-```
-- **TLS with certificate verification.** Use HTTPS for all network calls, even internal. Never set `verify=False` in requests/httpx — it disables certificate validation entirely, making the connection vulnerable to interception. If you need a custom CA, point `verify=` at the CA bundle path.
-- **Never `pickle.load()`, `eval()`, or `exec()` on untrusted input.** These execute arbitrary code. Use safe serialization (JSON, MessagePack, protobuf) for data exchange.
-- **Use `yaml.safe_load()`, not `yaml.load()`.** The full loader can instantiate arbitrary Python objects from YAML.
-- **Avoid `shell=True` in subprocess calls.** Pass arguments as a list to prevent shell injection: `subprocess.run(["ls", "-la", path])`, not `subprocess.run(f"ls -la {path}", shell=True)`.
-- **Validate and normalize file paths.** Prevent path traversal by resolving paths and checking they stay within the expected directory: `resolved.relative_to(base_dir)` raises `ValueError` if it escapes.
-
-### API endpoints
-
-When building or consuming APIs that handle credentials:
-
-- **Never send credentials in GET query parameters.** URLs end up in server access logs, proxy caches, browser history, CDN edge logs, and error reporting. Passwords and tokens go in the request body (POST) or the `Authorization` header — never in the URL.
-- **Use the `Authorization: Bearer <token>` header.** That's what it exists for. Configure your reverse proxy and application logging to redact it — don't assume this happens automatically.
-- **Don't echo secrets back in responses.** If an endpoint creates an API key, return it once. After that, return only a masked version (`"ak_...7f2d"`). Store API keys hashed — for long random API keys, HMAC-SHA-256 with a server-side pepper is acceptable for verification. Same for config endpoints that might expose connection strings.
-- **Hash passwords with Argon2, bcrypt, or scrypt.** General-purpose hashes (SHA-256, MD5) are designed to be fast — a GPU can compute billions per second, making password-space exhaustion feasible. Password-hashing algorithms are deliberately slow and memory-hard. Use `argon2-cffi` or `passlib`. Never reuse the pattern for API keys here — those are long random strings where speed isn't the threat model.
+When the task touches credentials, auth, API endpoints, file permissions, or paths derived from external input, read `references/security.md` for the full standard — including the `SecretStr` caveats, SQL identifier handling, password hashing, and the API-endpoint rules.
 
 ## Testing
 
