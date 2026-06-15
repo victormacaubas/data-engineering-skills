@@ -28,7 +28,19 @@ There are two sources for account_usage data:
 
 The archive tables have the same schema and column names as the live views. They're materialized once a week, so they won't have the very latest data but queries return much faster.
 
-**Before running your first query, ask the user:**
+**Temporal routing — assess the time period first:**
+
+Live views retain only 365 days of data. Before choosing a source, look at when the events you're investigating occurred:
+
+- **Within the last 10 months:** safe to use live views — data is well within retention.
+- **10–12 months ago:** use live views, but you're near the retention edge. If results come back empty or suspiciously sparse for a query that should have data, fall back to archive immediately.
+- **Older than 12 months:** go directly to archive tables. Live views cannot have this data — don't waste a query round-trip on them.
+
+This applies to time-scoped views like QUERY_HISTORY, ACCESS_HISTORY, and LOGIN_HISTORY. Metadata views (TABLES, COLUMNS, ROLES, GRANTS_TO_ROLES, etc.) retain current state plus deletion records regardless of age — those are fine to query live.
+
+**Mid-investigation pivot:** The user's initial framing may point to a recent timeframe, but your queries might reveal that the actual root event happened much earlier (e.g., user says "stopped working in June" but you discover the table was dropped 16 months ago). When this happens, re-evaluate immediately — if the newly discovered event falls outside the 365-day window, switch to archive tables for that line of inquiry without waiting for the user to suggest it. State what you found and why you're switching sources.
+
+**If the time period is within retention, ask the user:**
 > "Should I query the archive tables (`GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE`) for faster results, or the live views (`SNOWFLAKE.ACCOUNT_USAGE`) for the most current data?"
 
 **Rules:**
@@ -36,6 +48,7 @@ The archive tables have the same schema and column names as the live views. They
 - If the user says live (or needs real-time data), prefix with `SNOWFLAKE.ACCOUNT_USAGE.`
 - If an archive query fails (table not found, permission error, etc.), **automatically fall back to the live view** and let the user know: "Archive query failed, falling back to SNOWFLAKE.ACCOUNT_USAGE."
 - If the user already told you which source to use earlier in the conversation, don't ask again.
+- If you routed directly to archive based on temporal reasoning, tell the user why: "The event is older than 12 months, so I'm querying the archive tables directly (live views only retain 365 days)."
 
 ## Critical Caveats
 
