@@ -11,11 +11,37 @@ You have access to the Snowflake MCP tool (`mcp__snowflake__run_snowflake_query`
 
 When the user asks a governance question:
 
-1. **Ask which data source to use** (see below)
-2. Identify which views/tables answer the question (use the Intent → View mapping below)
+1. **Decide the data source.** First ask whether it's a current-state question — if so, prefer a `SHOW` command (no latency); see "Real-time vs Historical" below. Otherwise, for historical/aggregate questions, ask whether to use archive or live views (see "Data Source: Archive vs Live Views").
+2. Identify which views/tables/commands answer the question (use the Intent → View mapping below)
 3. Show the query with a one-line explanation of what it does
 4. Run the query via the Snowflake MCP
 5. Summarize the results in plain language, highlighting anything that looks unusual or noteworthy
+
+## Real-time (`SHOW`) vs Historical (`ACCOUNT_USAGE`)
+
+Before picking a view, decide whether the question is about **current state** or **history/aggregation**. The `ACCOUNT_USAGE` views (and the archive tables below) are powerful for analysis, but they carry up to ~2 hours of latency — so for a freshly created or just-modified object they can return stale or empty results. Snowflake's `SHOW` commands read live object metadata with no latency, and they run fine through the Snowflake MCP.
+
+**Reach for `SHOW` commands when:**
+- You're verifying an object that was just created or changed — e.g. a role/user/grant provisioned by Terraform or a recent `GRANT`. `ACCOUNT_USAGE` may not have caught up yet.
+- You only need the **current** state of a single role, user, or object.
+- Latency would otherwise give you a wrong or empty answer.
+
+**Reach for `ACCOUNT_USAGE` (or archive) when:**
+- You're querying across many objects, joining views, aggregating, or filtering by a time range.
+- You need historical or point-in-time data (who logged in last week, what changed 30 days ago).
+
+`SHOW` can't join or aggregate and is scoped to one object/grantee, so the two are complementary — not interchangeable. Their result columns also differ (`SHOW GRANTS` returns `privilege`, `granted_on`, `name`, `grantee_name`, `grant_option`, `granted_by`), so don't assume `ACCOUNT_USAGE` column names when reading `SHOW` output.
+
+**Worked example — the exact case this skill exists to handle:** "Which warehouses can `REPORTING_SERVICE_ROLE` use? It was just created in Terraform." Querying `GRANTS_TO_ROLES` returns empty because the grant hasn't propagated. Instead run `SHOW GRANTS TO ROLE REPORTING_SERVICE_ROLE` — results come back immediately. Filter the output for `granted_on = 'WAREHOUSE'`.
+
+Useful `SHOW` shapes:
+- `SHOW GRANTS TO ROLE <role>` — privileges a role holds right now.
+- `SHOW GRANTS TO USER <user>` — roles assigned to a user right now.
+- `SHOW GRANTS OF ROLE <role>` — who currently has this role.
+- `SHOW GRANTS ON <object>` — current grants on a specific object.
+- `SHOW ROLES [LIKE '<pattern>']` / `SHOW USERS [LIKE '<pattern>']` — current roles/users.
+
+If the question is historical or spans many objects, fall through to the source decision below.
 
 ## Data Source: Archive vs Live Views
 
@@ -64,7 +90,17 @@ This applies to time-scoped views like QUERY_HISTORY, ACCESS_HISTORY, and LOGIN_
 
 ## Intent → View Mapping
 
-Use this to pick the right view(s) for the user's question:
+Use this to pick the right view(s) for the user's question. **For "right now" / just-created questions, prefer the `SHOW` commands** (see "Real-time vs Historical" above) — they have no latency:
+
+| Real-time intent | Command |
+|---|---|
+| What can this role access right now (e.g. just created in Terraform)? | `SHOW GRANTS TO ROLE <role>` |
+| What roles does this user have right now? | `SHOW GRANTS TO USER <user>` |
+| Who currently holds role X? | `SHOW GRANTS OF ROLE <role>` |
+| What are the current grants on this object? | `SHOW GRANTS ON <object>` |
+| Does this role/user exist right now? | `SHOW ROLES [LIKE]` / `SHOW USERS [LIKE]` |
+
+For historical analysis, aggregation, or queries spanning many objects, use the views below:
 
 | User intent | Primary view(s) | Join with |
 |---|---|---|
@@ -362,6 +398,12 @@ When a user reports that a query returns unexpected results (empty results, mask
 - Masking policy behavior that differs between PROD_SOURCE_DB and direct table access
 - Database role grants that don't seem to take effect
 
+**Read `references/masking-model.md`** whenever you need to explain *why* masking fired or how to change it:
+- A user is seeing a sentinel value (`-99999`, `'sanitized'`, `3000-12-01`, or `NULL`) and you need to explain it's masking, not missing data
+- "How do I let role/team X see this CONFIDENTIAL/RESTRICTED column?" — it covers the two declassification levers
+- You need to interpret a column's `DATA_PROTECTION_CLASSIFICATION` value or the policy CASE logic
+- A new schema's CONFIDENTIAL data is masked for everyone (missing the `_SCHEMA_RO_CONFIDENTIAL` role)
+
 Key things to remember during troubleshooting:
 
 1. **PROD_SOURCE_DB objects are views over raw tables.** Masking policies live on the raw tables in `PROD_ENT_LOAD_DB` (or `PROD_ESTUARY_LOAD_DB` / `PROD_FIVETRAN_LOAD_DB`), not on the PROD_SOURCE_DB views. Always check the raw load database for policies.
@@ -380,5 +422,6 @@ For complete column schemas of each view, consult:
 - `references/views-protection.md` — MASKING_POLICIES, ROW_ACCESS_POLICIES, POLICY_REFERENCES, TAGS, TAG_REFERENCES, DATA_CLASSIFICATION_LATEST
 - `references/views-auditing.md` — ACCESS_HISTORY, QUERY_HISTORY
 - `references/data-flow.md` — Snowflake data flow, materialization layers, and troubleshooting access/masking issues
+- `references/masking-model.md` — how column masking decides what to return (tag→policy model, four-level scheme, CASE logic + sentinel values, and the two ways to unmask a column)
 
 Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
