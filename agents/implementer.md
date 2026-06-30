@@ -2,7 +2,7 @@
 name: implementer
 description: Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning — give each instance a disjoint task slice. Does not commit or update plan tracking; the orchestrator owns those.
 tools: Read, Write, Edit, Bash, Grep, Glob
-model: claude-sonnet-4-6[1m]
+model: claude-sonnet-5[1m]
 permissionMode: acceptEdits
 effort: high
 skills: python-engineering-standards
