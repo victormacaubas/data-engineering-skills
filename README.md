@@ -24,9 +24,10 @@ Custom agent definitions for Claude Code. Each file is a self-contained markdown
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| `codebase-explorer` | `claude-sonnet-4-6[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
-| `implementer` | `claude-sonnet-4-6[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
+| `codebase-explorer` | `claude-sonnet-5[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
+| `implementer` | `claude-sonnet-5[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
 | `code-reviewer` | `claude-opus-4-6[1m]` | Runs the `code-audit` skill against a diff, path, or whole repo and writes a machine-parseable JSON review artifact to `./.code-audit/`. Returns a thin receipt — artifact path, verdict, score, and blocking findings — rather than the full report. Read-only on the source under review. |
+| `researcher` | `claude-sonnet-4-6[1m]` | Research a topic on the web and return structured findings with sources. Lightweight mid-session lookups for syntax, libraries, APIs, announcements, or technology comparisons. Does not write files. |
 
 ## Repository structure
 
