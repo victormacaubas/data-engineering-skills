@@ -110,24 +110,6 @@ These rules govern how we classify columns. They were established by the team an
 
 Queries for investigating classification state. These were hard-won across multiple sessions — use them directly instead of re-deriving.
 
-### Running classification manually
-
-```sql
--- Classify a single table (returns VARIANT with per-column results)
-SELECT SYSTEM$CLASSIFY('MY_DB.MY_SCHEMA.MY_TABLE');
-
--- Classify an entire schema (different function signature!)
-SELECT SYSTEM$CLASSIFY_SCHEMA('MY_DB.MY_SCHEMA');
-```
-
-### Privilege requirements
-
-| Action | Required privilege | Typical holder |
-|--------|-------------------|----------------|
-| Run auto-classification | EXECUTE AUTO CLASSIFICATION (account-level) | ACCOUNTADMIN only |
-| Create a classification profile/instance | CREATE SNOWFLAKE.DATA_PRIVACY.CLASSIFICATION_INSTANCE on target schema | Schema owner or delegated role |
-| Read classification results | SELECT on SNOWFLAKE.ACCOUNT_USAGE.DATA_CLASSIFICATION_LATEST | IMPORTED PRIVILEGES on SNOWFLAKE DB |
-
 ### Checking current classification state
 
 ```sql
