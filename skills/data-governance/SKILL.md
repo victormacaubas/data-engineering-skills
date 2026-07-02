@@ -88,6 +88,64 @@ This applies to time-scoped views like QUERY_HISTORY, ACCESS_HISTORY, and LOGIN_
 | **Tag inheritance** | TAG_REFERENCES does NOT show inherited tags — only direct assignments. |
 | **Enterprise features** | ACCESS_HISTORY and DATA_CLASSIFICATION require Enterprise Edition or higher. |
 
+## Query Rules
+
+These three rules prevent the most common operational mistakes when querying through the Snowflake MCP:
+
+1. **Always fully qualify object references.** The Snowflake MCP session has no default database or schema set. Unqualified references like `INFORMATION_SCHEMA.COLUMNS` or `TAG_REFERENCES` will error. Always write `SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES`, `GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE.QUERY_HISTORY`, etc.
+
+2. **Filter grant queries server-side.** Never run a broad `SHOW GRANTS TO ROLE <role>` and grep the output client-side — large role hierarchies produce thousands of rows that overflow context. Instead, filter within the query: use `SHOW GRANTS TO ROLE <role>` only for targeted single-role lookups, and prefer `SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES` with `WHERE` clauses for any analysis spanning multiple roles or object types.
+
+3. **Prefer archive for aggregations.** Aggregation queries (COUNT, MIN/MAX over time, coverage scans) against live ACCOUNT_USAGE views can take minutes or time out. Route these to `GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE` by default. Not all views are archived — if the archive table doesn't exist or returns an error, fall back to the live ACCOUNT_USAGE view and tell the user why.
+
+## Classification Business Rules
+
+These rules govern how we classify columns. They were established by the team and should not be second-guessed:
+
+- **Only two values in active use:** `CONFIDENTIAL` and `INTERNAL`. While the scheme supports four levels (PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED), current operations only assign CONFIDENTIAL or INTERNAL.
+- **No recommendation → INTERNAL.** When Snowflake's automatic classification (or Cyera) returns no recommendation for a column, map it to `INTERNAL`. Do not leave it unclassified or skip it.
+- **Unclassified defaults to CONFIDENTIAL.** The `DATA_CLASSIFICATIONS_TO_APPLY` view uses `COALESCE(manual, auto, 'CONFIDENTIAL')` — any column with no manual or automatic classification gets `CONFIDENTIAL` by default. This is deliberate over-classification as a safety net (`CLASSIFICATION_SOURCE = 'DEFAULT'` means no one actively classified it).
+
+## Classification Introspection
+
+Queries for investigating classification state. These were hard-won across multiple sessions — use them directly instead of re-deriving.
+
+### Running classification manually
+
+```sql
+-- Classify a single table (returns VARIANT with per-column results)
+SELECT SYSTEM$CLASSIFY('MY_DB.MY_SCHEMA.MY_TABLE');
+
+-- Classify an entire schema (different function signature!)
+SELECT SYSTEM$CLASSIFY_SCHEMA('MY_DB.MY_SCHEMA');
+```
+
+### Privilege requirements
+
+| Action | Required privilege | Typical holder |
+|--------|-------------------|----------------|
+| Run auto-classification | EXECUTE AUTO CLASSIFICATION (account-level) | ACCOUNTADMIN only |
+| Create a classification profile/instance | CREATE SNOWFLAKE.DATA_PRIVACY.CLASSIFICATION_INSTANCE on target schema | Schema owner or delegated role |
+| Read classification results | SELECT on SNOWFLAKE.ACCOUNT_USAGE.DATA_CLASSIFICATION_LATEST | IMPORTED PRIVILEGES on SNOWFLAKE DB |
+
+### Checking current classification state
+
+```sql
+-- What has been classified (and when)?
+SELECT DATABASE_NAME, SCHEMA_NAME, TABLE_NAME, STATUS, TRIGGER_TYPE, LAST_CLASSIFIED_ON
+FROM SNOWFLAKE.ACCOUNT_USAGE.DATA_CLASSIFICATION_LATEST
+WHERE DATABASE_NAME = '<db>'
+  AND SCHEMA_NAME = '<schema>'
+ORDER BY LAST_CLASSIFIED_ON DESC;
+
+-- What classification will actually be applied (manual overrides + auto + defaults)?
+SELECT REF_TABLE, REF_COLUMN, DATA_CLASSIFICATION, CLASSIFICATION_SOURCE
+FROM GOVERNANCE_DB.DATA_MASKING.DATA_CLASSIFICATIONS_TO_APPLY
+WHERE REF_DATABASE = '<db>'
+  AND REF_SCHEMA = '<schema>'
+ORDER BY REF_TABLE, REF_COLUMN;
+```
+
 ## Intent → View Mapping
 
 Use this to pick the right view(s) for the user's question. **For "right now" / just-created questions, prefer the `SHOW` commands** (see "Real-time vs Historical" above) — they have no latency:
@@ -421,7 +479,10 @@ For complete column schemas of each view, consult:
 - `references/views-security.md` — USERS, ROLES, GRANTS_TO_ROLES, GRANTS_TO_USERS, LOGIN_HISTORY
 - `references/views-protection.md` — MASKING_POLICIES, ROW_ACCESS_POLICIES, POLICY_REFERENCES, TAGS, TAG_REFERENCES, DATA_CLASSIFICATION_LATEST
 - `references/views-auditing.md` — ACCESS_HISTORY, QUERY_HISTORY
+- `references/views-governance-db.md` — GOVERNANCE_DB.DATA_MASKING custom views (DATA_CLASSIFICATIONS_TO_APPLY, DATA_CLASSIFICATIONS_MANUAL) with verified column names and precedence logic
 - `references/data-flow.md` — Snowflake data flow, materialization layers, and troubleshooting access/masking issues
 - `references/masking-model.md` — how column masking decides what to return (tag→policy model, four-level scheme, CASE logic + sentinel values, and the two ways to unmask a column)
 
 Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
+
+**Infrastructure:** The source of truth for governance objects (tags, masking policies, tag associations, database roles) lives in Terraform. Do not recommend DDL changes directly.
