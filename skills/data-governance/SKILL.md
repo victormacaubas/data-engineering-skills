@@ -104,7 +104,7 @@ These rules govern how we classify columns. They were established by the team an
 
 - **Only two values in active use:** `CONFIDENTIAL` and `INTERNAL`. While the scheme supports four levels (PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED), current operations only assign CONFIDENTIAL or INTERNAL.
 - **No recommendation → INTERNAL.** When Snowflake's automatic classification (or Cyera) returns no recommendation for a column, map it to `INTERNAL`. Do not leave it unclassified or skip it.
-- **Unclassified defaults to CONFIDENTIAL.** The `DATA_CLASSIFICATIONS_TO_APPLY` view uses `COALESCE(manual, auto, 'CONFIDENTIAL')` — any column with no manual or automatic classification gets `CONFIDENTIAL` by default. This is deliberate over-classification as a safety net (`CLASSIFICATION_SOURCE = 'DEFAULT'` means no one actively classified it).
+- **Unclassified defaults to CONFIDENTIAL.** The `DATA_CLASSIFICATIONS_TO_APPLY` view uses `COALESCE(manual, auto, 'CONFIDENTIAL')` — any column with no manual or automatic classification gets `CONFIDENTIAL` by default. This is deliberate over-classification as a safety net.
 
 ## Classification Introspection
 
