@@ -11,6 +11,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | Skill | Description |
 |-------|-------------|
 | `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./.code-audit/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
+| `context-gather` | Load session context from multiple sources in parallel (Jira tickets, Confluence pages, Obsidian vault notes, codebase exploration) and deliver a structured briefing. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |

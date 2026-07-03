@@ -1,7 +1,6 @@
 ---
 name: stash
 description: Park content into the Obsidian vault's inbox/ folder raw — no synthesizing, no placement — so /process-inbox can file it later. Use when the user says "stash this", "save this conversation", "park this for later", "dump the session", or wants to offload content before running out of context. Handles the current conversation (default), pasted articles, meeting notes, and ad-hoc content.
-trigger: /stash
 ---
 
 # /stash
