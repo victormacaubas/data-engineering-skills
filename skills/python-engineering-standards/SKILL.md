@@ -98,23 +98,63 @@ class ObjectStore(Protocol):
 
 ## Module & Project Layout
 
-Split by responsibility. A well-organized package has a shape like:
+Split by responsibility. The shape depends on what you're building, but the layering principle is constant: dependencies flow one way, each layer knows only about layers below it.
 
-For what goes *inside* the entrypoint — argparse wiring, config layering, secrets, exit codes, dryrun flags — read `references/operational.md` when the task involves a runnable job, CLI, or service rather than a pure library.
+For what goes *inside* the entrypoint — CLI wiring, config layering, secrets, exit codes, dryrun flags — read `references/operational.md` when the task involves a runnable job, CLI, or service rather than a pure library.
+
+### Project archetypes
+
+**Data pipeline / batch job** — argparse CLI, config from env/SSM, orchestrator class:
 
 ```
-package/
-├── main.py              # CLI entrypoint. argparse, wire dependencies, call runner. Nothing else.
+pipeline_name/
+├── main.py              # argparse CLI. Parse args, build config, call runner.
 ├── core/                # Orchestration. Composes utils and models into a workflow.
-│   └── runner.py
-├── models/              # Dataclasses, enums, domain types. No I/O, no business logic.
+│   └── runner.py        # PipelineRunner class — owns state (clients, config, logger).
+├── models/              # Dataclasses, enums, domain types. No I/O, no logic.
 │   └── config.py
-└── utils/               # Leaf helpers: retries, I/O, parsing. Knows nothing about orchestration.
+└── utils/               # Leaf helpers: retries, I/O, parsing. Knows nothing about core.
     ├── s3_ops.py
     └── retries.py
 ```
 
-Dependencies flow one way: `main → core → {models, utils}`. `utils/` never imports from `core/`. If two modules want to import each other, the shared abstraction belongs in a third place — usually `models/` or a new utils module.
+**Service (FastAPI, Flask)** — no CLI, config from env/pydantic-settings:
+
+```
+service_name/
+├── main.py              # App factory, lifespan wiring, uvicorn entrypoint.
+├── config.py            # Config(BaseSettings) — env-driven, fail-fast validators.
+├── api/                 # HTTP layer. Routes, deps, response schemas.
+│   ├── routes.py
+│   ├── deps.py
+│   └── schemas.py
+├── core/                # Business logic. Services, caches, state machines.
+│   ├── service.py
+│   └── cache.py
+├── models/              # Domain types (dataclasses) and wire types (Pydantic).
+│   ├── domain.py
+│   └── wire.py
+└── utils/               # External clients, helpers. No business logic.
+    └── client.py
+```
+
+**CLI tool / developer utility** — click or typer for multi-command UX:
+
+```
+tool_name/
+├── cli.py               # click/typer group. Parse commands, wire deps, call core.
+├── core/                # Orchestration and processing logic.
+│   ├── orchestrator.py  # Top-level workflow class — owns state, composes steps.
+│   └── processor.py
+├── models/              # Config, domain types, enums.
+│   └── config.py
+└── utils/               # I/O, formatting, parsing helpers.
+    └── io.py
+```
+
+### Layout rules
+
+Dependencies flow one way: `main/cli → core → {models, utils}`. `utils/` never imports from `core/`. If two modules want to import each other, the shared abstraction belongs in a third place — usually `models/` or a new utils module.
 
 Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.py` communicate intent; `classes.py`, `functions.py`, `helpers.py` don't.
 
@@ -122,7 +162,15 @@ Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.p
 
 **Breaking circular imports.** If module A needs a type from module B for hints only, use `from __future__ import annotations` + `if TYPE_CHECKING: from b import BType`. The import is only evaluated by type checkers, not at runtime.
 
-**`__init__.py` stays thin.** Export what the package offers, don't execute work on import. Heavy computation at import time turns every CLI startup into a tax.
+**`__init__.py` is a package marker, not a home for code.** Keep it empty (0 bytes) or limited to a short `__all__` re-export list. Never put classes, functions, dataclasses, or business logic in `__init__.py`. Every logical unit lives in a named module — `runner.py`, `status.py`, `config.py` — so a reader can find code by scanning file names in the directory tree. If a package contains only one module, that module still gets a descriptive name rather than living in `__init__.py`. The reason: when code lives in `__init__.py`, `from package import thing` gives the reader no signal about *where* inside the package `thing` is defined — they have to open the file and scroll. Named modules make the codebase navigable without grep.
+
+### When to use a class vs a function
+
+- **Class** — when the thing owns state or manages resources: connections, caches, orchestration context, lifecycle. The class accepts dependencies in `__init__` and holds them. Examples: `PipelineRunner`, `SnapshotCache`, `AirflowClient`, `PgpDecryptor`.
+- **Free function** — for stateless transforms, computations, validators, builders. Group them in named modules by domain (`status.py`, `freshness.py`, `key_partition.py`), not by type (`helpers.py`, `functions.py`).
+- **Frozen dataclass** — for value objects: config, domain types, intermediate results. These are data containers, not behavioral classes. They live in `models/`.
+
+A plain function beats a class when there's no state. Three similar lines beats a premature base class.
 
 ## Design Principles
 

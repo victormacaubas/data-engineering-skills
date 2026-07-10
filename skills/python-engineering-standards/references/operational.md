@@ -8,7 +8,8 @@ For general Python coding standards (style, typing, DI, error handling, concurre
 
 `main.py` should do three things: parse args, build config, call a runner. If you're adding logic to `main`, it belongs in `core/`.
 
-- Use `argparse`. Factor `parse_args(argv=None)` into its own function so it's testable.
+- **Pipelines and batch jobs:** use `argparse`. For multi-command developer tools, `click` or `typer` is appropriate — but the principle is the same: factor parsing into a testable function, keep it explicit, no magic. For services, skip the CLI entirely (config comes from environment/pydantic-settings, not flags).
+- Factor `parse_args(argv=None)` into its own function so it's testable.
 - `--dryrun` is a first-class flag. Every IO-producing code path respects it and logs `[Dryrun] Would ...`.
 - Mutually exclusive modes go in `add_mutually_exclusive_group()`.
 - Log the parsed args as JSON at startup — invaluable when debugging what a cron job actually received.
