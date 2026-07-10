@@ -166,11 +166,15 @@ Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.p
 
 ### When to use a class vs a function
 
+Start with the question that decides it: **does this code carry state across calls?** State is any resource or context that outlives a single invocation and that more than one operation reads or mutates — a connection, a cache, a client, config, a logger, an accumulating result. If yes, that state wants an owner, and the owner is a class. If no, a free function is the honest shape.
+
 - **Class** — when the thing owns state or manages resources: connections, caches, orchestration context, lifecycle. The class accepts dependencies in `__init__` and holds them. Examples: `PipelineRunner`, `SnapshotCache`, `AirflowClient`, `PgpDecryptor`.
-- **Free function** — for stateless transforms, computations, validators, builders. Group them in named modules by domain (`status.py`, `freshness.py`, `key_partition.py`), not by type (`helpers.py`, `functions.py`).
+- **Free function** — for genuinely stateless transforms, computations, validators, builders — a leaf that takes its inputs, returns a result, and keeps nothing. Group these in named modules by domain (`status.py`, `freshness.py`, `key_partition.py`), not by type (`helpers.py`, `functions.py`).
 - **Frozen dataclass** — for value objects: config, domain types, intermediate results. These are data containers, not behavioral classes. They live in `models/`.
 
-A plain function beats a class when there's no state. Three similar lines beats a premature base class.
+**The parameter-threading smell.** The common mistake isn't reaching for a class too early — it's failing to notice state that's already there. When two or more functions pass the *same* objects to each other in a fixed sequence — `run(conn, cfg, logger)` calls `_extract(conn, cfg, logger)` then `_load(conn, cfg, logger)` — that shared context *is* state, and threading it through every signature is a class's `__init__` turned inside out. An orchestrator, runner, or pipeline that coordinates steps over a shared connection and config is a class even when each step looks pure in isolation. Give the shared context an owner: construct it once in `__init__`, and let the methods reach for `self.conn` instead of receiving it again and again.
+
+Don't overcorrect. A single stateless computation doesn't need a class wrapped around it for ceremony, and three similar lines don't need a base class. The test is state, not size: hold state in a class, compute without it in a function.
 
 ## Design Principles
 
@@ -252,21 +256,7 @@ Introduce patterns when they are needed, not for their own sake.
 - **Pipeline / Chain** — compose transformations as a sequence of discrete steps; each step takes input and returns output. Natural for ETL.
 - **Decorator (functional)** — wrap functions with cross-cutting concerns (retries, caching, timing) via `@functools.wraps`.
 - **Observer** — emit events (progress, quality-gate hits, shutdown signals) to pluggable listeners rather than coupling core logic to logging/alerting/metrics. Useful when multiple subsystems need to react to the same event.
-- **Singleton** — exactly one instance across the process. In Python, **reach for it last**: a module is already a singleton (imported once, cached in `sys.modules`), so module-level state or a module-level `@functools.lru_cache`-wrapped factory is usually the right answer. Use a true Singleton class only when you need lazy construction *and* mutable state *and* the caller must treat the instance as an object (not a module). When you do, prefer a thread-safe factory over overriding `__new__`:
-
-```python
-import threading
-from functools import lru_cache
-
-@lru_cache(maxsize=1)
-def get_connection_pool() -> ConnectionPool:
-    """Process-wide connection pool; constructed lazily on first call."""
-    return ConnectionPool(...)
-```
-
-`lru_cache(maxsize=1)` gives you lazy cached construction with coherent cache updates and an internal lock. It is not an exactly-once initializer: concurrent first callers may invoke the wrapped function more than once before either result is cached. That's fine for cheap, idempotent construction. If duplicate construction has side effects or races, use an explicit lock or build the dependency at the composition root. **Avoid the classic `__new__`-override Singleton** — it hides construction, fights dependency injection, and makes tests painful. If you find yourself wanting a Singleton for configuration or clients, consider whether you could just pass the dependency in (back to DI) instead.
-
-A plain function beats a class when there's no state. Three similar lines beats a premature base class. A module-level constant beats a Singleton.
+- **Singleton** — exactly one instance across the process.
 
 ## Logging
 
