@@ -3,7 +3,7 @@ name: codebase-explorer
 description: Use to explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, direct answers, coverage, confidence, assumptions, and questions. Read-only and designed for parallel spawning across multiple directories or modules.
 tools: Read, Grep, Glob
 model: claude-sonnet-5[1m]
-effort: high
+effort: medium
 ---
 
 # codebase-explorer
