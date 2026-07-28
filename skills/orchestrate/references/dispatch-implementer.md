@@ -22,11 +22,11 @@ before dispatch, and how to read the result.
 - Session-only plan-mode plan: externalize it to a scratch file first (see SKILL.md) and pass
   the absolute path.
 
-**Do not delegate research.** If the slice needs a specific syntax (a Terraform resource shape,
-an API signature, a library call), resolve it yourself *before* dispatch — check the registry/
-docs, or fire a gather action (`orchestrate-gather` → `researcher`). The worker is told to *trust the orchestrator's
-research* and will not independently verify what you provide; if you hand it an unknown, it
-either guesses or halts. Research is a main-session job on the stronger model with full context.
+**Arrive with the unknowns already closed.** The worker is told to *trust the orchestrator's
+research* and will not independently verify what you provide; if you hand it an unknown, it either
+guesses or halts. `../SKILL.md` → *Pre-flight → Close the unknowns* is the checklist; run it before
+you get here. What matters at dispatch time is that every syntax, contract, and data fact the slice
+depends on is in the prompt as a stated fact, not an instruction to go find out.
 
 **Bound the slice.** Give explicit task numbers ("tasks 3–7", "the auth-middleware items"),
 never "implement the plan." An unbounded slice makes the worker pick its own scope, which

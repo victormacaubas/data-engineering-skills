@@ -30,7 +30,7 @@ Interactive:
 Non-interactive:
   $0 --platform claude --skills all --agents all
   $0 --platform codex --skills sql-data-analysis,data-governance
-  $0 --platform both --skills all --agents codebase-explorer
+  $0 --platform both --skills all --agents pathfinder
 
 Options:
   --platform claude|codex|both|agents
@@ -181,7 +181,7 @@ validate_agent_selection() {
 
   if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
     echo "Invalid --agents value: $AGENT_SELECTION" >&2
-    echo "Use all, none, or a comma-separated list such as codebase-explorer,implementer." >&2
+    echo "Use all, none, or a comma-separated list such as pathfinder,implementer." >&2
     exit 1
   fi
 

@@ -164,8 +164,8 @@ For CI or environments where symlinks are unavailable:
 ### Selective install
 
 ```bash
-./scripts/install.sh --platform agents --agents codebase-explorer
-./scripts/install.sh --platform claude --skills all --agents codebase-explorer
+./scripts/install.sh --platform agents --agents pathfinder
+./scripts/install.sh --platform claude --skills all --agents pathfinder
 ./scripts/install.sh --platform both --skills all --agents all
 ```
 
@@ -181,9 +181,9 @@ The direct helper script remains available:
 
 | Convention | Example |
 |------------|---------|
-| Kebab-case filename | `codebase-explorer.md` |
+| Kebab-case filename | `pathfinder.md` |
 | Short and task-oriented | `test-runner`, `doc-summariser` |
-| Noun or noun-phrase preferred | `codebase-explorer`, `dependency-auditor` |
+| Noun or noun-phrase preferred | `pathfinder`, `dependency-auditor` |
 
 Keep names short and self-explanatory — the name and description appear together in Claude Code's agent picker.
 
