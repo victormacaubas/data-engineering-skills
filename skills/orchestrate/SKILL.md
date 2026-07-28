@@ -83,4 +83,3 @@ The `implementer` is told to trust your research and won't verify it. Anything i
 - **Hand back on blocking questions.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf.
 - **Never hand the `implementer` an unknown.** It won't research and won't verify — see *Pre-flight → Close the unknowns*.
 - **Don't re-read what you already hold.** Re-establishing context is for stale grip, not for ceremony. The context you burn re-reading your own artifacts is the context this skill exists to protect.
-- **Don't use this to load context at session start.** `/opsx:explore` owns that. This skill starts where a plan already exists.
