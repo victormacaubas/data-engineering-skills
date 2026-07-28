@@ -22,7 +22,7 @@ For a single question mid-build, skip the ceremony entirely:
 
 ## Inputs to supply
 
-- **`pathfinder`** — the target sources (directory, file path, Jira key, Confluence page, Snowflake
+- **`pathfinder`** — the target sources (directory, file path, ticket key, wiki page, warehouse
   object), plus optionally a focus area, a depth limit, and explicit questions. **A focus area is
   not a question** — the agent only fills its `Direct answers` section for questions you ask
   outright, so if you need a specific answer, phrase it as a question. For a governance query,
