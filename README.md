@@ -13,8 +13,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./.code-audit/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
-| `orchestrate-gather` | Read-only gather phase of session orchestration: dispatch `codebase-explorer` / `researcher` workers and read sources (Jira, Confluence, vault) in parallel, then deliver a structured briefing. Requires the `codebase-explorer` and `researcher` agents installed. |
-| `orchestrate-implement` | Write phase of session orchestration: run the pre-flight gate, resolve the plan, then drive the `implementer` worker through a bounded dispatch loop and tick tasks. Requires the `implementer` agent installed. |
+| `orchestrate` | Build a bounded plan through workers: run the pre-flight gate, resolve the plan, drive the `implementer` through a bounded dispatch loop, and tick tasks. Dispatches `pathfinder` / `researcher` when the build hits a drift or research gap. Requires the `implementer` and `pathfinder` agents installed. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
@@ -26,7 +25,7 @@ Custom agent definitions for Claude Code. Each file is a self-contained markdown
 
 | Agent | Model | Description |
 |-------|-------|-------------|
-| `codebase-explorer` | `claude-sonnet-5[1m]` | Explore a directory or codebase region and return a structured handoff summary of architecture, entry points, key files, conventions, dependencies, and open questions. |
+| `pathfinder` | `claude-sonnet-5[1m]` | Investigate a bounded question across code, documents, Jira, Confluence, and Snowflake, and return a compressed structured briefing — direct answers, per-source findings, coverage, confidence, and open questions. Read-only by tool allowlist. |
 | `implementer` | `claude-sonnet-5[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
 | `code-reviewer` | `claude-opus-4-6[1m]` | Runs the `code-audit` skill against a diff, path, or whole repo and writes a machine-parseable JSON review artifact to `./.code-audit/`. Returns a thin receipt — artifact path, verdict, score, and blocking findings — rather than the full report. Read-only on the source under review. |
 | `researcher` | `claude-sonnet-4-6[1m]` | Research a topic on the web and return structured findings with sources. Lightweight mid-session lookups for syntax, libraries, APIs, announcements, or technology comparisons. Does not write files. |
@@ -80,9 +79,9 @@ For automation, pass selections explicitly:
 
 ```bash
 ./scripts/install.sh --platform both --skills all --agents all
-./scripts/install.sh --platform claude --skills sql-data-analysis,data-governance --agents codebase-explorer
+./scripts/install.sh --platform claude --skills sql-data-analysis,data-governance --agents pathfinder
 ./scripts/install.sh --platform codex --skills python-engineering-standards
-./scripts/install.sh --platform agents --agents codebase-explorer
+./scripts/install.sh --platform agents --agents pathfinder
 ```
 
 Use `--copy` for a copy-based install instead of symlinks:
@@ -110,7 +109,7 @@ The platform-specific scripts remain available for direct use:
 ```bash
 ./scripts/install-claude.sh --skills all
 ./scripts/install-codex.sh --skills sql-data-analysis
-./scripts/install-agents.sh --agents codebase-explorer
+./scripts/install-agents.sh --agents pathfinder
 ```
 
 Calling a helper without a selection still installs all valid items for that helper.

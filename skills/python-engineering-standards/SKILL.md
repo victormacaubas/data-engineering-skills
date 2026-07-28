@@ -174,7 +174,7 @@ Start with the question that decides it: **does this code carry state across cal
 
 **The parameter-threading smell.** The common mistake isn't reaching for a class too early — it's failing to notice state that's already there. When two or more functions pass the *same* objects to each other in a fixed sequence — `run(conn, cfg, logger)` calls `_extract(conn, cfg, logger)` then `_load(conn, cfg, logger)` — that shared context *is* state, and threading it through every signature is a class's `__init__` turned inside out. An orchestrator, runner, or pipeline that coordinates steps over a shared connection and config is a class even when each step looks pure in isolation. Give the shared context an owner: construct it once in `__init__`, and let the methods reach for `self.conn` instead of receiving it again and again.
 
-Don't overcorrect. A single stateless computation doesn't need a class wrapped around it for ceremony, and three similar lines don't need a base class. The test is state, not size: hold state in a class, compute without it in a function.
+The test is state, not size: hold state in a class, compute without it in a function.
 
 ## Design Principles
 

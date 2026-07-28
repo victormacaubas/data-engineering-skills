@@ -4,7 +4,7 @@ description: Implements tasks from a plan, list, or set of instructions. Writes 
 tools: Read, Write, Edit, Bash, Grep, Glob
 model: claude-sonnet-5[1m]
 permissionMode: acceptEdits
-effort: medium
+effort: high
 skills: python-engineering-standards
 ---
 
