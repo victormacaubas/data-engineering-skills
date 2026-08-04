@@ -15,6 +15,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
 | `orchestrate` | Build a bounded plan through workers: run the pre-flight gate, resolve the plan, drive the `implementer` through a bounded dispatch loop, and tick tasks. Dispatches `pathfinder` / `researcher` when the build hits a drift or research gap. Requires the `implementer` and `pathfinder` agents installed. |
 | `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
+| `scout` | Think through work whose shape isn't settled yet, dispatching `pathfinder` / `researcher` to do the reading so sources stay out of the main context. Ends at the decision and hands off to a proposal. Requires the `pathfinder` and `researcher` agents installed. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
 | `write-ticket` | Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. |
