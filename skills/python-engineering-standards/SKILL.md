@@ -13,16 +13,27 @@ The guiding principle: **write code that another engineer can read, test, and re
 
 Start by reading the repo in front of you: `pyproject.toml`, Ruff/Black/mypy settings, supported Python version, package layout, and the dominant local conventions. Explicit, coherent project configuration wins. Use this skill for decisions the repo has not already made; when local code is inconsistent, align with the safest checked-in pattern before introducing a new one.
 
-If there's no tooling config to read — a fresh repo, or you're scaffolding one — read `references/tooling.md` for the baseline `pyproject.toml` toolchain before writing one from memory. That's the one case where this skill, not the repo, is the source of truth for tooling.
-
 ## Reference files
 
 The deeper material lives in `references/`. Read the file whose territory the task touches; skip the rest so they stay out of context.
 
-- `references/operational.md` — running code in production: CLI entrypoints and exit codes, layered configuration, secrets lifecycle, observability for long-running jobs (correlation/run ids, health checks, metrics, heartbeats, alerting), making a pipeline idempotent or re-runnable (skip-if-exists, deterministic keys, manifests), streaming I/O, and packaging for distribution (lockfiles, console scripts, dependency auditing). Several of these topics have no section in this file — this reference is their only home, so reach for it whenever a task is about *running* a job rather than *writing* one.
-- `references/concurrency.md` — threads vs. processes vs. asyncio, synchronization, bounded queues, cancellation, graceful shutdown. Read before writing any parallel code.
-- `references/security.md` — the full security standard: credential handling, SQL, file permissions, path handling, API endpoints. The non-negotiable floor is in the Security section below.
-- `references/tooling.md` — baseline `pyproject.toml` toolchain (uv, Ruff, mypy, pytest, pre-commit). For new projects or repos with no checked-in tooling config; existing repo config wins.
+**Read `references/operational.md`** when the thing you're building runs as a job, service, or pipeline rather than as a library someone imports — that is, whenever the task involves:
+
+- a CLI entrypoint, argument parsing, or exit codes
+- layered configuration, or secrets and their lifecycle
+- observability for a long-running job — correlation/run ids, health checks, metrics, heartbeats, alerting
+- making a pipeline idempotent or re-runnable — skip-if-exists, deterministic keys, manifests
+- streaming I/O, or packaging for distribution (lockfiles, console scripts, dependency auditing)
+
+This file has no section on any of them except streaming, so that reference is their only home — if a task lands here and you haven't opened it, you're answering from memory.
+
+**Read `references/layout.md`** when starting a new project, adding a package to an existing one, or deciding which directory a new file belongs in. It carries the full directory tree for each archetype — data pipeline, service, CLI tool — and the reasoning behind the one-way dependency flow.
+
+**Read `references/concurrency.md`** before writing anything involving threads, processes, asyncio, locks, bounded queues, signals, subprocess pipes, or worker pools. The quick rules in the Concurrency section below are a floor, not the standard.
+
+**Read `references/security.md`** when the task touches credentials, auth, SQL, file permissions, API endpoints, or paths derived from external input. The non-negotiable floor is in the Security section below; the reference has the full standard.
+
+**Read `references/tooling.md`** when there's no tooling config to inherit — a fresh repo, or you're scaffolding one — before writing a `pyproject.toml` from memory. That's the one case where this skill, not the repo, is the source of truth; wherever config is already checked in, it wins.
 
 ## Style
 
@@ -30,22 +41,52 @@ The deeper material lives in `references/`. Read the file whose territory the ta
 - f-strings for constructing strings — except in **log calls**, where `%s`-style is required (lazy formatting; skipped when the level is filtered out).
 - No magic numbers. If a value has meaning, name it: `DEFAULT_PART_SIZE_BYTES = 128 * 1024 * 1024`, not `128 * 1024 * 1024` scattered through the code.
 - `from __future__ import annotations` is useful in modules with heavy type hints, forward references, or support for Python < 3.10 — it makes hints lazy and keeps runtime cheap. On 3.10+ with native `X | Y` syntax there's less need for it. Add it where it helps; skip it where it doesn't.
-- Imports in three groups, separated by a blank line and sorted alphabetically within each: stdlib, third-party, local. Never `from x import *`.
+- Imports in three groups, separated by a blank line and sorted alphabetically within each: stdlib, third-party, local. `from x import *` is banned — it pollutes the namespace and breaks tooling.
 - Prefer `pathlib.Path` over string concatenation and `os.path.join`. `Path("/data") / pipeline_name / "raw"` is safer and reads like what it does.
 
 ## Comments & Docstrings
 
-Documentation depth should scale with API surface — what a reader *outside* the module needs to know to use it. Be generous where it helps; don't manufacture prose where names already do the work.
+Documentation depth should scale with API surface — what a reader *outside* the module needs to know to use it. A comment or docstring earns its space by carrying what the code can't say for itself; where names and types already do the work, prose only competes with them.
+
+One test decides most cases: **would a reader six months from now, who has never seen the plan or the PR, need this line?** A hidden constraint passes. A pointer to a document that no longer exists does not.
+
+**Don't cite the plan that produced the code.** These specific shapes, in comments or docstrings:
+
+- Design-doc decision IDs — `(D1)`, `D4:`, `(design D1/D3)`, `(D5's low-volume guard)`
+- Task or checklist numbers — `(D2/task 3.3)`, `# task 3.2`, `# per tasks.md step 4`
+- Review or PR references — `# per review feedback`, `# addressed reviewer comment`
+
+Citing the plan feels like traceability, which is why it's a tempting habit when a design doc is the thing you were just reading. It fails twice. The document is **archived** when the change lands, so the pointer goes dead the moment the work ships. And its labels aren't unique across a codebase — `D1` in one module means something unrelated to `D1` in another, so a reader chasing the reference lands in the wrong document and trusts what they find there.
+
+**Write the reason, not the pointer.** The rationale is the durable part; the label was only ever an index into scaffolding:
+
+```python
+# Omitting --allowedTools does not deny tools; it selects the CLI's default   ← survives archival
+# D1: tools intentionally not restricted                                      ← dead reference
+```
+
+References that point at something durable are fine: `# noqa: E501`, `# type: ignore[arg-type]`, and an upstream issue in a genuine workaround comment (`# workaround for boto3#1234; drop when fixed`). The distinction is whether the thing referenced will still exist and still mean the same thing.
+
+Cross-cutting rationale — the decision that shaped five modules — belongs in the ADR or design doc, not mirrored into each module that implements it. Each module gets the part of the reason that applies to its own code.
 
 **Public vs. private.** Treat a function/class as public if it's imported from outside its module, listed in `__all__`, exposed via `__init__.py`, or called across package boundaries. Private means leading-underscore names, nested helpers, and module-local utilities that only the module's own code reaches for. Apply documentation and typing rigor proportionally: more at public edges, less ceremony inside.
 
-**Public functions, classes, and methods** deserve a docstring when behavior isn't obvious from the signature. Document what a caller can't infer: non-obvious semantics, edge-case handling, side effects, raised exceptions callers are expected to catch. If the name and type hints already tell the story (`def user_exists(user_id: UUID) -> bool`), a docstring restating them is noise — skip it.
+**Public functions, classes, and methods** need a docstring when any of these hold:
+
+- it has side effects beyond its return value
+- it raises something callers are expected to catch
+- it has non-obvious semantics: bound inclusivity, empty-input behavior, argument mutation, ordering guarantees, units
+- it touches IO, the network, or a transaction
+
+Otherwise, if the name and type hints fully describe the contract, skip it — a docstring that restates the signature is noise, and it can go stale independently of the code.
+
+The list matters because "obvious from the signature" is easy to read as "obvious to me right now." `def user_exists(user_id: UUID) -> bool` really is fully described by its signature. `def truncate(table: str) -> None` looks just as simple and needs a docstring, because nothing in the signature tells a caller whether it's transactional, whether it commits, or what happens when the table doesn't exist.
 
 **Private helpers** usually get by on clear naming. Add a docstring or comment only when there's something a reader wouldn't guess — an invariant the function assumes, a workaround for a specific bug, a performance-sensitive choice.
 
 **Module docstrings need a reason to exist.** Skip perfunctory file summaries that just restate the filename. Keep a module docstring when it explains public API shape, package-level contracts, unusual import behavior, or context a caller needs before using the module. If the context is broader than one module, put it in the README or a design doc instead.
 
-When you do write a docstring, pick a style (Google or NumPy) and use it consistently within a project. Include args, returns, and raised exceptions only when they're part of what callers need to handle:
+When you do write a docstring, use **Google style** — the format in the example below. Include args, returns, and raised exceptions only when they're part of what callers need to handle:
 
 ```python
 def run_merge_procs(
@@ -68,9 +109,24 @@ def run_merge_procs(
 
 **Inline comments explain _why_, not _what_.** Well-named code already tells you what. Reserve comments for hidden constraints, subtle invariants, workarounds tied to a specific bug or upstream behavior, or anything that would surprise a reader.
 
-Don't narrate the current task (`# added for the payout flow`), the author (`# Victor's change`), or removed code (`# removed old logic`). That context belongs in git history and PR descriptions — it rots in the source.
+Don't narrate the current task (`# added for the payout flow`), the author, or removed code (`# removed old logic`). That context belongs in git history and PR descriptions, it rots in the source.
 
 If a comment feels necessary, first ask whether renaming a variable or extracting a helper would remove the need. The best comment is the one you didn't have to write.
+
+## Code That Reads As Written
+
+Code can satisfy every rule above and still read as though it were generated rather than written. The tells below are what that looks like in practice. They're worth naming because each one is a habit that *feels* like diligence in the moment — and because a reader recognizes the pattern instantly, which costs the code its credibility.
+
+- **Step-numbered headers inside a function.** `# Step 1: validate`, `# Step 2: load`, `# Step 3: write`. The numbering is the task list bleeding into the source. If those steps are real seams, they're helpers with names; if they aren't, the labels are decoration on a function that already reads top to bottom.
+- **Docstrings on three-line private helpers.** `"""Return the parsed row."""` above `def _parse_row(line: str) -> Row:` adds a line of maintenance and no information. Documentation rigor belongs at public edges (see the public/private split above), not evenly spread.
+- **Defensive scaffolding around what can't fail.** An `if not items: return []` in front of a loop that already yields nothing for an empty list; a `try/except` around dict construction; a null check on a value the type system says is non-optional. Guards earn their place at system boundaries — user input, external APIs, config. Between internal functions they add noise and imply a failure mode that doesn't exist.
+- **Abstraction with one implementation.** A base class with one subclass, a factory called from one place, a strategy dict with one key, a `Protocol` that nothing is ever passed as. Each is the right tool once a second case exists; written before then, it's indirection a reader walks through to reach the one path that runs. The exception worth knowing: a `Protocol` describing an *injected* dependency legitimately has no in-repo implementer — the implementations are the real client and a test fake. Narrowing `boto3`'s client to the three methods you call is the DI pattern working, not speculation. The question isn't how many implementers exist, it's whether the indirection buys a seam you actually use.
+- **Entry/exit logging ceremony.** `logger.info("Starting sync")` / `logger.info("Finished sync")` wrapped around every function. Logs are for milestones and phase boundaries a human will actually read in an incident, not a call trace. Two lines per function drowns the ten that matter.
+- **Placeholder naming.** `process_data`, `handle_data`, `_do_work`, `manage_items`, `utils.py`, `helpers.py`, `common.py`. These name the *shape* of the code — a verb plus a shrug — rather than the thing it handles: `merge_partitions`, `decrypt_payload`, `key_partition.py`. The test is whether the name narrows anything: a module called `helpers.py` tells a reader nothing about where to look, and `process_data` describes every function ever written. Bare nouns like `value`, `result`, `rows`, or `items` are not on this list — they're precise when the type annotation supplies the noun (`result: TableFreshness`, `value: datetime`) or when the code really is generic. Vagueness is contextual, so judge the name against what its signature already says rather than against a blocklist.
+- **Uniform rhythm.** Every function the same length, every docstring the same four sections, every branch logged the same way. Human code is uneven because problems are uneven — one function is three lines because that's all it needed, the next is thirty because the domain is genuinely fiddly. Uniformity across a module suggests a template was applied rather than a problem solved.
+- **Decoration.** `# ===== HELPERS =====` banner comments, box-drawing separators, emoji in log lines or docstrings. If a file needs internal signposting to navigate, it's telling you to split it.
+
+None of this argues for fewer comments, shorter functions, or less structure in the abstract. The bar is that every line is there because *this* problem needed it. When you finish a function, the useful question isn't "is anything missing?" but "would I defend each of these lines to a reviewer?" Anything you'd defend with "it seemed thorough" is a candidate for deletion.
 
 ## Typing & Data Structures
 
@@ -96,75 +152,7 @@ class ObjectStore(Protocol):
     def get(self, location: S3Location) -> bytes: ...
 ```
 
-## Module & Project Layout
-
-Split by responsibility. The shape depends on what you're building, but the layering principle is constant: dependencies flow one way, each layer knows only about layers below it.
-
-For what goes *inside* the entrypoint — CLI wiring, config layering, secrets, exit codes, dryrun flags — read `references/operational.md` when the task involves a runnable job, CLI, or service rather than a pure library.
-
-### Project archetypes
-
-**Data pipeline / batch job** — argparse CLI, config from env/SSM, orchestrator class:
-
-```
-pipeline_name/
-├── main.py              # argparse CLI. Parse args, build config, call runner.
-├── core/                # Orchestration. Composes utils and models into a workflow.
-│   └── runner.py        # PipelineRunner class — owns state (clients, config, logger).
-├── models/              # Dataclasses, enums, domain types. No I/O, no logic.
-│   └── config.py
-└── utils/               # Leaf helpers: retries, I/O, parsing. Knows nothing about core.
-    ├── s3_ops.py
-    └── retries.py
-```
-
-**Service (FastAPI, Flask)** — no CLI, config from env/pydantic-settings:
-
-```
-service_name/
-├── main.py              # App factory, lifespan wiring, uvicorn entrypoint.
-├── config.py            # Config(BaseSettings) — env-driven, fail-fast validators.
-├── api/                 # HTTP layer. Routes, deps, response schemas.
-│   ├── routes.py
-│   ├── deps.py
-│   └── schemas.py
-├── core/                # Business logic. Services, caches, state machines.
-│   ├── service.py
-│   └── cache.py
-├── models/              # Domain types (dataclasses) and wire types (Pydantic).
-│   ├── domain.py
-│   └── wire.py
-└── utils/               # External clients, helpers. No business logic.
-    └── client.py
-```
-
-**CLI tool / developer utility** — click or typer for multi-command UX:
-
-```
-tool_name/
-├── cli.py               # click/typer group. Parse commands, wire deps, call core.
-├── core/                # Orchestration and processing logic.
-│   ├── orchestrator.py  # Top-level workflow class — owns state, composes steps.
-│   └── processor.py
-├── models/              # Config, domain types, enums.
-│   └── config.py
-└── utils/               # I/O, formatting, parsing helpers.
-    └── io.py
-```
-
-### Layout rules
-
-Dependencies flow one way: `main/cli → core → {models, utils}`. `utils/` never imports from `core/`. If two modules want to import each other, the shared abstraction belongs in a third place — usually `models/` or a new utils module.
-
-Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.py` communicate intent; `classes.py`, `functions.py`, `helpers.py` don't.
-
-**Function and module size.** A function that scrolls past ~50 lines is usually doing more than one thing — extract helpers. A module over ~400 lines is signal that it's become a grab bag; split it along a natural seam. These aren't hard limits, but hitting them is a prompt to look again.
-
-**Breaking circular imports.** If module A needs a type from module B for hints only, use `from __future__ import annotations` + `if TYPE_CHECKING: from b import BType`. The import is only evaluated by type checkers, not at runtime.
-
-**`__init__.py` is a package marker, not a home for code.** Keep it empty (0 bytes) or limited to a short `__all__` re-export list. Never put classes, functions, dataclasses, or business logic in `__init__.py`. Every logical unit lives in a named module — `runner.py`, `status.py`, `config.py` — so a reader can find code by scanning file names in the directory tree. If a package contains only one module, that module still gets a descriptive name rather than living in `__init__.py`. The reason: when code lives in `__init__.py`, `from package import thing` gives the reader no signal about *where* inside the package `thing` is defined — they have to open the file and scroll. Named modules make the codebase navigable without grep.
-
-### When to use a class vs a function
+## Choosing a Class, a Function, or a Dataclass
 
 Start with the question that decides it: **does this code carry state across calls?** State is any resource or context that outlives a single invocation and that more than one operation reads or mutates — a connection, a cache, a client, config, a logger, an accumulating result. If yes, that state wants an owner, and the owner is a class. If no, a free function is the honest shape.
 
@@ -174,7 +162,37 @@ Start with the question that decides it: **does this code carry state across cal
 
 **The parameter-threading smell.** The common mistake isn't reaching for a class too early — it's failing to notice state that's already there. When two or more functions pass the *same* objects to each other in a fixed sequence — `run(conn, cfg, logger)` calls `_extract(conn, cfg, logger)` then `_load(conn, cfg, logger)` — that shared context *is* state, and threading it through every signature is a class's `__init__` turned inside out. An orchestrator, runner, or pipeline that coordinates steps over a shared connection and config is a class even when each step looks pure in isolation. Give the shared context an owner: construct it once in `__init__`, and let the methods reach for `self.conn` instead of receiving it again and again.
 
-The test is state, not size: hold state in a class, compute without it in a function.
+The test is state, not size: hold state in a class, compute without it in a function. What goes *into* that `__init__` is the Dependency Injection section below — the short version is that the class accepts its collaborators rather than constructing them.
+
+## Module & Project Layout
+
+Split by responsibility. The shape depends on what you're building, but the layering principle is constant: dependencies flow one way, each layer knows only about layers below it.
+
+For what goes *inside* the entrypoint — CLI wiring, config layering, secrets, exit codes, dryrun flags — read `references/operational.md` when the task involves a runnable job, CLI, or service rather than a pure library.
+
+The shape, in one line: **`main`/`cli` → `core` → `{models, utils}`**, with imports only ever pointing right.
+
+```
+project/
+├── main.py     # or cli.py. Parse input, build config, hand off. Stays thin.
+├── core/       # Orchestration and business logic. Owns state.
+├── models/     # Dataclasses, enums, domain types. No logic, no I/O.
+└── utils/      # Leaf helpers. Knows nothing about core.
+```
+
+That sketch is deliberately generic. **Read `references/layout.md`** for the filled-in tree of whichever archetype you're building — data pipeline, service, or CLI tool — before creating directories.
+
+### Layout rules
+
+`utils/` never imports from `core/`. If two modules want to import each other, the shared abstraction belongs in a third place — usually `models/` or a new utils module.
+
+Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.py` communicate intent; `classes.py`, `functions.py`, `helpers.py` don't.
+
+**Function and module size.** A function that scrolls past ~50 lines is usually doing more than one thing — extract helpers. A module over ~400 lines is signal that it's become a grab bag; split it along a natural seam. These aren't hard limits, but hitting them is a prompt to look again.
+
+**Breaking circular imports.** If module A needs a type from module B for hints only, use `from __future__ import annotations` + `if TYPE_CHECKING: from b import BType`. The import is only evaluated by type checkers, not at runtime.
+
+**`__init__.py` is a package marker, not a home for code.** Keep it empty (0 bytes) or limited to a short `__all__` re-export list. Never put classes, functions, dataclasses, or business logic in `__init__.py`. Every logical unit lives in a named module — `runner.py`, `status.py`, `config.py` — so a reader can find code by scanning file names in the directory tree. If a package contains only one module, that module still gets a descriptive name rather than living in `__init__.py`. The reason: when code lives in `__init__.py`, `from package import thing` gives the reader no signal about *where* inside the package `thing` is defined — they have to open the file and scroll. Named modules make the codebase navigable without grep.
 
 ## Design Principles
 
@@ -359,7 +377,7 @@ with ExitStack() as stack:
 
 - Always timezone-aware: `datetime.now(timezone.utc)`. Never naive `datetime.now()`.
 - Carry UTC internally; convert to local only at display boundaries.
-- Accept `now` as an optional argument in time-dependent pure functions so tests can freeze time without monkey-patching.
+- Time-dependent pure functions take `now` as an optional parameter — see the injection pattern in Dependency Injection & Testability above.
 
 ## Concurrency
 
@@ -394,7 +412,6 @@ Quick rules:
 - **`is` vs `==`.** Use `is` only for `None`, `True`, `False`, and sentinel identity checks. Never `x is 0` or `x is "foo"` — it works today only by CPython interning and will break silently.
 - **Don't subclass `dict`/`list`.** Composition (wrap + expose the methods you need) avoids MRO and pickling surprises.
 - **Avoid module-level side effects.** Code at import time runs every time something imports the module — don't open files, hit networks, or read config there. Put it in a function called from `main`.
-- **`from x import *`** is banned. It pollutes the namespace and breaks tooling.
 
 ## Security
 
