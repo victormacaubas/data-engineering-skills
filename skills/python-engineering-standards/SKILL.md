@@ -1,11 +1,11 @@
 ---
 name: python-engineering-standards
-description: Canonical Python coding standards. Use this whenever you write, review, or refactor Python of any kind — services, CLIs, pipelines, ETL jobs, libraries, internal tooling, scripts. Read it before writing the first line rather than fixing style afterward, even when the change looks small and even when the user says nothing about standards or code quality. Domain-specific Python skills build on top of it.
+description: Canonical Python coding standards — layout, typing, docstrings and comments, class-vs-function, logging, error handling and retries, dependency injection, concurrency, security, testing, and the tells that make code read as machine-generated. Use whenever you write, review, or refactor Python of any kind — services, CLIs, pipelines, ETL jobs, libraries, internal tooling, scripts. Consult it before writing rather than fixing style afterward. Domain-specific Python skills build on top of it.
 ---
 
 # Python Engineering Standards
 
-These are the canonical standards for writing Python — services, CLIs, pipelines, libraries, jobs. Apply them by default; a genuine one-off in a REPL is the only thing that doesn't need them. Domain-specific skills assume this file as their base and add patterns on top.
+Apply these by default; a genuine one-off in a REPL is the only thing that doesn't need them.
 
 The guiding principle: **write code that another engineer can read, test, and re-run six months from now without surprise.** Every rule below exists because something broke when it wasn't followed.
 
