@@ -15,7 +15,7 @@ Dispatch runs in both directions, but writing is one-way: the main session is th
 
 First, name the plan source. It is one of:
 
-1. **An OpenSpec change directory** — `openspec/changes/<name>/`: `tasks.md`, `proposal.md`, `design.md`, and the spec files. They carry intent and acceptance criteria that task titles compress. The richest source.
+1. **An OpenSpec change directory** — `openspec/changes/<name>/`, resolved through the CLI rather than by filename convention. If the name isn't known yet, `openspec list --json` shows what's active. `openspec status --change "<name>" --json` returns `schemaName`, `changeRoot`, and per-artifact progress; `openspec instructions apply --change "<name>" --json` returns `contextFiles` — the concrete paths for *this* schema, not an assumed `tasks.md`/`proposal.md`/`design.md` (other schemas name artifacts differently). Read those paths. They carry intent and acceptance criteria that task titles compress — the richest source, resolved rather than guessed. If the change lives in a **store** (a standalone OpenSpec repo registered on this machine), run `openspec store list --json` for the id and pass `--store <id>` on every command above.
 2. **A plan file** — a path you were given, or `~/.claude/plans/<name>.md` if a plan-mode plan was approved this session.
 3. **A plan that exists nowhere on disk** — settled in conversation, never written to a file. Externalize it before dispatch (next section).
 
@@ -23,7 +23,7 @@ Then read only what you don't already hold reliably. **Re-read when:**
 
 - The plan predates a compaction, or you can't quote its task list and acceptance criteria without hedging.
 - You never read it — the user pointed you at a change directory someone else authored.
-- It's `tasks.md`. Always re-read this one: it's mutable tracking state that a prior loop iteration or a parallel session may have ticked since.
+- It's the task-tracking artifact (`tasks.md` under spec-driven, or whatever `contextFiles` resolved for this schema). Always re-read: re-run `openspec status --change "<name>" --json` for the progress summary, and open the file itself for full task text — it's mutable tracking state that a prior loop iteration or a parallel session may have changed since.
 
 **Don't re-read when you authored the artifacts this session and nothing has written to them since.** You already hold the intent, the trade-offs, and the acceptance criteria at full fidelity — re-reading a `design.md` you wrote twenty minutes ago buys nothing and costs the context you're trying to protect. Say so in one line and move on.
 

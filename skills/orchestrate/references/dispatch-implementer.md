@@ -13,9 +13,13 @@ before dispatch, and how to read the result.
 ## Before you dispatch
 
 **Hand over the plan source explicitly.**
-- OpenSpec: point at the change dir `openspec/changes/<name>/`. The worker reads
-  `tasks.md` / `proposal.md` / `design.md` / spec files itself. If only some specs apply, name
-  them so the worker doesn't over-read.
+- OpenSpec: resolve it yourself first — `openspec status --change "<name>" --json` and
+  `openspec instructions apply --change "<name>" --json` — then hand the worker the change dir
+  `openspec/changes/<name>/` plus the exact `contextFiles` paths from that JSON. Don't let the
+  worker guess filenames across schemas. If only some specs apply, name them so it doesn't
+  over-read. The worker's own OpenSpec access is read-only and unenriched (`openspec list`,
+  `openspec show`, `openspec validate` — no `status` or `instructions`), so the resolved paths
+  have to come from you.
 - Plain plan: paste it inline, or give a file path. Include acceptance criteria and any
   decision made in conversation — the worker interprets what you give it literally and cannot
   ask follow-ups.
@@ -78,6 +82,10 @@ the diff plausibly caused is not; read the diff and confirm before you trust it.
 checklist, plan-mode task list). The worker never touches it — that's what keeps parallel workers
 from colliding on the tracking file. Record exactly the tasks the worker actually finished and
 verified.
+
+**For an OpenSpec change, validate afterward.** `openspec validate "<name>" --strict --json`
+catches spec/task drift a code diff review wouldn't — cheap enough to run every time the tracked
+task list changes.
 
 ## Cross-reference
 
