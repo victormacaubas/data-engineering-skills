@@ -216,7 +216,7 @@ __marimo__/
 # agentic stuff
 .agentic/
 .claude/
-.codex/
+.agents/
 
 # skill-creator eval workspaces (run outputs, gradings, benchmarks)
 skills/*-workspace/
