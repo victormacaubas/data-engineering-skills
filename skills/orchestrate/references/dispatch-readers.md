@@ -28,7 +28,10 @@ For a single question mid-build, skip the ceremony entirely:
   outright, so if you need a specific answer, phrase it as a question. For a governance query,
   supply the view names or the SQL yourself; you have the `data-governance` reference and the
   stronger model, and the worker is there to execute and compress, not to rediscover which
-  `ACCOUNT_USAGE` view is authoritative.
+  `ACCOUNT_USAGE` view is authoritative. For an OpenSpec change, resolve concrete paths yourself
+  first — `openspec status --change "<name>" --json` (`artifactPaths`) or
+  `openspec instructions apply --change "<name>" --json` (`contextFiles`) — before dispatch;
+  `pathfinder` reads files, it doesn't run the CLI.
 - **`researcher`** — one bounded question plus constraints (official-docs-only, compare X vs Y,
   number of sources). Resolve syntax/API/version questions here, *before* the implementer
   dispatch, so the build doesn't stall on them. Keep secrets out of the brief: the researcher can
