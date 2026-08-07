@@ -157,7 +157,7 @@ Procedure, exactly:
 - **Security ≤ 5** if any Critical finding exists in the dimension. A single secret-leak is a failure.
 - **Correctness ≤ 5** if any Critical (silent-wrong-answer, record-dropping race, leak on a common error path). ≤ 7 if a defensible High but no Critical.
 - **Error Handling ≤ 6** if there's a bare catch-all in a production path, a retry loop retrying non-transient errors, or a batch error message missing the failing record's identifier.
-- **Readability ≤ 7** if any public function lacks a docstring or types (in a language that supports them); ≤ 5 if most do.
+- **Readability ≤ 7** if a public function that meets any of these conditions lacks a docstring: (a) it has side effects beyond its return value, (b) it raises something callers are expected to catch, (c) it has non-obvious semantics (bound inclusivity, empty-input behavior, argument mutation, ordering guarantees, units), or (d) it touches IO, the network, or a transaction. A function whose name and type hints fully describe its contract (e.g. `def user_exists(user_id: UUID) -> bool`) is correctly undocumented — do not penalize. ≤ 5 if most functions meeting these conditions lack docstrings. Also ≤ 7 if public APIs lack type hints (in a language that supports them).
 - **Architecture ≤ 5** if a unit has >3 unrelated responsibilities or constructs its own external clients with no injection seam, **or** (diff scope) a public API break lands without a deprecation path and wasn't flagged.
 - **Performance ≤ 6** if there's an unbounded read or full materialization of something advertised as potentially large.
 

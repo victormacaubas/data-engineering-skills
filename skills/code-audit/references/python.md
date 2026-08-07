@@ -6,7 +6,7 @@ Load when the review scope contains `.py` files, `pyproject.toml`, or `requireme
 
 - PEP 8, Black-compatible (4-space indents, ~88–100 col). `ruff`/`flake8` for lint, `mypy`/`pyright` for types.
 - Type hints on public APIs. `f-strings` for formatting **except** in logging calls, where lazy `%s` args are correct (`logger.info("x=%s", x)`, not `logger.info(f"x={x}")`) — the f-string formats even when the log level is disabled.
-- Docstrings on public modules, classes, and functions.
+- Docstrings on public functions/classes/methods when any of these hold: (a) side effects beyond the return value, (b) raises something callers catch, (c) non-obvious semantics (bound inclusivity, empty-input behavior, argument mutation, ordering, units), or (d) touches IO/network/a transaction. If name + type hints fully describe the contract, skip the docstring — restating the signature is noise.
 
 ## Security (×2.0)
 
