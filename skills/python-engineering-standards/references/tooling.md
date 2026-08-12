@@ -88,6 +88,7 @@ uv add --dev import-linter
 ```toml
 [tool.importlinter]
 root_package = "mypackage"
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Layered architecture"
@@ -106,7 +107,9 @@ source_modules = ["mypackage.core", "mypackage.models", "mypackage.utils"]
 forbidden_modules = ["boto3", "snowflake.connector"]
 ```
 
-The `layers` contract lists packages top to bottom: each may import anything below it, nothing above. The `forbidden` contract is what keeps a driver's types inside the adapter that owns them, and it's worth one per external technology in the project. Every package named needs to exist with an `__init__.py` for the graph to resolve.
+The `layers` contract lists packages top to bottom: each may import anything below it, nothing above. The `forbidden` contract is what keeps a driver's types inside the adapter that owns them, and it's worth one per external technology in the project.
+
+Two mechanics that will bite on first run. `include_external_packages = true` is required as soon as a forbidden contract names anything outside the root package, standard library included, or the run aborts before checking anything. And every package named in a contract has to exist on disk with an `__init__.py`: an empty package is analyzed and kept, but a missing directory fails with `Missing layer 'mypackage.io': module mypackage.io does not exist.`
 
 Run it with `uv run lint-imports`. It executes nothing, so it's fast enough to sit at the front of the gate alongside the linters.
 

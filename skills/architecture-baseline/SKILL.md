@@ -202,7 +202,7 @@ You already have what you need to check it. The declarations from Decisions 3, 4
 
 The baseline is done when it comes back green. Not "should pass" — green.
 
-Create only the packages the contract names. A package with no declaration to hold still needs its `__init__.py` so the import graph resolves, but a directory that exists only to make a tree look complete is the over-scaffolding this skill is meant to prevent — the first change creates those. If `lint-imports` can't resolve a layer, that package needs at least an `__init__.py` on disk.
+Create only the packages the contract names, and give each one an `__init__.py`. An empty package is analyzed and kept, so a layer that holds nothing yet still checks; a layer with no directory at all fails the run outright. A directory that exists only to make a tree look complete is the over-scaffolding this skill is meant to prevent — the first change creates those.
 
 ---
 

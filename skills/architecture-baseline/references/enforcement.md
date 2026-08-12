@@ -99,6 +99,7 @@ Expresses the one-way flow. List packages top to bottom — each may import anyt
 ```toml
 [tool.importlinter]
 root_package = "mypackage"
+include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Layered architecture"
@@ -111,7 +112,9 @@ layers = [
 ]
 ```
 
-Every package named here needs to exist on disk with an `__init__.py`, even if it has no declarations yet, or the graph can't resolve it. That's the mechanical reason Decision 7 tells you to create them before running the gate.
+`include_external_packages` is not optional once any forbidden contract names a module outside the root package, which covers every one of the examples below. Without it the run fails before checking anything: `The top level configuration must have include_external_packages=True when there are external forbidden modules.` Set it once, at the top.
+
+An empty package resolves fine. A layer holding nothing but `__init__.py` is analyzed and kept, which is what makes it possible to run the gate at baseline time before any behavior exists. What the contract can't tolerate is a layer with no directory at all — that fails with `Missing layer 'mypackage.render': module mypackage.render does not exist.` So every package named here needs to exist on disk with an `__init__.py`, even when it has no declarations to hold yet. That's the mechanical reason Decision 7 tells you to create them before running the gate.
 
 Packages not listed are unconstrained, which is a useful escape hatch while a package's position is still unsettled — but an unlisted package is an undecided one, so keep the list short by finishing the decision rather than by omitting things.
 
@@ -132,6 +135,8 @@ forbidden_modules = ["sqlite3"]
 ```
 
 Write one for each external technology in the project: the database driver, the HTTP client, the cloud SDK, `subprocess`. This contract catches the specific failure where a driver quietly becomes part of the architecture — the import appears in one convenient place, then in five, and by the time it's in a public signature the technology can't be swapped without a user-visible change.
+
+Anything outside the root package counts as external here, standard library included, so `include_external_packages = true` has to be set for any of these to run at all.
 
 ### Independence
 
@@ -168,7 +173,7 @@ ignore_imports = [
 unmatched_ignore_imports_alerting = "error"
 ```
 
-Two properties make this a ratchet rather than a suppression list. **New violations fail** the moment they're introduced, so the leak stops growing on day one even if the cleanup takes months — a bounded problem is a scheduling question, an unbounded one is a risk. And **a listed exception that no longer matches a real import fails the build**, so the moment someone fixes a violation the build tells them to delete its entry. That second property is `unmatched_ignore_imports_alerting`, and `error` is already the default; set it explicitly anyway, because the ratchet depends on it and a future reader shouldn't have to know it was inherited.
+Two properties make this a ratchet rather than a suppression list. **New violations fail** the moment they're introduced, so the leak stops growing on day one even if the cleanup takes months — a bounded problem is a scheduling question, an unbounded one is a risk. And **a listed exception that no longer matches a real import fails the build** with `No matches for ignored import <the entry>`, so the moment someone fixes a violation the build tells them to delete its entry. That second property is `unmatched_ignore_imports_alerting`, and `error` is already the default; set it explicitly anyway, because the ratchet depends on it and a future reader shouldn't have to know it was inherited.
 
 Treat the count as a tracked number. It only goes down. If the list is long enough that clearing it feels like a project rather than a cleanup, stop and say so — declaring a graph the code is far from is a different piece of work than establishing one, and it doesn't belong inside this conversation.
 
