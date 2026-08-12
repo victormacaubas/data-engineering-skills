@@ -21,16 +21,20 @@ argparse CLI, config from env/SSM, orchestrator class that owns the run:
 ```
 pipeline_name/
 ├── main.py              # argparse CLI. Parse args, build config, call runner.
-├── core/                # Orchestration. Composes utils and models into a workflow.
+├── core/                # Orchestration. Composes io and models into a workflow.
 │   └── runner.py        # PipelineRunner class — owns state (clients, config, logger).
+├── io/                  # Adapters to external systems. Owns their types and errors.
+│   ├── warehouse.py
+│   └── object_store.py
 ├── models/              # Dataclasses, enums, domain types. No I/O, no logic.
 │   └── config.py
-└── utils/               # Leaf helpers: retries, I/O, parsing. Knows nothing about core.
-    ├── s3_ops.py
+└── utils/               # Leaf helpers: retries, parsing. Knows nothing about core.
     └── retries.py
 ```
 
 `main.py` stays thin: parse, build config, construct the runner, return its exit code. The moment it grows a branch that decides *what work happens*, that branch belongs in `core/`.
+
+`io/` and `utils/` sit at the same layer but do different jobs, and collapsing them is the most common way this tree goes wrong. `io/` talks to external systems and owns their types and exceptions — each adapter catches whatever its driver raises and re-raises something of yours, so nothing `boto3`-shaped or `snowflake`-shaped appears in a signature further up. `utils/` takes values and returns values. Once a pipeline touches more than one external system, keeping them separate is what makes the adapters testable one at a time.
 
 ## Service (FastAPI, Flask)
 
@@ -50,7 +54,7 @@ service_name/
 ├── models/              # Domain types (dataclasses) and wire types (Pydantic).
 │   ├── domain.py
 │   └── wire.py
-└── utils/               # External clients, helpers. No business logic.
+└── io/                  # External clients. Owns their types and errors.
     └── client.py
 ```
 
@@ -70,15 +74,15 @@ tool_name/
 │   └── processor.py
 ├── models/              # Config, domain types, enums.
 │   └── config.py
-└── utils/               # I/O, formatting, parsing helpers.
-    └── io.py
+└── utils/               # Formatting, parsing, leaf helpers.
+    └── render.py
 ```
 
 Each subcommand should be a few lines in `cli.py` that build arguments into a config object and hand off to `core/`. When a command body starts doing real work, the tool becomes untestable except through its argument parser.
 
 ## Why the dependencies flow one way
 
-All three trees encode the same rule: `main`/`cli` → `core` → `{models, utils}`, and never back up the chain.
+All three trees encode the same rule: `main`/`cli` → `core` → `{models, io, utils}`, and never back up the chain.
 
 The payoff is testability at the layer you care about. `utils/` functions take values and return values, so they test with no setup. `core/` accepts its dependencies, so it tests with fakes. `main.py` is thin enough that there's little left in it to test. Reverse any arrow and that collapses: a `utils/` module that imports from `core/` can't be exercised without constructing the whole workflow, and a `models/` type that reaches for a client stops being a value you can build in a test.
 
@@ -93,7 +97,7 @@ Two consequences worth stating:
 
 These are starting points, not a schema to satisfy. Real projects grow directories the archetypes don't name, and that's fine when the addition has a clear responsibility and respects the flow:
 
-- A pipeline that reads and writes several systems may want `io/` split from `utils/`.
+- A pipeline reading and writing many systems may want `io/` split by system rather than one module each.
 - A service with heavy background work may want `workers/` alongside `api/`, at the same layer.
 - A tool with substantial output formatting may want `render/` below `core/`.
 

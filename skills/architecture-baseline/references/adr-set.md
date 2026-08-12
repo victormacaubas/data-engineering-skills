@@ -83,7 +83,13 @@ The base exception, the initial domain errors, and the rule that packages transl
 
 Record where the mapping to exit codes lives, and the corollary that code inside a package with a taxonomy doesn't raise bare builtins. This is the decision most likely to erode quietly, so the ADR is worth writing even though it feels obvious while you're writing it.
 
-### 0006. Toolchain and quality gate
+### 0006. Testing approach
+
+Factories, fakes, the integration marker, and what tests may assert against.
+
+Record the litmus test — a behavior-preserving change that breaks a test means the test was wrong — because it's a norm rather than a check, and norms only survive if they're written where people look.
+
+### 0007. Toolchain and quality gate
 
 The tools, the single gate command, and what CI runs.
 
@@ -91,11 +97,7 @@ The substance here isn't the tool list — it's the commitment that architectura
 
 Record deliberate exceptions too: if mypy is strict everywhere except one package, that exception belongs here with its reason and, ideally, the condition under which it goes away.
 
-### 0007. Testing approach
-
-Factories, fakes, the integration marker, and what tests may assert against.
-
-Record the litmus test — a behavior-preserving change that breaks a test means the test was wrong — because it's a norm rather than a check, and norms only survive if they're written where people look.
+Record also that the gate was run and came back green against the declarations the baseline wrote. An untested contract is a claim, and this is the ADR where the difference is visible.
 
 ## Two habits that keep the set useful
 

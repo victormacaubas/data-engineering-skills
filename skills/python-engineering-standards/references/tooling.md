@@ -26,7 +26,7 @@ Ruff is both the linter and the formatter — don't add Black or isort alongside
 ```toml
 [tool.ruff]
 line-length = 88
-target-version = "py311"    # set to the project's minimum supported version
+target-version = "py312"    # set to the project's minimum supported version
 
 [tool.ruff.lint]
 select = [
@@ -50,7 +50,7 @@ The root standard says to write code as if `mypy --strict` passes. This config m
 
 ```toml
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 strict = true
 warn_unreachable = true
 ```
@@ -76,6 +76,39 @@ markers = [
 ```
 
 `--strict-markers` turns a typo'd marker into an error instead of a silently-never-run test. The `integration` marker matches the Testing section of the root standard: unit tests run everywhere by default; integration tests run with `-m integration` in the lane that has credentials.
+
+## import-linter
+
+Nothing above checks the one-way dependency flow that `references/layout.md` argues for. Ruff enforces import *ordering*; nothing here catches a `utils/` module importing from `core/`, which is the failure that actually costs you. `import-linter` closes that gap by reading the import graph statically and failing the build on a violation:
+
+```bash
+uv add --dev import-linter
+```
+
+```toml
+[tool.importlinter]
+root_package = "mypackage"
+
+[[tool.importlinter.contracts]]
+name = "Layered architecture"
+type = "layers"
+layers = [
+    "mypackage.main",
+    "mypackage.core",
+    "mypackage.io",
+    "mypackage.models",
+]
+
+[[tool.importlinter.contracts]]
+name = "Only io touches the cloud SDK"
+type = "forbidden"
+source_modules = ["mypackage.core", "mypackage.models", "mypackage.utils"]
+forbidden_modules = ["boto3", "snowflake.connector"]
+```
+
+The `layers` contract lists packages top to bottom: each may import anything below it, nothing above. The `forbidden` contract is what keeps a driver's types inside the adapter that owns them, and it's worth one per external technology in the project. Every package named needs to exist with an `__init__.py` for the graph to resolve.
+
+Run it with `uv run lint-imports`. It executes nothing, so it's fast enough to sit at the front of the gate alongside the linters.
 
 ## pre-commit
 

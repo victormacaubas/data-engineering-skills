@@ -8,6 +8,7 @@ A collection of agent skills for Claude Code and Codex. Each skill lives in `ski
 
 **For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
 
+- Skills are self-contained. A skill and its `references/` carry everything needed to follow it, and should never point at another skill for content.
 - Each skill is a directory under `skills/` with a kebab-case name.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
 - Optional subdirectories: `scripts/`, `assets/`, `references/`. These are installed as a unit alongside `SKILL.md`.

@@ -10,6 +10,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 
 | Skill | Description |
 |-------|-------------|
+| `architecture-baseline` | Decide a new project's architectural constraints before any feature work: layer table, closed dependency set, identity and grain, injected seams, error taxonomy, testing conventions, and a quality gate that enforces all of it. Produces ADRs, a rules-only `CLAUDE.md`, import contracts, and the declarations they constrain, then runs the gate green. Decides and declares; does not build the product. For new projects, not for retrofitting an existing one. |
 | `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./.code-audit/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
