@@ -1,1 +1,0 @@
-/Users/victor-macaubas/Documents/Personal_Projects/data-engineering-skills/CLAUDE.md
