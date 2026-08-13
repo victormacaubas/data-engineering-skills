@@ -19,7 +19,9 @@ Correctness is a different pass, with one exception worth knowing: when a struct
 
 ## Step 1: Scope the change
 
-Resolve the unit in this order and record which one applied:
+**If you're being asked whether a previous review's findings were addressed**, that's a different job with a different output — skip to *Re-review* near the end of this skill.
+
+Otherwise, resolve the unit in this order and record which one applied:
 
 1. **An OpenSpec change** — `openspec/changes/<name>/`, active or freshly archived. The richest case: `proposal.md` says why, `design.md` says how it was meant to be built, `tasks.md` is the checklist, `specs/` carries the new requirements. Scope is the files the change touched.
 2. **A branch diff** — `git diff <base>...HEAD`, default base `main`.
@@ -42,7 +44,9 @@ Skip generated and vendored paths entirely: `.venv`, `node_modules`, `__pycache_
 
 A module the change touched is in scope at its current size, including problems that predate the change. A 663-line module doing four jobs is worth raising the moment someone opens it, and this review is that moment.
 
-Before raising it, check `./.structure-review/` for a prior report covering the same module. If the finding has already been made, give it one line — *`operations.py` still 663 lines across four concerns, raised 2026-08-12, still open* — and don't re-argue it. Re-litigating known findings is how a per-change review becomes something people stop reading.
+Before raising it, check `./.structure-review/` for a prior report covering the same module or the same change. If the finding has already been made, give it one line under *Standing debt* — *`operations.py` still 663 lines across four concerns, raised 2026-08-12, still open* — and don't re-argue it. Re-litigating known findings is how a per-change review becomes something people stop reading.
+
+**Unless you have something to add.** A prior report closes a finding only when you would be repeating it. New evidence, a better fix, or a number that corrects theirs makes it live again — write it out in full and cite the earlier report. *Already covered* is a judgment about your material, not about the topic. Suppressing a better fix because the subject has been mentioned once costs the reader more than a little repetition would.
 
 ## Step 2: Read what the project declared
 
@@ -325,6 +329,38 @@ If a field is running long, check whether it's holding another field's content o
 Nothing in the long version is false, and a reader learns almost nothing from it that the three-line version didn't give them. That's the test: if expanding a finding doesn't change what someone would do about it, it wasn't worth the expansion.
 
 **Put a blank line between the four fields.** Without one, markdown runs them into a single paragraph and the labels stop being labels — the finding renders as a wall of text. This bites hardest when the fields are short, which is exactly when the finding is otherwise at its best.
+
+## Re-review: verifying a fix list
+
+A change that came back `request_changes` is cleared by a review, not by whoever dispatched the fix. What that party holds is a claim — an implementer's report, a commit message — and a claim about structure is precisely what this review exists to check against the tree.
+
+This is not the original review run again. Scope is the prior report's fix list, plus the diff since that report's commit.
+
+**Re-run the evidence.** Every full finding carried a measurement and the command that produced it, and that command is now your verification procedure. If the finding said `26 22` from an AST count, run it again: `26 4` is a fix, and a number that hasn't moved is not a fix no matter what the handoff says. This is the part that can't be delegated to a report.
+
+Each item lands in one of five states:
+
+- **Fixed** — the edit landed and the original evidence no longer reproduces.
+- **Partially fixed** — the measurement moved but didn't clear. Say what remains, with the new number.
+- **Not fixed** — no edit, or an edit that didn't move the measurement.
+- **Waived** — someone decided not to fix it. This closes the item *only* if the decision is recorded where declarations live, in an ADR or `CLAUDE.md`. An unrecorded waiver stays open, because the next review has no way to know and will raise it again forever.
+- **Superseded** — other work removed the finding's subject entirely.
+
+**Review the fix diff itself.** A fix is a change and can introduce its own problems: a test deleted rather than repaired, a split that copied instead of moving, a seam widened to make an assertion pass. Run the passes over the fix. Anything new gets normal treatment and a normal fix-list entry.
+
+Write a new dated report rather than editing the old one — the directory is a history. Lead with the verification table, then any new findings.
+
+```markdown
+## Verification
+
+| # | Finding | State | Evidence now |
+|---|---|---|---|
+| 2 | `conn` threaded through 22 of 26 functions | fixed | AST count → `26 4` |
+| 5 | no round-trip test for the row mapper | not fixed | `rg -c hydrate_session_record tests/` → `0` |
+| 7 | transaction seam undocumented | waived | recorded at `CLAUDE.md:98` |
+```
+
+The verdict is the point of the exercise: `approve` or `approve_with_comments` clears the change, `request_changes` keeps it blocked. Nothing else lifts the block.
 
 ## Guardrails
 
