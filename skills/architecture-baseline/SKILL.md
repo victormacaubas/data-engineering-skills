@@ -220,6 +220,7 @@ Include:
 - the dependency set, what was excluded, and that additions are ADRs rather than implementation details
 - the seam list, and where the composition root is
 - the gate command, as the definition of done
+- the review bar, a change is not done when the gate passes, only when its structure has also been reviewed against the declarations above, and that a review asking for changes blocks the archive. The gate proves the code runs; nothing in it proves the code is shaped the way this project decided. Ask what performs that review here and name it, the same way you named the coding standards.
 - the testing norms from Decision 6, with the litmus test verbatim
 - naming and vocabulary conventions
 - **the coding standards this project inherits.** Ask which ones apply and name them explicitly. Whether a standard gets picked up otherwise depends on how a given task happens to be phrased, while a line in `CLAUDE.md` is always loaded — so for a standard meant to govern every file of a given kind in the repo, don't leave it to chance. Name the ones that govern a whole class of work (the language standard, a SQL standard if the repo has that surface), not everything available on the machine; the second kind is inventory and it rots.

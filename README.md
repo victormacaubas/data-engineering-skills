@@ -19,6 +19,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | `scout` | Think through work whose shape isn't settled yet, dispatching `pathfinder` / `researcher` to do the reading so sources stay out of the main context. Ends at the decision and hands off to a proposal. Requires the `pathfinder` and `researcher` agents installed. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
+| `structure-review` | Senior-engineer review of a finished change, run before it merges or is archived. Checks module cohesion and size, state ownership, duplication, test design, pattern fit, readability, and conformance to `CLAUDE.md`, ADRs, import contracts, and an OpenSpec change's own design and tasks. Writes a markdown report to `./.structure-review/` with a gate verdict and an ordered list of changes to make. Read-only on the source under review. |
 | `write-ticket` | Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. |
 
 ## Agents
