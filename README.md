@@ -10,6 +10,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 
 | Skill | Description |
 |-------|-------------|
+| `architecture-baseline` | Decide a new project's architectural constraints before any feature work: layer table, closed dependency set, identity and grain, injected seams, error taxonomy, testing conventions, and a quality gate that enforces all of it. Produces ADRs, a rules-only `CLAUDE.md`, import contracts, and the declarations they constrain, then runs the gate green. Decides and declares; does not build the product. For new projects, not for retrofitting an existing one. |
 | `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./.code-audit/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
 | `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
 | `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
@@ -18,6 +19,7 @@ My personal collection of agent skills for [Claude Code](https://claude.ai/code)
 | `scout` | Think through work whose shape isn't settled yet, dispatching `pathfinder` / `researcher` to do the reading so sources stay out of the main context. Ends at the decision and hands off to a proposal. Requires the `pathfinder` and `researcher` agents installed. |
 | `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
 | `stash` | Park raw content into an Obsidian vault inbox for later processing. |
+| `structure-review` | Senior-engineer review of a finished change, run before it merges or is archived. Checks module cohesion and size, state ownership, duplication, test design, pattern fit, readability, and conformance to `CLAUDE.md`, ADRs, import contracts, and an OpenSpec change's own design and tasks. Writes a markdown report to `./.structure-review/` with a gate verdict and an ordered list of changes to make. Read-only on the source under review. |
 | `write-ticket` | Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. |
 
 ## Agents
