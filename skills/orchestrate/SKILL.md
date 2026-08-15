@@ -31,7 +31,9 @@ The test is whether your grip on the plan is *stale*, not whether this skill jus
 
 ## Externalize a session-only plan before dispatch
 
-A fresh-context worker cannot read the session. Write the plan to a scratch file outside the working tree (e.g. `/tmp/orchestrate/<change-slug>-plan.md`) — the full plan: task slices, acceptance criteria, and any in-conversation decisions the worker needs — and pass the **explicit absolute path** in the dispatch prompt. The worker's guardrails allow reading paths provided in the dispatch. Clean up the scratch file after the dispatch loop for that plan finishes, not earlier — you may re-dispatch (partial results, a follow-up slice), and deleting it early pulls the source out from under a later worker.
+A fresh-context worker cannot read the session. Write the plan to a scratch file outside the working tree (e.g. `/tmp/orchestrate/<change-slug>-plan.md`) — the full plan: task slices, acceptance criteria, and any in-conversation decisions the worker needs — and pass the **explicit absolute path** in the dispatch prompt. The worker's guardrails allow reading paths provided in the dispatch.
+
+Clean up the scratch file only once *Closing the build* has resolved — not when the dispatch loop finishes. Two things still need it after the last slice: a re-dispatch (partial results, a follow-up slice), and the closing gate, which hands this path to a reviewer as the only written statement of what the change set out to do. Deleting it early pulls the source out from under both.
 
 ## Pre-flight
 
@@ -75,6 +77,30 @@ The `implementer` is told to trust your research and won't verify it. Anything i
 
 - **Bound every slice** with explicit task numbers ("tasks 3–7") — never "implement the plan."
 - **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs — that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
+
+## Closing the build
+
+Once the last slice's after-return work is done — handoff read, `blocking: true` items resolved, handed-off commands run, tasks ticked — the build is finished and one question is worth asking: is this a change whose *shape* someone should look at before it goes further?
+
+Sometimes. Not usually. This skill runs on most builds, an unconditional prompt here would fire on one-line fixes too, and a prompt that's usually noise is one the user learns to dismiss without reading — which costs you the times it mattered. So the default is silence, and you offer only on signal.
+
+### Signals worth offering on
+
+All of these are free at this point; none needs a fresh read of the tree.
+
+- **More than one slice was dispatched.** Independent workers each made locally sensible choices, and shape drift accumulates in the seams between them.
+- **A new module or package appeared.** Its boundaries are being set now, and they're cheapest to move before anything imports it.
+- **A touched module grew past the point where you'd want to read it whole.** One `wc -l` on paths you already hold.
+- **A worker's handoff mentioned copying a helper, introducing an abstraction, or following a test pattern.** Each is a shape decision made by a worker that couldn't see the rest of the change.
+- **The plan source was an OpenSpec change.** It has a stated design to check the implementation against, which is the richest thing a review of this kind can have.
+
+A single-slice change to existing files, with no new module and no shape note in the handoff, needs nothing. End the skill.
+
+### Making the offer
+
+Ask once, in one line, and take the answer. Don't argue for it, don't re-raise it later in the same build, and don't let a decline turn into a smaller version of the same question. If the user says no, the build is done.
+
+On a yes — or when the user asks for a review without being offered one — **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` per its contract. It holds what only you can supply (the written statement of intent, what the build actually touched, decisions that never reached the design), what to do with a `request_changes` fix list, and the re-review path. It's kept out of this file because the gate fires at the end of a build, which is exactly when a compaction is most likely to have taken the detail with it.
 
 ## Guardrails
 

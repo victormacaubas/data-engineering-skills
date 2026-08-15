@@ -79,5 +79,7 @@ CLAUDE.md.
 
 ## Cross-reference
 
-`../SKILL.md` owns plan-source resolution, plan externalization, the pre-flight gate, and the
-drift check. `dispatch-implementer.md` owns the write-side briefing and after-return loop.
+`../SKILL.md` owns plan-source resolution, plan externalization, the pre-flight gate, the drift
+check, and the closing gate's entry condition and signal test. `dispatch-implementer.md` owns the
+write-side briefing and after-return loop; `dispatch-reviewer.md` owns briefing
+`structure-reviewer` at the closing gate.

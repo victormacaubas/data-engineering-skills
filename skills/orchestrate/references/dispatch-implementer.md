@@ -89,5 +89,8 @@ task list changes.
 
 ## Cross-reference
 
-Plan-source resolution, plan externalization, the pre-flight gate, and the drift check are in
-`../SKILL.md`. This file owns the dispatch briefing and the after-return loop.
+Plan-source resolution, plan externalization, the pre-flight gate, the drift check, and the
+closing gate's entry condition and signal test are in `../SKILL.md`. This file owns the dispatch
+briefing and the after-return loop for a single slice; `dispatch-reviewer.md` owns briefing
+`structure-reviewer` once the closing gate fires, including how a `request_changes` fix list
+re-enters this loop.
