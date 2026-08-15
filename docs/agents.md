@@ -25,9 +25,22 @@ Every agent file starts with YAML frontmatter. The supported fields are:
 |-------|----------|-------------|
 | `name` | Yes | Agent identifier (kebab-case, matches the filename without `.md`) |
 | `description` | Yes | One-sentence description shown in agent lists and used by orchestrators to select the agent |
-| `model` | No | Claude model ID to use (e.g. `claude-sonnet-4-6[1m]`). Defaults to the platform default if omitted. |
-| `tools` | No | Comma-separated list of tools the agent is allowed to use (e.g. `Read, Grep, Glob`). Omit to allow all. |
-| `effort` | No | Hint to the runtime about response thoroughness (`low`, `medium`, `high`). |
+| `model` | No | Claude model ID, or one of `sonnet`, `opus`, `haiku`, `fable`, `inherit` (e.g. `claude-sonnet-4-6[1m]`). Defaults to the platform default if omitted. |
+| `tools` | No | Comma-separated list or YAML list of tools the agent is allowed to use (e.g. `Read, Grep, Glob`). Omit to inherit all. |
+| `disallowedTools` | No | Tools to deny, removed from the inherited list. Tool-granular only — it cannot scope a tool to a path. If you already use a `tools:` allowlist, that allowlist is the stronger control and `disallowedTools` adds nothing. |
+| `effort` | No | Hint to the runtime about response thoroughness (`low`, `medium`, `high`, `xhigh`, `max`). |
+| `skills` | No | YAML list of skill names to **preload**. Injects each skill's full `SKILL.md` body into the agent's context at spawn. Controls preloading, not access: without it an agent can still discover and invoke skills via the `Skill` tool. Don't list `Skill` in `tools` when preloading. |
+| `permissionMode` | No | `default`, `acceptEdits`, `auto`, `dontAsk`, `plan`, `manual`, or `bypassPermissions`. The agents in this repo use `acceptEdits`; `bypassPermissions` removes the permission gate entirely and no agent here needs it. |
+| `maxTurns` | No | Maximum agentic turns before the agent stops. |
+| `memory` | No | Persistent memory scope: `user`, `project`, or `local`. |
+| `isolation` | No | `worktree` runs the agent in a temporary git worktree. |
+| `mcpServers` | No | MCP servers available to the agent (string reference or inline definition). |
+| `hooks` | No | Lifecycle hooks scoped to this agent. |
+| `color` | No | Display colour: `red`, `blue`, `green`, `yellow`, `purple`, `orange`, `pink`, `cyan`. |
+
+### A note on `skills:` and token cost
+
+Preloading is all-or-nothing and happens at spawn, before the agent reads anything. A reference-grade `SKILL.md` can run to several thousand tokens, so listing two of them means the agent pays for both on every invocation even when it only runs one. Prefer one skill per agent, and let the split between agents do the routing. When an agent genuinely needs conditional access to several skills, omit `skills:` and let it invoke them through the `Skill` tool instead, trading a round-trip for the preload.
 
 ### Example frontmatter
 
@@ -38,6 +51,8 @@ description: Does one focused thing and returns a structured result.
 model: claude-sonnet-4-6[1m]
 tools: Read, Grep, Glob
 effort: high
+skills:
+  - my-skill
 ---
 ```
 

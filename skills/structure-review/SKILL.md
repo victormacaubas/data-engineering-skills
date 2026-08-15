@@ -44,7 +44,9 @@ Skip generated and vendored paths entirely: `.venv`, `node_modules`, `__pycache_
 
 A module the change touched is in scope at its current size, including problems that predate the change. A 663-line module doing four jobs is worth raising the moment someone opens it, and this review is that moment.
 
-Before raising it, check `./.structure-review/` for a prior report covering the same module or the same change. If the finding has already been made, give it one line under *Standing debt* — *`operations.py` still 663 lines across four concerns, raised 2026-08-12, still open* — and don't re-argue it. Re-litigating known findings is how a per-change review becomes something people stop reading.
+Before raising it, check for a prior report covering the same module or the same change. Reports are nested one level under a `<date>-<change-name>` directory, so glob both levels — `ls .structure-review/*/*.md` — and grep the matches for the module path. A flat `ls .structure-review/` returns directories, not reports; reading that as "no prior report exists" is a silent failure that makes every review re-argue the same standing debt.
+
+If the finding has already been made, give it one line under *Standing debt* — *`operations.py` still 663 lines across four concerns, raised 2026-08-12, still open* — and don't re-argue it. Re-litigating known findings is how a per-change review becomes something people stop reading.
 
 **Unless you have something to add.** A prior report closes a finding only when you would be repeating it. New evidence, a better fix, or a number that corrects theirs makes it live again — write it out in full and cite the earlier report. *Already covered* is a judgment about your material, not about the topic. Suppressing a better fix because the subject has been mentioned once costs the reader more than a little repetition would.
 
@@ -203,9 +205,17 @@ This is the only route by which a project gets harder to break. The next change 
 
 ## Step 5: Write the report
 
-Write markdown to `./.structure-review/<YYYY-MM-DD>-<scope-slug>.md`, relative to the working directory. Use the `Write` tool directly; it creates parent directories. If all writes are denied, put the report in your reply rather than losing it.
+Write markdown to `./.structure-review/<YYYY-MM-DD>-<change-name>/<slug>.md`, relative to the working directory. Use the `Write` tool directly; it creates both levels of parent directory. If all writes are denied, put the report in your reply rather than losing it.
 
-The slug names the change: the OpenSpec change name, the branch, or the touched package. Re-reviewing the same scope later produces a new dated file, which makes the directory a history you can diff.
+**`<change-name>` names the change** — the OpenSpec change name, the branch, or the touched package. **`<slug>` names this pass within that change**, because one change often gets reviewed more than once in a day: `review` for the first pass, `re-review` when verifying a fix list, and something descriptive when a change is reviewed in parts (`new`, `dedup`, `iter2`). So a change reviewed three times on one day is three files in one directory:
+
+```
+.structure-review/2026-08-13-slice-c/new.md
+.structure-review/2026-08-13-slice-c/dedup.md
+.structure-review/2026-08-13-slice-c/iter2.md
+```
+
+Never overwrite an existing report. If the slug you picked is taken, pick a more specific one. The directory is a history, and a history you can silently clobber is not one.
 
 Then reply with the verdict, the first three fix-list items in one line each, and the report path. The report is for reading; the reply is for deciding whether to read it.
 
@@ -348,7 +358,7 @@ Each item lands in one of five states:
 
 **Review the fix diff itself.** A fix is a change and can introduce its own problems: a test deleted rather than repaired, a split that copied instead of moving, a seam widened to make an assertion pass. Run the passes over the fix. Anything new gets normal treatment and a normal fix-list entry.
 
-Write a new dated report rather than editing the old one — the directory is a history. Lead with the verification table, then any new findings.
+Write a new report rather than editing the old one — the directory is a history. Use slug `re-review` under today's `<date>-<change-name>` directory, so a re-review on the same day sits beside the report it verifies, and one on a later day starts a new dated directory for the same change. Cite the report you're verifying by its path. Lead with the verification table, then any new findings.
 
 ```markdown
 ## Verification
