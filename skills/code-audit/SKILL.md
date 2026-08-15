@@ -169,11 +169,15 @@ A clean module deserves a short artifact with high scores and few findings; neve
 
 ## Step 5: Write the artifact
 
-Finish the prose review first (both sweeps, all six dimensions scored, every finding's failure story narrated). *Then* serialize. Write to `.code-audit/<review_id>.json` under the **current working directory** — the project root you were launched in. Resolve it as `.code-audit/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates parent directories automatically, so just write the file — do **not** `mkdir .code-audit/` first (a Bash `mkdir` is often denied in a restricted harness, and a failed `mkdir` can wrongly look like "I can't write here").
+Finish the prose review first (both sweeps, all six dimensions scored, every finding's failure story narrated). *Then* serialize. Write to `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json` under the **current working directory** — the project root you were launched in. Resolve it as `.code-audit/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates both levels of parent directory automatically, so just write the file — do **not** `mkdir` first (a Bash `mkdir` is often denied in a restricted harness, and a failed `mkdir` can wrongly look like "I can't write here").
+
+The date directory groups a day's reviews; the filename identifies the scope within it. Example: `.code-audit/2026-06-04/gateway-7f3a91.json`.
 
 If writing is blocked: first try `code-review.json` at the working-directory root; if *all* file writes are denied by the environment, emit the complete JSON inline in your final message (and say that writing was denied) so the artifact is never lost. The proper fix for a denied write is granting the environment a `Write(.code-audit/**)` permission — note that in your reply.
 
 `review_id = <YYYY-MM-DD>-<scope-slug>-<short-sha>`. `<scope-slug>`: a file's basename without extension, a directory's name, or `pr-<branch>` for a diff. Include a short SHA from `git rev-parse --short HEAD` when in a git repo (mark `dirty` if the tree is dirty). Use UTC for `created_at`.
+
+**`review_id` stays fully qualified even though the filename drops the date prefix.** The path already carries the date in its directory, so repeating it in the filename is noise; the `review_id` field keeps it so the artifact still identifies itself if someone moves or copies it out of the tree. So `review_id: "2026-06-04-gateway-7f3a91"` lives at `.code-audit/2026-06-04/gateway-7f3a91.json`.
 
 **Verdict:** `request_changes` when any Critical/High should block merge; `approve_with_comments` when findings are real but non-blocking; `approve` when there are no blocking findings.
 
@@ -264,8 +268,12 @@ Finding field rules:
 The JSON is canonical and is what you write by default. Render markdown only when the user asks for a human report. Don't build it speculatively — that's wasted work for an orchestrator consumer that only reads JSON.
 
 ```bash
-uv run python <skill-dir>/scripts/render_report.py ./.code-audit/<review_id>.json -o ./.code-audit/<review_id>.md
+uv run python <skill-dir>/scripts/render_report.py \
+  ./.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json \
+  -o ./.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.md
 ```
+
+Render the markdown beside its JSON, in the same date directory.
 
 ## Handoff contract
 
@@ -321,6 +329,6 @@ The finding is the atomic unit. Each must stand alone for a downstream consumer.
 
 - **"Just the score"** — still write the full JSON artifact; in your reply, paste the rubric (overall + six dimension scores).
 - **"Review only security / only correctness / just the bug scan"** — run the full review but populate only the requested dimension's findings; mark the others `"not reviewed in this pass"` in the summary and leave their `stats` zero with a note.
-- **"Compare against last review"** — find the most recent artifact for this scope in `./.code-audit/`, reconcile by `anchor.excerpt` + `dimension`, and add a "since last review" note in the summary (resolved / still-open / new).
+- **"Compare against last review"** — find the most recent artifact for this scope, reconcile by `anchor.excerpt` + `dimension`, and add a "since last review" note in the summary (resolved / still-open / new). Artifacts are nested one level under a date directory, so glob both levels rather than listing the root: `ls .code-audit/*/*<scope-slug>*.json` and take the newest date directory that matches. A flat `ls .code-audit/` returns date directories, not artifacts, and reading it as "no prior review exists" is a silent failure that turns every re-review into a first review.
 - **"Give me the markdown"** — render it from the JSON via `scripts/render_report.py`.
 - **"Apply the fixes"** — decline politely; this skill is review-only. Offer to hand the findings over for a separate coding turn.
