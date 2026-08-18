@@ -64,6 +64,24 @@ agent plugin marketplace add https://github.com/victormacaubas/data-engineering-
 
 Then open `/plugin` in Cursor CLI to browse the registered marketplace and install individual skills. Public Cursor Marketplace submission is not required.
 
+#### Restricted-team fallback
+
+If Cursor CLI reports `[permission_denied] Third-party plugin imports are disabled by team admin settings`, ask an admin to import this repository as a Team Marketplace. When plain user skills are permitted, you can instead clone this repository and install skills directly:
+
+```bash
+./scripts/install-cursor-skills.sh --skills all
+./scripts/install-cursor-skills.sh --skills architecture-baseline,sql-data-analysis
+```
+
+The fallback symlinks skills into `~/.cursor/skills/` by default. It preserves unselected skills and backs up conflicting non-repository paths. Use `--copy` for copies or override the target:
+
+```bash
+CURSOR_SKILLS_DIR=/custom/cursor/skills \
+  ./scripts/install-cursor-skills.sh --skills all
+```
+
+This fallback installs plain Cursor skills, not plugins. Marketplace installation remains the preferred distribution path.
+
 ### Skills that need custom agents
 
 Marketplace plugins contain skills only. Install these agents separately before using an agent-dependent skill:
@@ -125,11 +143,15 @@ The installer backs up an existing non-repository target as `<path>.bak.<timesta
 
 Skill updates are explicit. Open `/plugin` in the client where the skill is installed, refresh or update the registered marketplace, and update the installed plugin. Marketplace skills do not track this checkout as live symlinks.
 
+Cursor fallback symlinks reflect edits after `git pull`. If fallback skills were installed with `--copy`, rerun `install-cursor-skills.sh` after pulling.
+
 Agent symlinks reflect edits after `git pull`. If agents were installed with `--copy`, rerun the same agent install command after pulling.
 
 ## Uninstalling
 
 Use `/plugin` in Claude Code or Cursor CLI to uninstall and manage marketplace skills.
+
+For a Cursor fallback installation, remove the confirmed skill path from `~/.cursor/skills/`.
 
 To uninstall a custom agent, remove its file or symlink from the relevant target:
 
@@ -169,7 +191,7 @@ data-engineering-skills/
 ├── agents/
 │   ├── claude/<agent-name>.md
 │   └── cursor/<agent-name>.md
-├── scripts/                         # Agent installation and migration shims
+├── scripts/                         # Agent installers, Cursor skill fallback, migration shims
 ├── docs/                            # Authoring guides
 └── openspec/                        # Tracked changes
 ```
@@ -180,7 +202,7 @@ See [docs/authoring.md](docs/authoring.md) to create or graduate a skill and [do
 
 **A marketplace is not listed**
 
-Check that the Git URL is reachable, then add it again with the marketplace-add command for that client. A recent client version with Git-backed marketplace support is required.
+Check that the Git URL is reachable, then add it again with the marketplace-add command for that client. A recent client version with Git-backed marketplace support is required. If Cursor team policy blocks third-party imports, use the documented Team Marketplace or plain-skill fallback.
 
 **A skill is missing from a marketplace**
 
