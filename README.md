@@ -4,173 +4,200 @@
 
 # data-engineering-skills
 
-My personal collection of agent skills for [Claude Code](https://claude.ai/code) and [OpenAI Codex](https://platform.openai.com/docs/codex). Author skills once, install them everywhere with a single command.
+A collection of skills and custom agents for [Claude Code](https://claude.ai/code) and Cursor CLI. Skills are installed individually from Git-backed marketplace catalogs. Custom agents are installed from this checkout with the repository scripts.
 
 ## Skills
 
 | Skill | Description |
 |-------|-------------|
-| `architecture-baseline` | Decide a new project's architectural constraints before any feature work: layer table, closed dependency set, identity and grain, injected seams, error taxonomy, testing conventions, and a quality gate that enforces all of it. Produces ADRs, a rules-only `CLAUDE.md`, import contracts, and the declarations they constrain, then runs the gate green. Decides and declares; does not build the product. For new projects, not for retrofitting an existing one. |
-| `code-audit` | Language-agnostic code audit emitting a machine-parseable JSON artifact to `./.code-audit/`. Finds bugs, security issues, and architecture problems with severity-counted findings. Loads per-language packs (Python, SQL, JS/TS, React, Terraform). Works reliably in subagent contexts. |
-| `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for governance tasks: masking policies, classification, access history, role analysis, and user auditing. |
-| `grill-me` | Pressure-test raw ideas and change artifacts before implementation, sharpening scope, trade-offs, scenarios, risks, sequencing, and definition of done. |
-| `orchestrate` | Build a bounded plan through workers: run the pre-flight gate, resolve the plan, drive the `implementer` through a bounded dispatch loop, and tick tasks. Dispatches `pathfinder` / `researcher` when the build hits a drift or research gap. Requires the `implementer` and `pathfinder` agents installed. |
-| `python-engineering-standards` | Canonical Python coding standards for production code: layout, typing, config, logging, error handling, testing, and packaging. |
-| `scout` | Think through work whose shape isn't settled yet, dispatching `pathfinder` / `researcher` to do the reading so sources stay out of the main context. Ends at the decision and hands off to a proposal. Requires the `pathfinder` and `researcher` agents installed. |
-| `sql-data-analysis` | SQL standards for analytics, reporting, and transformation work across BigQuery, Snowflake, Redshift, Postgres, and more. |
-| `stash` | Park raw content into an Obsidian vault inbox for later processing. |
-| `structure-review` | Senior-engineer review of a finished change, run before it merges or is archived. Checks module cohesion and size, state ownership, duplication, test design, pattern fit, readability, and conformance to `CLAUDE.md`, ADRs, import contracts, and an OpenSpec change's own design and tasks. Writes a markdown report to `./.structure-review/` with a gate verdict and an ordered list of changes to make. Read-only on the source under review. |
-| `write-ticket` | Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. |
+| `architecture-baseline` | Decide a new project's architectural constraints before feature work. Requires the separately installed `researcher` agent. |
+| `code-audit` | Audit code in any language and write a machine-readable report covering correctness, security, performance, architecture, error handling, and readability. |
+| `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for masking, classification, access history, roles, and user auditing. |
+| `grill-me` | Pressure-test ideas and change artifacts before implementation. |
+| `orchestrate` | Drive workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, and `researcher` agents. |
+| `python-engineering-standards` | Apply production Python standards for layout, typing, configuration, logging, error handling, testing, and packaging. |
+| `scout` | Explore work whose shape is not settled and return a decision-ready briefing. Requires the separately installed `pathfinder` and `researcher` agents. |
+| `sql-data-analysis` | Apply SQL standards for analytics, reporting, extraction, and transformation. |
+| `stash` | Park raw content in an Obsidian vault inbox for later processing. |
+| `structure-review` | Review the shape and project conformance of a finished change before merge or archive. |
+| `write-ticket` | Write Jira tickets and comments in plain language through the Atlassian MCP. |
 
-## Agents
+Each release-ready `skills/<name>/` directory is a separate plugin. Its `SKILL.md` and any local `scripts/`, `assets/`, and `references/` are installed together. Repository custom agents are never included in a skill plugin.
 
-Custom agent definitions for Claude Code. Each file is a self-contained markdown file that Claude Code loads as a subagent.
+## Install skills
 
-| Agent | Model | Description |
-|-------|-------|-------------|
-| `pathfinder` | `claude-sonnet-5[1m]` | Explore and understand existing material before writing code — get the lay of the land in an unfamiliar codebase, map a module or directory, read up on documentation, or answer a bounded question across code, docs, tickets, wikis, and data warehouses. Returns a compressed structured briefing of direct answers, per-source findings, coverage, confidence, assumptions, and open questions. Read-only by tool allowlist. |
-| `implementer` | `claude-sonnet-5[1m]` | Implements tasks from a plan, list, or set of instructions. Writes production code, tests, and fixtures, runs verification (pytest, ruff, mypy), and returns a structured pass/fail report. Use for any bounded implementation work: feature slices, bug fixes, refactors, test additions, or migrations. Designed for parallel spawning across disjoint task slices. |
-| `code-auditor` | `claude-opus-4-6[1m]` | Runs the `code-audit` skill against a diff, path, or whole repo and writes a machine-parseable JSON review artifact to `./.code-audit/<date>/`. Returns a thin receipt — artifact path, verdict, score, and blocking findings — rather than the full report. Assesses defects ranked by severity. Read-only on the source under review. |
-| `structure-reviewer` | `claude-opus-4-6[1m]` | Runs the `structure-review` skill against a finished change and writes a markdown report to `./.structure-review/<date>-<change>/`. Assesses shape and conformance — cohesion, state ownership, test design, pattern fit, and whether `CLAUDE.md`, ADRs, and import contracts were followed — with findings ranked by leverage. Returns a receipt: report path, gate verdict, top fix-list items, and declarations nothing enforces. Read-only on the source under review. |
-| `researcher` | `claude-sonnet-4-6[1m]` | Research a topic on the web and return structured findings with sources. Lightweight mid-session lookups for syntax, libraries, APIs, announcements, or technology comparisons. Does not write files. |
+Use this repository URL:
 
-## Repository structure
-
-```
-data-engineering-skills/
-├── skills/                  # One subdirectory per skill
-│   └── <skill-name>/
-│       ├── SKILL.md         # Required — the skill content
-│       ├── scripts/         # Optional — helper scripts
-│       ├── assets/          # Optional — images, templates
-│       └── references/      # Optional — external docs, examples
-├── agents/                  # One .md file per custom agent
-│   ├── README.md            # Agent index
-│   └── <agent-name>.md      # Agent definition with YAML frontmatter
-├── scripts/
-│   ├── install.sh           # Interactive unified installer
-│   ├── install-claude.sh    # Install skills into Claude Code
-│   ├── install-codex.sh     # Install skills into Codex
-│   └── install-agents.sh    # Install agents into ~/.claude/agents/
-├── docs/
-│   ├── authoring.md         # How to create a new skill
-│   └── agents.md            # How to author and install agents
-└── openspec/                # Tracked changes (OpenSpec workflow)
+```text
+https://github.com/victormacaubas/data-engineering-skills.git
 ```
 
-## Prerequisites
+### Claude Code
 
-- [uv](https://docs.astral.sh/uv/) — used by the `implementer` agent for Python execution. Install with `curl -LsSf https://astral.sh/uv/install.sh | sh` or `brew install uv`.
+In Claude Code, add the marketplace:
 
-## Installation
+```text
+/plugin marketplace add https://github.com/victormacaubas/data-engineering-skills.git
+```
 
-Clone the repo and enter the project directory:
+Install each skill by its marketplace-qualified name:
+
+```text
+/plugin install sql-data-analysis@data-engineering-skills
+```
+
+Repeat the install command for each skill you want.
+
+### Cursor CLI
+
+In an interactive Cursor CLI session:
+
+```text
+/plugin marketplace add https://github.com/victormacaubas/data-engineering-skills.git
+```
+
+Or register the marketplace from a shell:
+
+```bash
+agent plugin marketplace add https://github.com/victormacaubas/data-engineering-skills.git
+```
+
+Then open `/plugin` in Cursor CLI to browse the registered marketplace and install individual skills. Public Cursor Marketplace submission is not required.
+
+### Skills that need custom agents
+
+Marketplace plugins contain skills only. Install these agents separately before using an agent-dependent skill:
+
+| Skill | Required agents |
+|-------|-----------------|
+| `architecture-baseline` | `researcher` |
+| `orchestrate` | `implementer`, `pathfinder`, `researcher` |
+| `scout` | `pathfinder`, `researcher` |
+
+For example:
+
+```bash
+./scripts/install-agents.sh --platform both --agents implementer,pathfinder,researcher
+```
+
+## Install custom agents
+
+Clone the repository before running its agent installer:
 
 ```bash
 git clone https://github.com/victormacaubas/data-engineering-skills.git
 cd data-engineering-skills
 ```
 
-Then run the unified installer:
+Run the interactive agent-only wizard:
 
 ```bash
 ./scripts/install.sh
 ```
 
-The wizard asks which platform to install for, which skills to install, which Claude Code custom agents to install, and whether to use symlinks or copies.
-
-For automation, pass selections explicitly:
+For non-interactive installs:
 
 ```bash
-./scripts/install.sh --platform both --skills all --agents all
-./scripts/install.sh --platform claude --skills sql-data-analysis,data-governance --agents pathfinder
-./scripts/install.sh --platform codex --skills python-engineering-standards
-./scripts/install.sh --platform agents --agents pathfinder
+./scripts/install-agents.sh --platform claude --agents all
+./scripts/install-agents.sh --platform cursor --agents pathfinder,researcher
+./scripts/install-agents.sh --platform both --agents implementer,pathfinder,researcher
 ```
 
-Use `--copy` for a copy-based install instead of symlinks:
+The default mode creates symlinks. Use `--copy` when links are unsuitable:
 
 ```bash
-./scripts/install.sh --platform both --skills all --agents all --copy
+./scripts/install-agents.sh --platform both --agents all --copy
 ```
 
-When `--platform both` is selected, skills are installed for both Claude Code and Codex. Custom agents are installed for Claude Code only, and the installer prints a note explaining that Codex custom-agent installation is not supported yet.
-
-### Target directories
-
-Skills are symlinked into `~/.claude/skills/` and `~/.codex/skills/` by default. Custom agents are symlinked into `~/.claude/agents/`. Override targets with environment variables:
+Claude Code agents install into `~/.claude/agents/`; Cursor CLI agents install into `~/.cursor/agents/`. Override either target with an environment variable:
 
 ```bash
-CLAUDE_SKILLS_DIR=/custom/claude/skills ./scripts/install.sh --platform claude --skills all --agents none
-CODEX_SKILLS_DIR=/custom/codex/skills ./scripts/install.sh --platform codex --skills all
-CLAUDE_AGENTS_DIR=/custom/claude/agents ./scripts/install.sh --platform agents --agents all
+CLAUDE_AGENTS_DIR=/custom/claude/agents \
+  ./scripts/install-agents.sh --platform claude --agents all
+
+CURSOR_AGENTS_DIR=/custom/cursor/agents \
+  ./scripts/install-agents.sh --platform cursor --agents all
 ```
 
-### Direct helper scripts
-
-The platform-specific scripts remain available for direct use:
-
-```bash
-./scripts/install-claude.sh --skills all
-./scripts/install-codex.sh --skills sql-data-analysis
-./scripts/install-agents.sh --agents pathfinder
-```
-
-Calling a helper without a selection still installs all valid items for that helper.
-
-## Adding a skill
-
-See [docs/authoring.md](docs/authoring.md) for a step-by-step guide.
-
-Quick version:
-
-1. Create `skills/<your-skill-name>/SKILL.md`
-2. Write your skill instructions in `SKILL.md`
-3. Re-run the install script — symlinks update automatically
+The installer backs up an existing non-repository target as `<path>.bak.<timestamp>`. It does not remove unselected agents.
 
 ## Updating
 
-Because installs use symlinks by default, edits to any `SKILL.md` in this repo are immediately reflected in the target agent directory. No re-install needed.
+Skill updates are explicit. Open `/plugin` in the client where the skill is installed, refresh or update the registered marketplace, and update the installed plugin. Marketplace skills do not track this checkout as live symlinks.
 
-To pick up newly added skills after pulling:
-
-```bash
-./scripts/install.sh --platform both --skills all --agents all
-```
-
-## Adding an agent
-
-See [docs/agents.md](docs/agents.md) for a full authoring guide.
-
-Quick version:
-
-1. Create `agents/<your-agent-name>.md` with YAML frontmatter (`name`, `description`, optionally `model` and `tools`).
-2. Write the agent instructions below the frontmatter.
-3. Re-run the install script — symlinks update automatically.
+Agent symlinks reflect edits after `git pull`. If agents were installed with `--copy`, rerun the same agent install command after pulling.
 
 ## Uninstalling
 
-Remove the symlinks (or copies) from the target directory:
+Use `/plugin` in Claude Code or Cursor CLI to uninstall and manage marketplace skills.
+
+To uninstall a custom agent, remove its file or symlink from the relevant target:
 
 ```bash
-rm -rf ~/.claude/skills/<skill-name>
-rm -rf ~/.codex/skills/<skill-name>
-rm -f ~/.claude/agents/<agent-name>.md
+rm ~/.claude/agents/<agent-name>.md
+rm ~/.cursor/agents/<agent-name>.md
 ```
+
+Removing an agent does not uninstall any skill that depends on it.
+
+## Migrating legacy skill installs
+
+Earlier releases installed skills directly under `~/.claude/skills/`. Codex support has ended, but old Codex installs may still exist under `~/.codex/skills/`. No marketplace command or agent installer removes old files, symlinks, directories, or `.bak.<timestamp>` backups.
+
+Install and verify the marketplace plugin first. Then inspect any legacy target before deleting it:
+
+```bash
+ls -ld ~/.claude/skills/<skill-name> ~/.codex/skills/<skill-name> 2>/dev/null
+readlink ~/.claude/skills/<skill-name> 2>/dev/null || true
+readlink ~/.codex/skills/<skill-name> 2>/dev/null || true
+```
+
+Remove only a path you have confirmed is an obsolete repository-owned link or an unneeded copy. Preserve customized copies and backups. If both a marketplace plugin and a legacy install remain, the client may discover the skill twice.
+
+## Repository structure
+
+```text
+data-engineering-skills/
+├── .claude-plugin/marketplace.json  # Claude Code skill catalog
+├── .cursor-plugin/marketplace.json  # Cursor CLI skill catalog
+├── skills/
+│   └── <skill-name>/
+│       ├── SKILL.md
+│       ├── scripts/
+│       ├── assets/
+│       └── references/
+├── agents/
+│   ├── claude/<agent-name>.md
+│   └── cursor/<agent-name>.md
+├── scripts/                         # Agent installation and migration shims
+├── docs/                            # Authoring guides
+└── openspec/                        # Tracked changes
+```
+
+See [docs/authoring.md](docs/authoring.md) to create or graduate a skill and [docs/agents.md](docs/agents.md) to author platform-specific agents.
 
 ## Troubleshooting
 
-**`bash: ./scripts/install.sh: Permission denied`**
-Run `chmod +x scripts/*.sh` once, then retry.
+**A marketplace is not listed**
 
-**Script reports `[BACKUP]` for a skill**
-An existing file at the target path was not a symlink to this repo. It was renamed to `<path>.bak.<timestamp>` before installing. Check the backup if you had local edits.
+Check that the Git URL is reachable, then add it again with the marketplace-add command for that client. A recent client version with Git-backed marketplace support is required.
 
-**Skill doesn't appear in Claude Code**
-Confirm the symlink exists: `ls -la ~/.claude/skills/`. If the link points to a path that no longer exists (e.g. after a branch switch), re-run `./scripts/install.sh`.
+**A skill is missing from a marketplace**
 
-**Agent doesn't appear in Claude Code**
-Confirm the symlink exists: `ls -la ~/.claude/agents/`. If the link is broken, re-run `./scripts/install.sh --platform agents --agents all`.
+Only release-ready immediate children of `skills/` are cataloged. Work under `skills/in-progress/` and `skills/deprecated/` is excluded.
 
-**Codex path is wrong**
-Set `CODEX_SKILLS_DIR` to the correct path for your Codex version and re-run `./scripts/install.sh --platform codex --skills all`.
+**A skill appears twice**
+
+Inspect `~/.claude/skills/<skill-name>` and, for legacy cleanup only, `~/.codex/skills/<skill-name>`. Remove only the obsolete installation after verifying whether it is a symlink, copy, or customized directory.
+
+**An agent-dependent skill cannot dispatch a worker**
+
+Install the required agent names for the current platform with `scripts/install-agents.sh`, then restart or reload the client if needed.
+
+**An installed agent does not appear**
+
+Check `~/.claude/agents/` or `~/.cursor/agents/` and rerun the installer for that platform. If copy mode was used, rerun after every source update.
+
+**The installer reports `[BACKUP]`**
+
+An existing agent target was not a repository-owned symlink. The installer moved it to `<path>.bak.<timestamp>` before installing the selected variant. Review the backup before removing it.

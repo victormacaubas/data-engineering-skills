@@ -1,4 +1,7 @@
-## ADDED Requirements
+## Purpose
+Define the repository conventions and documentation required to author self-contained skills with valid package structure.
+
+## Requirements
 
 ### Requirement: Skill directory convention
 Each skill SHALL reside in `skills/<skill-name>/` where `<skill-name>` is a kebab-case identifier.

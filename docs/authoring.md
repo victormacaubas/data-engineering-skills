@@ -1,149 +1,93 @@
 # Authoring a skill
 
-This guide walks through creating a new skill from scratch and testing it locally.
+Skills are authored once under `skills/` and released as separate plugins in the Claude Code and Cursor CLI Git-backed catalogs.
 
-## Recommended: use the `skill-creator` skill
+## Use `skill-creator`
 
-The easiest way to create a skill is with the [`skill-creator`](https://github.com/anthropics/claude-code-skills) skill from Anthropic. It scaffolds the directory structure, writes a `SKILL.md` template, and can run evals to test performance — all in one step.
+For a new skill or a significant change to an existing one, enter plan mode and use the repository's `skill-creator` skill. Do not write a new `SKILL.md` from scratch or overhaul one without an approved plan.
 
-In a Claude Code session:
+Never overwrite an existing `SKILL.md` without explicit confirmation:
 
-```
-/skill-creator
-```
+1. Read the current file.
+2. Explain what will change and why.
+3. Wait for confirmation before editing.
 
-Follow the prompts to name and describe your skill. Then install it with the scripts below.
+## Package layout
 
-The manual steps below are for reference or when you prefer to author the skill file directly.
+Use a kebab-case directory name:
 
----
-
-## 1. Create the skill directory
-
-Skill names are kebab-case. Create a directory under `skills/`:
-
-```bash
-mkdir skills/my-new-skill
-```
-
-## 2. Write `SKILL.md`
-
-`SKILL.md` is the only required file. It contains the full instructions the agent will follow when the skill is invoked. Create it:
-
-```bash
-touch skills/my-new-skill/SKILL.md
-```
-
-### What to put in `SKILL.md`
-
-Write markdown-formatted instructions that are self-contained — the agent reads only this file when executing the skill. A good `SKILL.md` includes:
-
-- **What the skill does** — one-sentence purpose at the top.
-- **When to use it** — conditions or triggers that make this skill relevant.
-- **Steps** — ordered list of actions the agent should take.
-- **Output format** — what the agent should produce (code, a report, a message, etc.).
-- **Guardrails** — what the agent should NOT do (e.g. "never delete files").
-
-### Example structure
-
-```markdown
-# my-new-skill
-
-One-sentence description of what this skill does.
-
-## When to use
-
-Describe the trigger conditions.
-
-## Steps
-
-1. First, do X.
-2. Then, do Y.
-3. Finally, produce Z.
-
-## Output
-
-Describe the expected output format.
-
-## Guardrails
-
-- Never do A.
-- Always confirm before B.
-```
-
-## 3. Add optional subdirectories
-
-If your skill needs helper files, add them in subdirectories:
-
-```
+```text
 skills/my-new-skill/
 ├── SKILL.md          # Required
-├── scripts/          # Shell scripts the skill calls
-├── assets/           # Images, templates, static files
-└── references/       # External docs, examples
+├── scripts/          # Optional helpers
+├── assets/           # Optional templates or static files
+└── references/       # Optional supporting material
 ```
 
-The entire skill directory is installed as a unit — all subdirectories arrive alongside `SKILL.md`.
+`SKILL.md` and its sibling directories must be self-contained. A skill must not point to another repository skill for content. The skill directory is the plugin package boundary: files outside it, including top-level custom agents, are not installed with the plugin.
 
-## 4. Install locally to test
+## Write `SKILL.md`
 
-Symlink the skill into Claude Code:
+A useful skill states:
 
-```bash
-./scripts/install.sh --platform claude --skills my-new-skill --agents none
-```
+- what it does and when it should run;
+- the ordered method;
+- the expected output;
+- safety and scope guardrails;
+- any platform or external-service prerequisites.
 
-The script prints which skills it installed and where. Because it uses symlinks, any edit to `SKILL.md` is immediately live — no re-install needed.
+Keep instructions plain and testable. Put long reference material in `references/` and executable helpers in `scripts/`.
 
-To test with Codex:
+## Keep work in progress out of the catalogs
 
-```bash
-./scripts/install.sh --platform codex --skills my-new-skill
-```
-
-## 5. Verify the install
-
-For Claude Code:
-
-```bash
-ls -la ~/.claude/skills/my-new-skill
-# Should show: ... -> /path/to/this/repo/skills/my-new-skill/
-```
-
-For Codex:
-
-```bash
-ls -la ~/.codex/skills/my-new-skill
-```
-
-## 6. Iterate
-
-Edit `skills/my-new-skill/SKILL.md` and test in your agent session. Changes are live immediately via the symlink.
-
-## Staging work-in-progress skills
-
-If your skill isn't ready to ship yet, put it in `skills/in-progress/` instead of `skills/`:
+Skills that are not ready to release belong under `skills/in-progress/`:
 
 ```bash
 mkdir -p skills/in-progress/my-new-skill
-touch skills/in-progress/my-new-skill/SKILL.md
 ```
 
-The install scripts only glob `skills/*/` (one level deep), so anything inside `in-progress/` is never installed. It's tracked in git, visible to collaborators, but harmless to end users.
+Neither marketplace catalog may list `skills/in-progress/` or `skills/deprecated/`. Use the skill-creator evaluation workflow and client-supported local testing while iterating. Marketplace installs are explicit snapshots from Git, not live symlinks to the checkout.
 
-When the skill is ready, graduate it:
+## Graduate a skill
 
-```bash
-mv skills/in-progress/my-new-skill skills/my-new-skill
-./scripts/install.sh
-```
+Graduation is more than moving the directory. Complete all of these steps:
+
+1. Move the package to the immediate release-ready level:
+
+   ```bash
+   mv skills/in-progress/my-new-skill skills/my-new-skill
+   ```
+
+2. Add a `my-new-skill` entry to `.claude-plugin/marketplace.json`.
+3. Add the matching `my-new-skill` entry to `.cursor-plugin/marketplace.json`.
+4. Point each native catalog entry at the skill-local source `./skills/my-new-skill`, never at the repository root.
+5. Keep the plugin names and source paths aligned between the catalogs.
+6. If the skill dispatches custom agents, name those separate prerequisites in both catalog descriptions and the root README. Do not bundle `agents/` into the plugin.
+7. Validate and load the package in both Claude Code and Cursor CLI before release.
+
+Do not add a fixed plugin version unless platform validation requires one. Git supplies the update identity, so routine skill edits do not require hand-maintained version bumps.
+
+## Validate the release
+
+At minimum, verify:
+
+- both marketplace files parse as JSON;
+- both catalogs expose the same plugin-name and skill-source set;
+- every source is one immediate `skills/<name>/` directory containing `SKILL.md`;
+- no entry points at the repository root, `skills/in-progress/`, or `skills/deprecated/`;
+- installing the plugin includes only its `SKILL.md` and local supporting files;
+- installing the plugin does not expose top-level custom agents;
+- agent-dependent skill descriptions identify the exact separately installed agents;
+- a representative install works from each Git-backed marketplace.
+
+After changing a released skill, use `/plugin` in each client to refresh or update the marketplace and installed plugin before testing. An existing marketplace installation does not update immediately when the checkout changes.
 
 ## Naming conventions
 
 | Convention | Example |
 |------------|---------|
-| Kebab-case directory name | `data-analysis-workflow` |
-| Short, descriptive | `sql-data-analysis`, `python-code-reviewer` |
-| Action-oriented or domain-oriented | `respond-to-jira-ticket`, `stash` |
+| Kebab-case directory and plugin name | `data-analysis-workflow` |
+| Short and descriptive | `sql-data-analysis`, `python-code-reviewer` |
+| Action- or domain-oriented | `respond-to-jira-ticket`, `stash` |
 
-Avoid generic names (`helper`, `utils`) — names appear in the agent's skill list and should be self-explanatory.
+Avoid generic names such as `helper` and `utils`. Renaming or removing a released skill requires the corresponding change in both catalogs.
