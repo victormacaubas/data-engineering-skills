@@ -223,6 +223,7 @@ Include:
 - the review bar, a change is not done when the gate passes, only when its structure has also been reviewed against the declarations above, and that a review asking for changes blocks the archive. The gate proves the code runs; nothing in it proves the code is shaped the way this project decided. Ask what performs that review here and name it, the same way you named the coding standards.
 - the testing norms from Decision 6, with the litmus test verbatim
 - naming and vocabulary conventions
+- **the docstring rule.** The format, enforced in the gate; and the part the gate can't check — a docstring states what a caller needs and stops there, rather than restating a decision that already lives in an ADR. Written out below.
 - **the coding standards this project inherits.** Ask which ones apply and name them explicitly. Whether a standard gets picked up otherwise depends on how a given task happens to be phrased, while a line in `CLAUDE.md` is always loaded — so for a standard meant to govern every file of a given kind in the repo, don't leave it to chance. Name the ones that govern a whole class of work (the language standard, a SQL standard if the repo has that surface), not everything available on the machine; the second kind is inventory and it rots.
 - **that changes are vertical slices.** One path through the layers at a time, not one layer at a time. This is what keeps the wiring exercised from the first change onward, and it's durable in a way "here is what the first change should be" isn't.
 
@@ -234,6 +235,37 @@ Leave out anything that describes what currently exists:
 - file counts, module sizes, "recently added" notes, or anything else that reads as a status report
 
 The test to apply to any line before it goes in: **does this tell someone how to decide, or what is currently true?** The first belongs. The second goes stale, and a stale line in `CLAUDE.md` is worse than a missing one, because it still reads as authoritative and gets followed after it stops being correct.
+
+### Docstrings
+
+The Protocols, exception classes, and domain types written above carry the first docstrings this repo will have, which makes them the ones every later module imitates. Settle the rule while there are eight of them rather than eight hundred.
+
+**Google style** — a one-line summary, then `Args:`, `Returns:`, `Raises:`, `Yields:` as the signature requires. Put it in the gate rather than in a style discussion; Ruff's pydocstyle rules with `convention = "google"` make the format mechanical, which is Decision 7 applied to prose.
+
+**A docstring serves the caller.** What to pass, what comes back, what may be raised, and any constraint the signature cannot express — a unit, a timezone, whether an argument is mutated, whether calling twice is safe. That is the whole job.
+
+What it is not is the ADR. Not the reasoning, not the alternatives, not where this sits in the layer map. That content already exists in `docs/adr/` and `CLAUDE.md`, and a paraphrase of it inside a docstring is the same failure as an inventory in `CLAUDE.md`, with one thing worse: nothing checks a docstring against the decision it restates, so the two drift silently and a reader has no way to tell which one is current. Someone who wants to know *why* the seam exists is one grep from the ADR. Someone reading the Protocol wants to know what to implement.
+
+And a docstring the signature already gave is worse than none, because it is a line to maintain that carries nothing:
+
+```python
+def user_count(rows: list[Row]) -> int:
+    """Return the number of users."""      # delete it
+
+
+class Clock(Protocol):
+    def now(self) -> datetime:
+        """The current time.
+
+        Returns:
+            An aware ``datetime`` in UTC. A naive one compares wrong, and
+            silently, against timestamps read back from `store`.
+        """
+```
+
+The second earns its place because the UTC requirement and what breaks without it are not in the signature, and a caller who gets it wrong finds out in production.
+
+The format goes in the gate. The rest goes in `CLAUDE.md`, because no linter can tell a contract from a story.
 
 ---
 
@@ -259,5 +291,6 @@ And for the same reason this is the wrong tool on a project that already has sub
 - **Designing features.** The questions above are all about structure. The moment the conversation is about what the tool should do rather than how it's arranged, the baseline is over and you're in product design. Picking and scoping the first change counts: the baseline constrains changes, it doesn't choose them.
 - **Rules nobody runs.** A constraint that isn't in the gate is a suggestion, and suggestions lose to whatever pattern is nearest. If you can't make a rule executable, say so in the ADR rather than pretending.
 - **Building instead of deciding.** The baseline writes declarations, config, and prose. The moment you're writing a function body with real logic in it, you've crossed into the first change — stop, and put it in the proposal instead.
+- **Docstrings that retell the ADRs.** This baseline is mostly a writing exercise, and the voice carries into the files it creates — a Protocol whose docstring argues for the seam, an `errors.py` narrating the translation rule. Each one is a second copy of a decision that already has a home, and it starts drifting the moment either side changes. The declaration states its contract; the ADR holds the reasoning.
 - **Stopping at the ADRs.** The documents are the cheapest part and the least effective. If the session ends with seven ADRs and no import contracts, nothing has actually changed.
 - **Stopping at a gate that was never run.** Same failure one step later. Config that has never been executed is a claim about the architecture, not a check on it.

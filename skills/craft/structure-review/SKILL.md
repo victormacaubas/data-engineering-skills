@@ -1,6 +1,6 @@
 ---
 name: structure-review
-description: Reviews a finished change the way a senior engineer would before approving it — whether the code is shaped right, whether it honours what the project already decided, and whether the next person will understand it. Covers module cohesion and size, state ownership (functions threading the same argument that want to be a class), duplication, test design (tests that should merge, tests asserting internals, tests that cannot fail), design-pattern fit in both directions, naming and readability, and conformance to CLAUDE.md, ADRs, import contracts, and an OpenSpec change's own design and tasks. Use this after any change is implemented and before it merges or gets archived, and whenever someone asks whether a module is getting too long, whether the test suite has bloated, whether conventions or architectural decisions were actually followed, whether something should be a class, or whether a design pattern would cut complexity here. Delivers a gate verdict and an ordered list of changes to make. It never edits the code under review.
+description: Reviews a finished change the way a senior engineer would before approving it — whether the code is shaped right, whether it honours what the project already decided, and whether the next person will understand it. Covers module cohesion and size, state ownership (functions threading the same argument that want to be a class), duplication, test design (tests that should merge, tests asserting internals, tests that cannot fail), design-pattern fit in both directions, naming and readability, Clean Code discipline at the function level (single level of abstraction, argument count, boolean flag parameters, command-query separation, output arguments, Law of Demeter, exceptions over sentinel returns, dead code), and conformance to CLAUDE.md, ADRs, import contracts, and an OpenSpec change's own design and tasks. Use this after any change is implemented and before it merges or gets archived, and whenever someone asks whether a module is getting too long, whether the test suite has bloated, whether conventions or architectural decisions were actually followed, whether something should be a class, whether a function is doing too much, whether the code follows Clean Code, or whether a design pattern would cut complexity here. Delivers a gate verdict and an ordered list of changes to make. It never edits the code under review.
 ---
 
 # Structure Review
@@ -73,7 +73,7 @@ Two rules that prevent most false positives:
 
 **When there are no declarations**, say what you looked for and didn't find, then do the inverse job: name the conventions the code already follows that are worth writing down. "Four of five packages keep their SQL in one module and `reporting/` doesn't; nothing says which is intended" is a real finding, and it's the raw material for a conventions file that doesn't exist yet.
 
-## Step 3: Seven passes
+## Step 3: Eight passes
 
 Measure where a measurement exists; quote where one doesn't. Every finding carries evidence, and evidence is either **a number with the command that produced it** or **a literal excerpt**.
 
@@ -156,6 +156,23 @@ Evidence here is an excerpt rather than a count, and that's the point: these fin
 - **Comments that don't earn their place** — narrating what the next line does, or explaining a change to a reviewer rather than the code to a reader. The comment worth keeping states a constraint the code can't show.
 - **Error messages that lose the identifier** — a batch failure that doesn't say which record failed.
 - **A function you had to read twice.** Say so, and say what made it hard. That's real evidence even without a number.
+
+### 8. Clean Code at the function level
+
+Passes 2 and 3 measure modules. This is the same question one level down, in *Clean Code*'s vocabulary because most teams already have it and a finding lands better in language the author recognises. Only the checks the passes above don't already make:
+
+- **One level of abstraction per function.** A body that opens a file, parses it, applies a business rule, and formats output is four levels stacked in one place. The tell is a blank line or a comment introducing each section — those are the extract points, and the comment is usually the extracted function's name.
+- **Argument count.** Zero to two reads fine, three earns a look, four or more usually means several of them travel together and want to be one object. State it as a ratio the way pass 3 does: *6 of 9 functions here take four or more*.
+- **Boolean parameters.** A flag means the function does two things and the call site picks which — `render(doc, True)` tells a reader nothing. Two named functions, or an enum past two modes.
+- **Command-query separation.** A function that changes state *and* returns a value produces `if update_record(x):`, where nobody can tell whether the return is the outcome, the old value, or a success flag. Split it, or make the return type answer the question.
+- **Output arguments.** A parameter mutated for the caller's benefit is invisible at the call site. Return the value instead.
+- **Train wrecks.** `a.get_b().get_c().do_thing()` couples the caller to two structures it doesn't own, so either one can break it. Ask the direct collaborator for the thing you actually want.
+- **Sentinel returns where exceptions belong.** `-1`, `None`, or an error tuple pushes the check onto every caller, and the caller that forgets fails silently, later, and somewhere else. If the project has an error taxonomy, a package that owns one and still returns sentinels has the finding twice — cite the taxonomy.
+- **Dead and commented-out code.** Both make the reader stop and decide whether they matter. Version control already holds it.
+
+**Rank on testability, not on how cleanly the rule was broken.** Most of this is tier 4 or 5 and gets the short form accordingly. The ones that reach tier 3 are the ones that make a function hard to call from a test: a long argument list, an output argument, a command that also queries. A four-level function nobody can name is tier 4 — real, and three lines.
+
+**The boy scout rule bounds the fix, not the scope.** A pass-8 finding that grows into rewriting a module the change barely touched has stopped being a review of this change. Raise it as one line under *Standing debt* and move on.
 
 ## Step 4: Turn findings into a fix list
 

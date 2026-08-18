@@ -8,59 +8,36 @@
   },
   "plugins": [
     {
-      "name": "architecture-baseline",
-      "source": "./skills/architecture-baseline",
-      "description": "Establish architectural constraints before feature work. Requires the separately installed researcher agent."
+      "name": "craft",
+      "source": "./skills/craft",
+      "skills": [
+        "./architecture-baseline",
+        "./code-audit",
+        "./python-engineering-standards",
+        "./structure-review"
+      ],
+      "description": "How code gets written and checked: architectural baselines, Python standards, and the defect and structure reviews that gate a finished change. Invoke as /craft:<skill-name>. The architecture-baseline skill requires the separately installed researcher agent."
     },
     {
-      "name": "code-audit",
-      "source": "./skills/code-audit",
-      "description": "Produce non-destructive, language-agnostic code audits with scored JSON findings and optional Markdown reports."
+      "name": "flow",
+      "source": "./skills/flow",
+      "skills": [
+        "./grill-me",
+        "./orchestrate",
+        "./scout",
+        "./stash",
+        "./write-ticket"
+      ],
+      "description": "How work gets driven from an unformed idea to something tracked and built: exploring, pressure-testing, delegating implementation, ticketing, and capture. Invoke as /flow:<skill-name>. The scout skill requires the separately installed pathfinder and researcher agents; orchestrate requires implementer, pathfinder, and researcher."
     },
     {
-      "name": "data-governance",
-      "source": "./skills/data-governance",
-      "description": "Query Snowflake ACCOUNT_USAGE for masking, row access, classification, tags, access history, grants, logins, and query auditing."
-    },
-    {
-      "name": "grill-me",
-      "source": "./skills/grill-me",
-      "description": "Pressure-test and sharpen change ideas, plans, specs, ADRs, PRDs, and similar artifacts before implementation."
-    },
-    {
-      "name": "orchestrate",
-      "source": "./skills/orchestrate",
-      "description": "Drive workers to implement bounded plans. Requires the separately installed implementer, pathfinder, and researcher agents."
-    },
-    {
-      "name": "python-engineering-standards",
-      "source": "./skills/python-engineering-standards",
-      "description": "Apply canonical Python standards for structure, typing, documentation, reliability, security, concurrency, and testing."
-    },
-    {
-      "name": "scout",
-      "source": "./skills/scout",
-      "description": "Explore undecided problems through delegated research. Requires the separately installed pathfinder and researcher agents."
-    },
-    {
-      "name": "sql-data-analysis",
-      "source": "./skills/sql-data-analysis",
-      "description": "Apply canonical SQL standards for trustworthy analytics, transformations, reviews, performance, and cost control."
-    },
-    {
-      "name": "stash",
-      "source": "./skills/stash",
-      "description": "Park raw conversation or pasted content in an Obsidian vault inbox for later processing."
-    },
-    {
-      "name": "structure-review",
-      "source": "./skills/structure-review",
-      "description": "Review a finished change for structure, architectural conformance, test design, naming, and maintainability before approval."
-    },
-    {
-      "name": "write-ticket",
-      "source": "./skills/write-ticket",
-      "description": "Create Jira tickets and comments in plain, human-sounding language through the Atlassian MCP."
+      "name": "data",
+      "source": "./skills/data",
+      "skills": [
+        "./data-governance",
+        "./sql-data-analysis"
+      ],
+      "description": "The warehouse surface: canonical SQL standards for trustworthy analytics, and Snowflake ACCOUNT_USAGE auditing for masking, row access, classification, tags, grants, logins, and query history. Invoke as /data:<skill-name>."
     }
   ]
 }

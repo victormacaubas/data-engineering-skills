@@ -25,7 +25,7 @@ Both variants require `name` and `description`. Use only fields supported and in
 | Read-only behavior | Claude tool allowlist or denied tools, backed by prompt guardrails | `readonly: true`, backed by prompt guardrails |
 | Background behavior | Express in the prompt or a supported Claude field | `is_background` where intended |
 | Tool controls | `tools` and other Claude-supported permission fields | Do not copy Claude-only tool allowlists as if Cursor enforced them |
-| Skill preload | `skills` where preloading is intentional | Do not assume Claude skill preloading semantics |
+| Skill preload | `skills`, namespaced as `<group>:<skill-name>` | No equivalent field; name the skill in prose, trying the namespaced form then the bare one |
 | Effort and permissions | Claude-supported `effort`, `permissionMode`, and related fields | Omit Claude-only controls and state the intended behavior in the prompt |
 
 Parsing the same frontmatter on both platforms is not capability parity. In particular, a read-only Cursor worker must set `readonly: true`; copying a Claude `tools:` allowlist is not an equivalent restriction.
@@ -155,9 +155,28 @@ Symlink installs reflect source edits immediately. Rerun the installer after cha
 
 | Aspect | Marketplace skill | Custom agent |
 |--------|-------------------|--------------|
-| Source | `skills/<name>/` | `agents/claude/<name>.md` and `agents/cursor/<name>.md` |
-| Distribution | Individual Git-backed plugin | Repository installer |
-| Package contents | One skill and its local supporting files | One platform-specific agent definition |
+| Source | `skills/<group>/<name>/` | `agents/claude/<name>.md` and `agents/cursor/<name>.md` |
+| Distribution | One of three Git-backed domain plugins | Repository installer |
+| Package contents | A group's skills and their local supporting files | One platform-specific agent definition |
+| Invocation | `/<group>:<skill-name>` | Dispatched by name |
 | Updates | Explicit through `/plugin` | Live for symlinks; reinstall copies |
 
-If a skill dispatches an agent, the skill's marketplace description and root README must name that separate prerequisite. The plugin must not package the repository's agent definitions.
+If a skill dispatches an agent, its group's marketplace description and the root README must name that separate prerequisite. The plugin must not package the repository's agent definitions.
+
+### Preloading a skill into an agent
+
+Claude Code namespaces plugin skills, so a `skills:` preload names the plugin as well:
+
+```yaml
+skills:
+  - craft:structure-review
+```
+
+Two rules follow, and both are easy to get wrong because neither fails loudly:
+
+- **Verify a preload by running the agent, not by launching it.** An unresolvable preload is skipped with a debug-log warning; the agent starts normally and produces output, just without the skill. A clean launch proves nothing.
+- **A skill's group is part of the identifier.** Regrouping a skill breaks every agent that preloads it, silently. Treat it as a breaking change with its own tracked change, and update the preloads in the same commit.
+
+Cursor CLI has no `skills` frontmatter field, so its variants name the skill in prose instead and try both forms — the namespaced one for a marketplace install, the bare one for a skill installed by `scripts/install-cursor-skills.sh`, which writes a flat, unprefixed target.
+
+Current preloads: `implementer` → `craft:python-engineering-standards`, `code-auditor` → `craft:code-audit`, `structure-reviewer` → `craft:structure-review`.

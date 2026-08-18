@@ -4,25 +4,41 @@
 
 # data-engineering-skills
 
-A collection of skills and custom agents for [Claude Code](https://claude.ai/code) and Cursor CLI. Skills are installed individually from Git-backed marketplace catalogs. Custom agents are installed from this checkout with the repository scripts.
+A collection of skills and custom agents for [Claude Code](https://claude.ai/code) and Cursor CLI. Skills are installed from Git-backed marketplace catalogs as three domain plugins. Custom agents are installed from this checkout with the repository scripts.
 
 ## Skills
 
-| Skill | Description |
-|-------|-------------|
-| `architecture-baseline` | Decide a new project's architectural constraints before feature work. Requires the separately installed `researcher` agent. |
-| `code-audit` | Audit code in any language and write a machine-readable report covering correctness, security, performance, architecture, error handling, and readability. |
-| `data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for masking, classification, access history, roles, and user auditing. |
-| `grill-me` | Pressure-test ideas and change artifacts before implementation. |
-| `orchestrate` | Drive workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, and `researcher` agents. |
-| `python-engineering-standards` | Apply production Python standards for layout, typing, configuration, logging, error handling, testing, and packaging. |
-| `scout` | Explore work whose shape is not settled and return a decision-ready briefing. Requires the separately installed `pathfinder` and `researcher` agents. |
-| `sql-data-analysis` | Apply SQL standards for analytics, reporting, extraction, and transformation. |
-| `stash` | Park raw content in an Obsidian vault inbox for later processing. |
-| `structure-review` | Review the shape and project conformance of a finished change before merge or archive. |
-| `write-ticket` | Write Jira tickets and comments in plain language through the Atlassian MCP. |
+Skills ship in three plugins, one per domain. A skill is invoked as `/<group>:<skill-name>` — the prefix is the plugin it came from, and it is not optional.
 
-Each release-ready `skills/<name>/` directory is a separate plugin. Its `SKILL.md` and any local `scripts/`, `assets/`, and `references/` are installed together. Repository custom agents are never included in a skill plugin.
+### `craft` — how code gets written and checked
+
+| Skill | Invoke | Description |
+|-------|--------|-------------|
+| `architecture-baseline` | `/craft:architecture-baseline` | Decide a new project's architectural constraints before feature work. Requires the separately installed `researcher` agent. |
+| `python-engineering-standards` | `/craft:python-engineering-standards` | Apply production Python standards for layout, typing, configuration, logging, error handling, testing, and packaging. |
+| `code-audit` | `/craft:code-audit` | Audit code in any language and write a machine-readable report covering correctness, security, performance, architecture, error handling, and readability. |
+| `structure-review` | `/craft:structure-review` | Review the shape and project conformance of a finished change before merge or archive. |
+
+### `flow` — how work gets driven from idea to build
+
+| Skill | Invoke | Description |
+|-------|--------|-------------|
+| `scout` | `/flow:scout` | Explore work whose shape is not settled and return a decision-ready briefing. Requires the separately installed `pathfinder` and `researcher` agents. |
+| `grill-me` | `/flow:grill-me` | Pressure-test ideas and change artifacts before implementation. |
+| `orchestrate` | `/flow:orchestrate` | Drive workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, and `researcher` agents. |
+| `write-ticket` | `/flow:write-ticket` | Write Jira tickets and comments in plain language through the Atlassian MCP. |
+| `stash` | `/flow:stash` | Park raw content in an Obsidian vault inbox for later processing. |
+
+### `data` — the warehouse surface
+
+| Skill | Invoke | Description |
+|-------|--------|-------------|
+| `sql-data-analysis` | `/data:sql-data-analysis` | Apply SQL standards for analytics, reporting, extraction, and transformation. |
+| `data-governance` | `/data:data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for masking, classification, access history, roles, and user auditing. |
+
+Each group directory under `skills/` is one plugin. A member's `SKILL.md` and any local `scripts/`, `assets/`, and `references/` are installed together. Repository custom agents are never included in a skill plugin.
+
+Installing a group installs all of its skills. Per-skill installation is not available; the Cursor fallback below is the only path that installs individual skills.
 
 ## Install skills
 
@@ -40,13 +56,15 @@ In Claude Code, add the marketplace:
 /plugin marketplace add https://github.com/victormacaubas/data-engineering-skills.git
 ```
 
-Install each skill by its marketplace-qualified name:
+Install the groups you want:
 
 ```text
-/plugin install sql-data-analysis@data-engineering-skills
+/plugin install craft@data-engineering-skills
+/plugin install flow@data-engineering-skills
+/plugin install data@data-engineering-skills
 ```
 
-Repeat the install command for each skill you want.
+Skills then appear under `/` with their group prefix — `/craft:structure-review`, `/flow:orchestrate`, `/data:sql-data-analysis`. The prefix is applied by Claude Code and cannot be turned off.
 
 ### Cursor CLI
 
@@ -62,7 +80,7 @@ Or register the marketplace from a shell:
 agent plugin marketplace add https://github.com/victormacaubas/data-engineering-skills.git
 ```
 
-Then open `/plugin` in Cursor CLI to browse the registered marketplace and install individual skills. Public Cursor Marketplace submission is not required.
+Then open `/plugin` in Cursor CLI to browse the registered marketplace and install the `craft`, `flow`, and `data` plugins. Public Cursor Marketplace submission is not required.
 
 #### Restricted-team fallback
 
@@ -71,7 +89,11 @@ If Cursor CLI reports `[permission_denied] Third-party plugin imports are disabl
 ```bash
 ./scripts/install-cursor-skills.sh --skills all
 ./scripts/install-cursor-skills.sh --skills architecture-baseline,sql-data-analysis
+./scripts/install-cursor-skills.sh --group data
+./scripts/install-cursor-skills.sh --group craft,data
 ```
+
+`--skills` takes bare skill names and `--group` takes group names; the two are mutually exclusive. Either way the target directory is flat, so **fallback skills are invoked unprefixed** — `structure-review`, not `craft:structure-review`. That is the one behavioural difference from a marketplace install.
 
 The fallback symlinks skills into `~/.cursor/skills/` by default. It preserves unselected skills and backs up conflicting non-repository paths. Use `--copy` for copies or override the target:
 
@@ -88,9 +110,9 @@ Marketplace plugins contain skills only. Install these agents separately before 
 
 | Skill | Required agents |
 |-------|-----------------|
-| `architecture-baseline` | `researcher` |
-| `orchestrate` | `implementer`, `pathfinder`, `researcher` |
-| `scout` | `pathfinder`, `researcher` |
+| `/craft:architecture-baseline` | `researcher` |
+| `/flow:orchestrate` | `implementer`, `pathfinder`, `researcher` |
+| `/flow:scout` | `pathfinder`, `researcher` |
 
 For example:
 
@@ -183,11 +205,13 @@ data-engineering-skills/
 ├── .claude-plugin/marketplace.json  # Claude Code skill catalog
 ├── .cursor-plugin/marketplace.json  # Cursor CLI skill catalog
 ├── skills/
-│   └── <skill-name>/
-│       ├── SKILL.md
-│       ├── scripts/
-│       ├── assets/
-│       └── references/
+│   └── <group>/                     # craft | flow | data — one plugin each
+│       ├── README.md
+│       └── <skill-name>/
+│           ├── SKILL.md
+│           ├── scripts/
+│           ├── assets/
+│           └── references/
 ├── agents/
 │   ├── claude/<agent-name>.md
 │   └── cursor/<agent-name>.md
@@ -206,11 +230,15 @@ Check that the Git URL is reachable, then add it again with the marketplace-add 
 
 **A skill is missing from a marketplace**
 
-Only release-ready immediate children of `skills/` are cataloged. Work under `skills/in-progress/` and `skills/deprecated/` is excluded.
+A skill loads only when its group entry lists it. Check that the skill directory sits under `skills/<group>/` and that its path appears in that group's `skills` array in **both** catalogs — a skill present on disk but absent from the array loads nowhere, silently. Work under `skills/in-progress/` and `skills/deprecated/` is excluded by design.
 
 **A skill appears twice**
 
-Inspect `~/.claude/skills/<skill-name>` and, for legacy cleanup only, `~/.codex/skills/<skill-name>`. Remove only the obsolete installation after verifying whether it is a symlink, copy, or customized directory.
+Most often an old per-skill plugin is still installed alongside its group; the two show as `/structure-review:structure-review` and `/craft:structure-review`. Uninstall the old one. Otherwise inspect `~/.claude/skills/<skill-name>` and, for legacy cleanup only, `~/.codex/skills/<skill-name>`, and remove only the obsolete installation after verifying whether it is a symlink, copy, or customized directory.
+
+**An agent runs without its skill**
+
+Agent skill preloads are namespaced (`craft:structure-review`). A preload that does not resolve is skipped silently, with only a debug-log warning, so the agent still launches and still returns output. If a review agent's output looks unlike the skill's method, check its `skills:` frontmatter against the current group names.
 
 **An agent-dependent skill cannot dispatch a worker**
 
