@@ -217,6 +217,7 @@ __marimo__/
 .code-audit/
 .structure-review/
 .claude/
+.cursor/
 .agents/
 
 # skill-creator eval workspaces (run outputs, gradings, benchmarks)
