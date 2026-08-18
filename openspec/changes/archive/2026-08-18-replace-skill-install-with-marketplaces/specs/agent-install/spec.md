@@ -1,7 +1,4 @@
-## Purpose
-Define how repository custom agents are authored and installed for Claude Code and Cursor CLI, including selection and installation safety behavior.
-
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Platform-specific agent definitions
 The repository SHALL maintain distinct Claude Code and Cursor CLI variants for every supported custom agent.
@@ -27,6 +24,8 @@ The system SHALL retain `scripts/install.sh` as an agent-focused interactive and
 #### Scenario: Retired skill options
 - **WHEN** a user passes a legacy skill-install option to `scripts/install.sh`
 - **THEN** the script exits with an explanation that skills are installed through marketplaces
+
+## MODIFIED Requirements
 
 ### Requirement: Single-command install for agents
 The system SHALL provide `scripts/install-agents.sh` to install selected platform-specific agent definitions into Claude Code, Cursor CLI, or both platforms with one invocation.
@@ -61,18 +60,6 @@ The system SHALL provide `scripts/install-agents.sh` to install selected platfor
 #### Scenario: Non-agent files are excluded
 - **WHEN** a platform agent source directory contains a non-`.md` entry
 - **THEN** the installer excludes that entry from discovery and installation
-
-### Requirement: Safe install with backup
-The system SHALL NOT overwrite existing files that are not symlinks pointing to this repository without creating a backup first.
-
-#### Scenario: Existing non-repo file at target path
-- **WHEN** the target path exists and is NOT a symlink to a path within this repository
-- **THEN** the existing file is renamed to `<path>.bak.<YYYYMMDD-HHMMSS>` before installing
-- **AND** a warning is printed showing the backup location
-
-#### Scenario: Existing symlink from this repo
-- **WHEN** the target path is already a symlink pointing into this repository
-- **THEN** the symlink is updated in place without creating a backup
 
 ### Requirement: Clear success messaging
 The system SHALL print a per-platform summary after agent installation completes.
@@ -141,11 +128,14 @@ The system SHALL support explicit platform and custom-agent selections without p
 - **WHEN** a user runs `./scripts/install.sh --platform cursor --agents pathfinder,implementer`
 - **THEN** only the Cursor CLI variants of `pathfinder` and `implementer` are installed without prompting
 
-### Requirement: Selection preserves installed custom agents
-The system SHALL NOT remove unselected already-installed custom agents during selective installation.
+## REMOVED Requirements
 
-#### Scenario: Previously installed custom agent is not selected
-- **WHEN** a repo-owned custom-agent symlink already exists in the target directory
-- **AND** user runs a selective install that does not include that custom agent
-- **THEN** the existing symlink remains in place
+### Requirement: Codex-only installs skip custom agents
+**Reason**: Codex is no longer a supported platform, and Cursor CLI has its own custom-agent target.
 
+**Migration**: Use `--platform cursor` to install Cursor CLI agent variants.
+
+### Requirement: Custom-agent platform support messaging
+**Reason**: Custom agents are now supported for both Claude Code and Cursor CLI.
+
+**Migration**: Installation summaries report the actual selected platforms and target directories.

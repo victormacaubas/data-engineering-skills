@@ -1,6 +1,8 @@
 ## What this repo is
 
-A collection of agent skills for Claude Code and Codex. Each skill lives in `skills/<name>/SKILL.md`. Install scripts in `scripts/` deploy them via symlink or copy.
+A collection of skills and custom agents for Claude Code and Cursor CLI. Skills are distributed individually through Git-backed catalogs at `.claude-plugin/marketplace.json` and `.cursor-plugin/marketplace.json`. Custom agents are installed by the scripts in `scripts/`.
+
+Codex is retired. Mention it only in clearly labeled guidance for inspecting and removing legacy skill installs.
 
 ## How to work here
 
@@ -11,16 +13,21 @@ A collection of agent skills for Claude Code and Codex. Each skill lives in `ski
 - Skills are self-contained. A skill and its `references/` carry everything needed to follow it, and should never point at another skill for content.
 - Each skill is a directory under `skills/` with a kebab-case name.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
-- Optional subdirectories: `scripts/`, `assets/`, `references/`. These are installed as a unit alongside `SKILL.md`.
-- Skills not ready to ship go in `skills/in-progress/<name>/`. The install scripts only look one level deep, so nothing inside `in-progress/` is ever installed. Move the directory up to `skills/<name>/` when it's ready.
+- Optional subdirectories are `scripts/`, `assets/`, and `references/`. A marketplace entry must use the skill directory as its source so these files are packaged with `SKILL.md` and top-level agents remain excluded.
+- Skills not ready to ship go in `skills/in-progress/<name>/`. The catalogs must not list `in-progress/` or `deprecated/`.
+- Graduating, renaming, or removing a skill requires matching plugin-name/source changes in both marketplace catalogs. Validate JSON, catalog parity, and skill-local source isolation.
+- Marketplace updates are explicit client operations, not live symlink updates.
+- If a skill depends on custom agents, document the separate agent prerequisites in both catalog descriptions and README onboarding. Current dependencies include `architecture-baseline` on `researcher`, `orchestrate` on `implementer`/`pathfinder`/`researcher`, and `scout` on `pathfinder`/`researcher`.
 - See `docs/authoring.md` for a step-by-step guide.
 
 ### Agent authoring
 
-- Each agent is a single `.md` file under `agents/` with a kebab-case name (e.g. `agents/my-agent.md`). Agents are not directories.
-- Every agent file starts with YAML frontmatter containing at minimum `name` and `description`. Optional fields: `model`, `tools`, `effort`.
-- `agents/README.md` is the agent index — update it when adding a new agent (name, model, description).
-- Agents install into `~/.claude/agents/<name>.md`. The install script is `scripts/install-agents.sh`.
+- Every supported agent has complete matching-name definitions at `agents/claude/<name>.md` and `agents/cursor/<name>.md`.
+- Every file starts with YAML frontmatter containing at least `name` and `description`; `name` must match the filename.
+- Claude and Cursor variants may use different model and capability fields. Preserve the same role and safety intent with native controls; use Cursor's `readonly: true` for non-writing agents.
+- `agents/README.md` is the agent index. Update both platform entries, models, descriptions, and intentional differences together.
+- Agents install into `~/.claude/agents/` and `~/.cursor/agents/`. See `docs/agents.md`.
+- Marketplace plugins must not expose or install the top-level custom agents.
 - See `docs/agents.md` for a full authoring guide.
 
 ### Preserving user changes
@@ -34,7 +41,15 @@ Before editing any existing skill file:
 
 ### Install scripts
 
-The scripts in `scripts/` are the install contract. Changes to these scripts affect all users of the repo. Before modifying them:
+The scripts install custom agents only. `scripts/install.sh` is the user-facing wizard; `scripts/install-agents.sh` accepts `--platform claude|cursor|both`, `--agents all|none|name[,name...]`, and `--copy`.
+
+- Agent sources are `agents/claude/` and `agents/cursor/`.
+- Default targets are `~/.claude/agents/` and `~/.cursor/agents/`.
+- `CLAUDE_AGENTS_DIR` and `CURSOR_AGENTS_DIR` override those targets.
+- Installation is symlink-first, preserves copy mode and timestamped backups, and does not remove unselected agents.
+- Legacy skill helpers are failing migration shims. No script or marketplace operation removes legacy skill files, symlinks, directories, or backups automatically.
+
+Changes to scripts affect all users of the repo. Before modifying them:
 - Confirm the change doesn't break the symlink-first strategy.
 - Confirm backup behaviour (`.bak.<timestamp>`) is preserved.
 - Run `bash -n <script>` to verify syntax after changes.
@@ -59,15 +74,21 @@ Don't make these changes without creating an OpenSpec change first, unless the u
 ## Directory layout
 
 ```
-skills/          ← skill source of truth
-agents/          ← custom agent definitions (single .md files)
-scripts/         ← install automation
-docs/            ← developer documentation
-openspec/        ← tracked changes
+.claude-plugin/marketplace.json  ← Claude Code skill catalog
+.cursor-plugin/marketplace.json  ← Cursor CLI skill catalog
+skills/                          ← shared skill source of truth
+agents/claude/                   ← Claude Code agent definitions
+agents/cursor/                   ← Cursor CLI agent definitions
+scripts/                         ← agent installation and migration shims
+docs/                            ← developer documentation
+openspec/                        ← tracked changes
 ```
 
 ## What NOT to do
 
 - Don't create skills outside `skills/`.
-- Don't create agents outside `agents/`.
+- Don't create agent definitions outside their platform directory.
+- Don't use the repository root as a marketplace plugin source.
+- Don't add active Codex installation instructions.
+- Don't delete legacy user installs or backups automatically.
 - Don't edit `openspec/` artifact files unless running an OpenSpec workflow step.

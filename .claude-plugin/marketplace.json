@@ -1,0 +1,75 @@
+{
+  "name": "data-engineering-skills",
+  "description": "Skills for data engineering, software quality, architecture, and agent-assisted workflows.",
+  "owner": {
+    "name": "Victor Macaubas"
+  },
+  "plugins": [
+    {
+      "name": "architecture-baseline",
+      "source": "./skills/architecture-baseline",
+      "description": "Establish architectural constraints before feature work. Requires the separately installed researcher agent.",
+      "strict": false
+    },
+    {
+      "name": "code-audit",
+      "source": "./skills/code-audit",
+      "description": "Produce non-destructive, language-agnostic code audits with scored JSON findings and optional Markdown reports.",
+      "strict": false
+    },
+    {
+      "name": "data-governance",
+      "source": "./skills/data-governance",
+      "description": "Query Snowflake ACCOUNT_USAGE for masking, row access, classification, tags, access history, grants, logins, and query auditing.",
+      "strict": false
+    },
+    {
+      "name": "grill-me",
+      "source": "./skills/grill-me",
+      "description": "Pressure-test and sharpen change ideas, plans, specs, ADRs, PRDs, and similar artifacts before implementation.",
+      "strict": false
+    },
+    {
+      "name": "orchestrate",
+      "source": "./skills/orchestrate",
+      "description": "Drive workers to implement bounded plans. Requires the separately installed implementer, pathfinder, and researcher agents.",
+      "strict": false
+    },
+    {
+      "name": "python-engineering-standards",
+      "source": "./skills/python-engineering-standards",
+      "description": "Apply canonical Python standards for structure, typing, documentation, reliability, security, concurrency, and testing.",
+      "strict": false
+    },
+    {
+      "name": "scout",
+      "source": "./skills/scout",
+      "description": "Explore undecided problems through delegated research. Requires the separately installed pathfinder and researcher agents.",
+      "strict": false
+    },
+    {
+      "name": "sql-data-analysis",
+      "source": "./skills/sql-data-analysis",
+      "description": "Apply canonical SQL standards for trustworthy analytics, transformations, reviews, performance, and cost control.",
+      "strict": false
+    },
+    {
+      "name": "stash",
+      "source": "./skills/stash",
+      "description": "Park raw conversation or pasted content in an Obsidian vault inbox for later processing.",
+      "strict": false
+    },
+    {
+      "name": "structure-review",
+      "source": "./skills/structure-review",
+      "description": "Review a finished change for structure, architectural conformance, test design, naming, and maintainability before approval.",
+      "strict": false
+    },
+    {
+      "name": "write-ticket",
+      "source": "./skills/write-ticket",
+      "description": "Create Jira tickets and comments in plain, human-sounding language through the Atlassian MCP.",
+      "strict": false
+    }
+  ]
+}

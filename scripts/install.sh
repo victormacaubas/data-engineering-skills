@@ -3,20 +3,16 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
-SKILLS_SRC="$REPO_DIR/skills"
-AGENTS_SRC="$REPO_DIR/agents"
+CLAUDE_AGENTS_SRC="$REPO_DIR/agents/claude"
+CURSOR_AGENTS_SRC="$REPO_DIR/agents/cursor"
 
 PLATFORM=""
-PLATFORM_SOURCE=""
-TARGET_VALUE=""
-SKILL_SELECTION=""
 AGENT_SELECTION=""
 COPY_MODE=false
 HAS_ARGS=false
-CODEX_AGENT_NOTE=false
 
-valid_skills=()
 valid_agents=()
+DISCOVERED_AGENTS=()
 CHOICE_RESULT=""
 MULTI_SELECTION=""
 
@@ -28,32 +24,38 @@ Interactive:
   $0
 
 Non-interactive:
-  $0 --platform claude --skills all --agents all
-  $0 --platform codex --skills sql-data-analysis,data-governance
-  $0 --platform both --skills all --agents pathfinder
+  $0 --platform claude --agents all
+  $0 --platform cursor --agents pathfinder,implementer
+  $0 --platform both --agents none --copy
 
 Options:
-  --platform claude|codex|both|agents
-      Platform to install for. Use "both" for Claude Code and Codex skills.
-      Use "agents" for Claude Code custom agents only.
-
-  --skills all|name[,name...]
-      Skills to install for the selected platform. Defaults to all when a
-      platform is provided non-interactively.
+  --platform claude|cursor|both
+      Platform-specific custom agents to install. Defaults to both when other
+      non-interactive options are supplied.
 
   --agents all|none|name[,name...]
-      Custom agents to install for Claude Code. Use all to install every
-      custom agent, or none to skip agents.
+      Install every available custom agent, no agents, or a selected subset.
+      Defaults to all.
 
   --copy
-      Copy files instead of creating symlinks.
-
-  --target claude|codex|agents|all
-      Compatibility alias for --platform. "all" maps to "both".
+      Copy agent files instead of creating symlinks.
 
   -h, --help
       Show this help text.
+
+Skills are installed through the repository's Git-backed Claude Code and
+Cursor CLI marketplaces, not through this script.
 EOF
+}
+
+marketplace_migration_error() {
+  local option="$1"
+
+  echo "$option is retired because skills are now installed through Git-backed marketplaces." >&2
+  echo "Claude Code: /plugin marketplace add <repository-git-url>" >&2
+  echo "Cursor CLI:  agent plugin marketplace add <repository-git-url>" >&2
+  echo "Use this script only for custom agents: $0 --platform claude|cursor|both --agents all|none|name[,name...]" >&2
+  exit 2
 }
 
 strip_spaces() {
@@ -91,144 +93,62 @@ join_items() {
   printf '%s\n' "$joined"
 }
 
-discover_skills() {
-  local skill_dir
+discover_agents() {
+  local source_dir="$1"
+  local agent_file
 
-  valid_skills=()
-  for skill_dir in "$SKILLS_SRC"/*/; do
-    [ -d "$skill_dir" ] || continue
-    [ -f "$skill_dir/SKILL.md" ] || continue
-    valid_skills+=("$(basename "$skill_dir")")
+  DISCOVERED_AGENTS=()
+  for agent_file in "$source_dir"/*.md; do
+    [ -f "$agent_file" ] || continue
+    DISCOVERED_AGENTS+=("$(basename "${agent_file%.md}")")
   done
 }
 
-discover_agents() {
-  local agent_file
+add_valid_agent() {
+  local agent_name="$1"
+
+  if ! name_in_list "$agent_name" "${valid_agents[@]}"; then
+    valid_agents+=("$agent_name")
+  fi
+}
+
+discover_agents_for_platform() {
   local agent_name
 
   valid_agents=()
-  for agent_file in "$AGENTS_SRC"/*.md; do
-    [ -e "$agent_file" ] || continue
-    agent_name="$(basename "$agent_file")"
-    [ "$agent_name" = "README.md" ] && continue
-    valid_agents+=("${agent_name%.md}")
-  done
-}
-
-validate_skill_selection() {
-  local selection
-  local item
-  local invalid=()
-  local old_ifs
-  local selected=()
-
-  selection="$(strip_spaces "$SKILL_SELECTION")"
-  if [ -z "$selection" ]; then
-    echo "--skills requires a value: all or a comma-separated list of skill names" >&2
-    exit 1
+  if [ "$PLATFORM" = "claude" ] || [ "$PLATFORM" = "both" ]; then
+    discover_agents "$CLAUDE_AGENTS_SRC"
+    for agent_name in "${DISCOVERED_AGENTS[@]}"; do
+      add_valid_agent "$agent_name"
+    done
   fi
 
-  if [ "$selection" = "all" ]; then
-    SKILL_SELECTION="$selection"
-    return
+  if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "both" ]; then
+    discover_agents "$CURSOR_AGENTS_SRC"
+    for agent_name in "${DISCOVERED_AGENTS[@]}"; do
+      add_valid_agent "$agent_name"
+    done
   fi
-
-  if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
-    echo "Invalid --skills value: $SKILL_SELECTION" >&2
-    echo "Use all or a comma-separated list such as sql-data-analysis,data-governance." >&2
-    exit 1
-  fi
-
-  old_ifs="$IFS"
-  IFS=','
-  read -r -a selected <<< "$selection"
-  IFS="$old_ifs"
-
-  for item in "${selected[@]}"; do
-    if [ -z "$item" ] || ! name_in_list "$item" "${valid_skills[@]}"; then
-      invalid+=("$item")
-    fi
-  done
-
-  if [ "${#invalid[@]}" -gt 0 ]; then
-    echo "Unknown skill(s): ${invalid[*]}" >&2
-    echo "Available skills: ${valid_skills[*]:-(none)}" >&2
-    exit 1
-  fi
-
-  SKILL_SELECTION="$selection"
-}
-
-validate_agent_selection() {
-  local selection
-  local item
-  local invalid=()
-  local old_ifs
-  local selected=()
-
-  selection="$(strip_spaces "$AGENT_SELECTION")"
-  if [ -z "$selection" ]; then
-    echo "--agents requires a value: all, none, or a comma-separated list of custom-agent names" >&2
-    exit 1
-  fi
-
-  case "$selection" in
-    all|none)
-      AGENT_SELECTION="$selection"
-      return
-      ;;
-  esac
-
-  if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
-    echo "Invalid --agents value: $AGENT_SELECTION" >&2
-    echo "Use all, none, or a comma-separated list such as pathfinder,implementer." >&2
-    exit 1
-  fi
-
-  old_ifs="$IFS"
-  IFS=','
-  read -r -a selected <<< "$selection"
-  IFS="$old_ifs"
-
-  for item in "${selected[@]}"; do
-    if [ -z "$item" ] || ! name_in_list "$item" "${valid_agents[@]}"; then
-      invalid+=("$item")
-    fi
-  done
-
-  if [ "${#invalid[@]}" -gt 0 ]; then
-    echo "Unknown custom agent(s): ${invalid[*]}" >&2
-    echo "Available custom agents: ${valid_agents[*]:-(none)}" >&2
-    exit 1
-  fi
-
-  AGENT_SELECTION="$selection"
 }
 
 normalize_platform() {
   local value="$1"
 
   case "$value" in
-    claude|codex|both|agents)
+    claude|cursor|both)
       printf '%s\n' "$value"
       ;;
-    all)
-      printf '%s\n' "both"
+    codex)
+      echo "Codex support has ended; existing legacy Codex installations are left untouched." >&2
+      echo "Use --platform cursor for Cursor CLI custom agents." >&2
+      exit 2
       ;;
     *)
       echo "Unknown platform: $value" >&2
-      echo "Valid platforms: claude, codex, both, agents" >&2
+      echo "Valid platforms: claude, cursor, both" >&2
       exit 1
       ;;
   esac
-}
-
-platform_includes_claude() {
-  [ "$PLATFORM" = "claude" ] || [ "$PLATFORM" = "both" ]
-}
-
-platform_includes_codex() {
-  [ "$PLATFORM" = "codex" ] || [ "$PLATFORM" = "both" ]
 }
 
 prompt_choice() {
@@ -244,10 +164,16 @@ prompt_choice() {
       echo "  $((idx + 1)). ${options[$idx]}"
     done
     printf "Enter choice: "
-    read -r input
+    if ! read -r input; then
+      echo "" >&2
+      echo "Input ended before the wizard was complete." >&2
+      exit 1
+    fi
     input="$(strip_spaces "$input")"
 
-    if [[ "$input" =~ ^[0-9]+$ ]] && [ "$input" -ge 1 ] && [ "$input" -le "${#options[@]}" ]; then
+    if [[ "$input" =~ ^[0-9]+$ ]] &&
+       [ "$input" -ge 1 ] &&
+       [ "$input" -le "${#options[@]}" ]; then
       CHOICE_RESULT="$input"
       echo ""
       return
@@ -258,42 +184,31 @@ prompt_choice() {
   done
 }
 
-prompt_multi_choice() {
-  local title="$1"
-  local all_label="$2"
-  local skip_label="$3"
-  shift 3
-  local items=("$@")
+prompt_agent_selection() {
   local input
   local choice
   local old_ifs
   local choices=()
   local selected=()
-  local max_choice
+  local max_choice=$((2 + ${#valid_agents[@]}))
   local item_index
 
-  max_choice=$((1 + ${#items[@]}))
-  if [ -n "$skip_label" ]; then
-    max_choice=$((max_choice + 1))
-  fi
-
   while true; do
-    echo "$title"
-    echo "  1. $all_label"
-    if [ -n "$skip_label" ]; then
-      echo "  2. $skip_label"
-      item_index=3
-    else
-      item_index=2
-    fi
-
-    for choice in "${items[@]}"; do
+    echo "Which custom agents should be installed?"
+    echo "  1. All custom agents"
+    echo "  2. Skip custom agents"
+    item_index=3
+    for choice in "${valid_agents[@]}"; do
       echo "  $item_index. $choice"
       item_index=$((item_index + 1))
     done
 
     printf "Enter numbers separated by commas: "
-    read -r input
+    if ! read -r input; then
+      echo "" >&2
+      echo "Input ended before the wizard was complete." >&2
+      exit 1
+    fi
     input="$(strip_spaces "$input")"
 
     if [ -z "$input" ] || [[ "$input" == *, || "$input" == ,* || "$input" == *,,* ]]; then
@@ -309,7 +224,9 @@ prompt_multi_choice() {
 
     selected=()
     for choice in "${choices[@]}"; do
-      if ! [[ "$choice" =~ ^[0-9]+$ ]] || [ "$choice" -lt 1 ] || [ "$choice" -gt "$max_choice" ]; then
+      if ! [[ "$choice" =~ ^[0-9]+$ ]] ||
+         [ "$choice" -lt 1 ] ||
+         [ "$choice" -gt "$max_choice" ]; then
         selected=()
         break
       fi
@@ -320,16 +237,14 @@ prompt_multi_choice() {
         return
       fi
 
-      if [ -n "$skip_label" ] && [ "$choice" -eq 2 ]; then
+      if [ "$choice" -eq 2 ]; then
         MULTI_SELECTION="none"
         echo ""
         return
       fi
 
-      if [ -n "$skip_label" ]; then
-        selected+=("${items[$((choice - 3))]}")
-      else
-        selected+=("${items[$((choice - 2))]}")
+      if ! name_in_list "${valid_agents[$((choice - 3))]}" "${selected[@]}"; then
+        selected+=("${valid_agents[$((choice - 3))]}")
       fi
     done
 
@@ -345,45 +260,29 @@ prompt_multi_choice() {
 }
 
 run_wizard() {
-  echo "Install wizard"
+  echo "Custom agent install wizard"
   echo ""
 
-  prompt_choice "Which platform should be installed?" \
+  prompt_choice "Which platform should receive custom agents?" \
     "Claude Code" \
-    "Codex" \
-    "Both Claude Code and Codex"
+    "Cursor CLI" \
+    "Both Claude Code and Cursor CLI"
 
   case "$CHOICE_RESULT" in
     1) PLATFORM="claude" ;;
-    2) PLATFORM="codex" ;;
+    2) PLATFORM="cursor" ;;
     3) PLATFORM="both" ;;
   esac
 
-  discover_skills
-  if [ "${#valid_skills[@]}" -eq 0 ]; then
-    SKILL_SELECTION="all"
-  else
-    prompt_multi_choice "Which skills should be installed?" "All skills" "" "${valid_skills[@]}"
-    SKILL_SELECTION="$MULTI_SELECTION"
-  fi
-
-  discover_agents
-  if platform_includes_claude; then
-    if [ "${#valid_agents[@]}" -eq 0 ]; then
-      AGENT_SELECTION="none"
-      echo "No custom agents found in $AGENTS_SRC."
-      echo ""
-    else
-      prompt_multi_choice "Which custom agents should be installed for Claude Code?" \
-        "All custom agents" \
-        "Skip custom agents" \
-        "${valid_agents[@]}"
-      AGENT_SELECTION="$MULTI_SELECTION"
-    fi
-  else
+  discover_agents_for_platform
+  if [ "${#valid_agents[@]}" -eq 0 ]; then
     AGENT_SELECTION="none"
-    echo "Custom agents are currently Claude Code-only, so the installer will skip agents for Codex."
+    echo "No valid custom-agent definitions are available for $PLATFORM."
+    echo "Expected definitions under agents/claude/ and/or agents/cursor/."
     echo ""
+  else
+    prompt_agent_selection
+    AGENT_SELECTION="$MULTI_SELECTION"
   fi
 
   prompt_choice "Install mode?" "Symlink" "Copy"
@@ -393,27 +292,13 @@ run_wizard() {
   esac
 }
 
-run_claude_skills() {
-  local args=(--skills "$SKILL_SELECTION")
-  if [ "$COPY_MODE" = true ]; then
-    args+=(--copy)
-  fi
-  bash "$SCRIPT_DIR/install-claude.sh" "${args[@]}"
-}
+run_agent_installer() {
+  local args=(--platform "$PLATFORM" --agents "$AGENT_SELECTION")
 
-run_codex_skills() {
-  local args=(--skills "$SKILL_SELECTION")
   if [ "$COPY_MODE" = true ]; then
     args+=(--copy)
   fi
-  bash "$SCRIPT_DIR/install-codex.sh" "${args[@]}"
-}
 
-run_agents() {
-  local args=(--agents "$AGENT_SELECTION")
-  if [ "$COPY_MODE" = true ]; then
-    args+=(--copy)
-  fi
   bash "$SCRIPT_DIR/install-agents.sh" "${args[@]}"
 }
 
@@ -422,47 +307,15 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --platform=*)
       PLATFORM="$(normalize_platform "${1#--platform=}")"
-      PLATFORM_SOURCE="platform"
       shift
       ;;
     --platform)
       if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--platform requires a value: claude, codex, both, or agents" >&2
+        echo "--platform requires a value: claude, cursor, or both" >&2
         usage >&2
         exit 1
       fi
       PLATFORM="$(normalize_platform "$2")"
-      PLATFORM_SOURCE="platform"
-      shift 2
-      ;;
-    --target=*)
-      TARGET_VALUE="${1#--target=}"
-      PLATFORM="$(normalize_platform "$TARGET_VALUE")"
-      PLATFORM_SOURCE="target"
-      shift
-      ;;
-    --target)
-      if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--target requires a value: claude, codex, agents, or all" >&2
-        usage >&2
-        exit 1
-      fi
-      TARGET_VALUE="$2"
-      PLATFORM="$(normalize_platform "$TARGET_VALUE")"
-      PLATFORM_SOURCE="target"
-      shift 2
-      ;;
-    --skills=*)
-      SKILL_SELECTION="${1#--skills=}"
-      shift
-      ;;
-    --skills)
-      if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--skills requires a value: all or a comma-separated list of skill names" >&2
-        usage >&2
-        exit 1
-      fi
-      SKILL_SELECTION="$2"
       shift 2
       ;;
     --agents=*)
@@ -471,7 +324,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --agents)
       if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--agents requires a value: all, none, or a comma-separated list of custom-agent names" >&2
+        echo "--agents requires a value: all, none, or a comma-separated list of agent names" >&2
         usage >&2
         exit 1
       fi
@@ -481,6 +334,9 @@ while [[ $# -gt 0 ]]; do
     --copy)
       COPY_MODE=true
       shift
+      ;;
+    --skills|--skills=*|--target|--target=*)
+      marketplace_migration_error "$1"
       ;;
     -h|--help)
       usage
@@ -499,101 +355,18 @@ if [ "$HAS_ARGS" = false ]; then
     run_wizard
   else
     echo "Interactive install requires a terminal." >&2
-    echo "For non-interactive installs, pass explicit flags, for example:" >&2
-    echo "  $0 --platform both --skills all --agents all" >&2
+    echo "For a non-interactive install, pass explicit flags, for example:" >&2
+    echo "  $0 --platform both --agents all" >&2
     exit 1
   fi
 fi
 
 if [ -z "$PLATFORM" ]; then
   PLATFORM="both"
-  PLATFORM_SOURCE="default"
 fi
 
-case "$PLATFORM" in
-  claude|codex|both)
-    if [ -z "$SKILL_SELECTION" ]; then
-      SKILL_SELECTION="all"
-    fi
-
-    if platform_includes_claude; then
-      if [ -z "$AGENT_SELECTION" ]; then
-        if [ "$PLATFORM_SOURCE" = "default" ] || { [ "$PLATFORM_SOURCE" = "target" ] && [ "$TARGET_VALUE" = "all" ]; }; then
-          AGENT_SELECTION="all"
-        else
-          AGENT_SELECTION="none"
-        fi
-      fi
-    elif [ -n "$AGENT_SELECTION" ] && [ "$(strip_spaces "$AGENT_SELECTION")" != "none" ]; then
-      echo "Custom-agent installation requires Claude Code; Codex custom agents are not supported by this installer yet." >&2
-      exit 1
-    else
-      AGENT_SELECTION="none"
-    fi
-    ;;
-  agents)
-    if [ -n "$SKILL_SELECTION" ]; then
-      echo "--skills cannot be used with --platform agents" >&2
-      exit 1
-    fi
-    if [ -z "$AGENT_SELECTION" ]; then
-      AGENT_SELECTION="all"
-    fi
-    ;;
-esac
-
-discover_skills
-discover_agents
-
-if [ "$PLATFORM" != "agents" ]; then
-  validate_skill_selection
+if [ -z "$AGENT_SELECTION" ]; then
+  AGENT_SELECTION="all"
 fi
 
-if platform_includes_claude || [ "$PLATFORM" = "agents" ]; then
-  validate_agent_selection
-fi
-
-echo "Install plan"
-echo "  Platform: $PLATFORM"
-if [ "$PLATFORM" != "agents" ]; then
-  echo "  Skills:   $SKILL_SELECTION"
-fi
-if platform_includes_claude || [ "$PLATFORM" = "agents" ]; then
-  echo "  Agents:   $AGENT_SELECTION (Claude Code only)"
-else
-  echo "  Agents:   skipped (custom agents are Claude Code-only)"
-fi
-echo "  Mode:     $([ "$COPY_MODE" = true ] && echo copy || echo symlink)"
-echo ""
-
-case "$PLATFORM" in
-  claude)
-    run_claude_skills
-    echo ""
-    if [ "$(strip_spaces "$AGENT_SELECTION")" != "none" ]; then
-      run_agents
-    fi
-    ;;
-  codex)
-    run_codex_skills
-    ;;
-  both)
-    run_claude_skills
-    echo ""
-    run_codex_skills
-    echo ""
-    if [ "$(strip_spaces "$AGENT_SELECTION")" != "none" ]; then
-      run_agents
-      CODEX_AGENT_NOTE=true
-    fi
-    ;;
-  agents)
-    run_agents
-    ;;
-esac
-
-echo ""
-echo "Install complete."
-if [ "$CODEX_AGENT_NOTE" = true ]; then
-  echo "Note: Custom agents were installed for Claude Code only. Custom agents are currently not installable for Codex."
-fi
+run_agent_installer
