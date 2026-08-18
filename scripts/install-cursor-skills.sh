@@ -6,9 +6,15 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 SKILLS_SRC="$REPO_DIR/skills"
 TARGET_DIR="${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
 
+NON_GROUP_DIRS=("in-progress" "deprecated")
+
 SKILL_SELECTION="all"
+SKILLS_FLAG_SEEN=false
+GROUP_SELECTION=""
 COPY_MODE=false
 valid_skills=()
+valid_groups=()
+skill_groups=()
 selected_skills=()
 
 usage() {
@@ -18,9 +24,19 @@ Usage: $0 [options]
 Fallback installer for Cursor CLI environments where team policy blocks
 third-party plugin imports.
 
+Skills live at skills/<group>/<name>/. This installer flattens them into the
+target directory, so a fallback skill is invoked unprefixed (structure-review)
+rather than namespaced (craft:structure-review) as it would be when installed
+from the marketplace plugin.
+
 Options:
   --skills all|name[,name...]
-      Install every release-ready skill or a selected subset. Defaults to all.
+      Install every release-ready skill or a selected subset, by bare skill
+      name. Defaults to all. Mutually exclusive with --group.
+
+  --group name[,name...]
+      Install every skill in the named group(s). Mutually exclusive with an
+      explicit --skills list.
 
   --copy
       Copy skill directories instead of creating symlinks.
@@ -53,14 +69,100 @@ name_in_list() {
   return 1
 }
 
+group_of() {
+  local needle="$1"
+  local i
+
+  for i in "${!valid_skills[@]}"; do
+    if [ "${valid_skills[$i]}" = "$needle" ]; then
+      printf '%s\n' "${skill_groups[$i]}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
 discover_skills() {
+  local group_dir
   local skill_dir
+  local group_name
+  local skill_name
 
   valid_skills=()
-  for skill_dir in "$SKILLS_SRC"/*/; do
-    [ -d "$skill_dir" ] || continue
-    [ -f "$skill_dir/SKILL.md" ] || continue
-    valid_skills+=("$(basename "$skill_dir")")
+  valid_groups=()
+  skill_groups=()
+
+  for group_dir in "$SKILLS_SRC"/*/; do
+    [ -d "$group_dir" ] || continue
+    group_name="$(basename "$group_dir")"
+
+    if name_in_list "$group_name" "${NON_GROUP_DIRS[@]}"; then
+      continue
+    fi
+
+    for skill_dir in "$group_dir"*/; do
+      [ -d "$skill_dir" ] || continue
+      [ -f "$skill_dir/SKILL.md" ] || continue
+      skill_name="$(basename "$skill_dir")"
+
+      if name_in_list "$skill_name" "${valid_skills[@]:-}"; then
+        echo "Duplicate skill name across groups: $skill_name" >&2
+        echo "Skill names must be unique because the target directory is flat." >&2
+        exit 1
+      fi
+
+      valid_skills+=("$skill_name")
+      skill_groups+=("$group_name")
+
+      if ! name_in_list "$group_name" "${valid_groups[@]:-}"; then
+        valid_groups+=("$group_name")
+      fi
+    done
+  done
+}
+
+parse_group_selection() {
+  local selection
+  local item
+  local i
+  local old_ifs
+  local groups=()
+  local invalid=()
+
+  selection="$(strip_spaces "$GROUP_SELECTION")"
+  if [ -z "$selection" ]; then
+    echo "--group requires a comma-separated list of group names" >&2
+    exit 1
+  fi
+
+  if [[ "$selection" == *, || "$selection" == ,* || "$selection" == *,,* ]]; then
+    echo "Invalid --group value: $GROUP_SELECTION" >&2
+    exit 1
+  fi
+
+  old_ifs="$IFS"
+  IFS=','
+  read -r -a groups <<< "$selection"
+  IFS="$old_ifs"
+
+  for item in "${groups[@]}"; do
+    if [ -z "$item" ] || ! name_in_list "$item" "${valid_groups[@]:-}"; then
+      invalid+=("$item")
+    fi
+  done
+
+  if [ "${#invalid[@]}" -gt 0 ]; then
+    echo "Unknown group(s): ${invalid[*]}" >&2
+    echo "Available groups: ${valid_groups[*]:-(none)}" >&2
+    exit 1
+  fi
+
+  selected_skills=()
+  for i in "${!valid_skills[@]}"; do
+    if name_in_list "${skill_groups[$i]}" "${groups[@]}"; then
+      selected_skills+=("${valid_skills[$i]}")
+    fi
   done
 }
 
@@ -92,7 +194,7 @@ parse_skill_selection() {
   IFS="$old_ifs"
 
   for item in "${selected_skills[@]}"; do
-    if [ -z "$item" ] || ! name_in_list "$item" "${valid_skills[@]}"; then
+    if [ -z "$item" ] || ! name_in_list "$item" "${valid_skills[@]:-}"; then
       invalid+=("$item")
     fi
   done
@@ -157,6 +259,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --skills=*)
       SKILL_SELECTION="${1#--skills=}"
+      SKILLS_FLAG_SEEN=true
       shift
       ;;
     --skills)
@@ -166,6 +269,20 @@ while [[ $# -gt 0 ]]; do
         exit 1
       fi
       SKILL_SELECTION="$2"
+      SKILLS_FLAG_SEEN=true
+      shift 2
+      ;;
+    --group=*)
+      GROUP_SELECTION="${1#--group=}"
+      shift
+      ;;
+    --group)
+      if [[ $# -lt 2 || "$2" == --* ]]; then
+        echo "--group requires a comma-separated list of group names" >&2
+        usage >&2
+        exit 1
+      fi
+      GROUP_SELECTION="$2"
       shift 2
       ;;
     --copy)
@@ -184,14 +301,27 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [ -n "$GROUP_SELECTION" ] && [ "$SKILLS_FLAG_SEEN" = true ]; then
+  echo "--group and --skills are mutually exclusive" >&2
+  usage >&2
+  exit 1
+fi
+
 discover_skills
-parse_skill_selection
+
+if [ -n "$GROUP_SELECTION" ]; then
+  parse_group_selection
+  selection_label="group(s) $GROUP_SELECTION"
+else
+  parse_skill_selection
+  selection_label="$SKILL_SELECTION"
+fi
 
 echo "Installing Cursor CLI skills (team-policy fallback)"
-echo "  Source: $SKILLS_SRC"
-echo "  Target: $TARGET_DIR"
+echo "  Source: $SKILLS_SRC/<group>/<name>"
+echo "  Target: $TARGET_DIR (flat, unprefixed)"
 echo "  Mode:   $([ "$COPY_MODE" = true ] && echo copy || echo symlink)"
-echo "  Skills: $SKILL_SELECTION"
+echo "  Skills: $selection_label"
 echo ""
 
 if [ "${#selected_skills[@]}" -eq 0 ]; then
@@ -203,7 +333,8 @@ mkdir -p "$TARGET_DIR"
 installed=0
 
 for skill_name in "${selected_skills[@]}"; do
-  skill_dir="$SKILLS_SRC/$skill_name"
+  skill_group="$(group_of "$skill_name")"
+  skill_dir="$SKILLS_SRC/$skill_group/$skill_name"
   target_path="$TARGET_DIR/$skill_name"
 
   if [ -L "$target_path" ]; then
@@ -218,10 +349,10 @@ for skill_name in "${selected_skills[@]}"; do
 
   if [ "$COPY_MODE" = true ]; then
     cp -R "$skill_dir" "$target_path"
-    echo "  [COPY] $skill_name -> $target_path"
+    echo "  [COPY] $skill_group/$skill_name -> $target_path"
   else
     ln -s "$skill_dir" "$target_path"
-    echo "  [LINK] $skill_name -> $target_path"
+    echo "  [LINK] $skill_group/$skill_name -> $target_path"
   fi
 
   installed=$((installed + 1))
