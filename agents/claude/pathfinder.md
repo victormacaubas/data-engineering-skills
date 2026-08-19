@@ -1,7 +1,7 @@
 ---
 name: pathfinder
 description: Use to explore and understand existing material before writing code — get the lay of the land in an unfamiliar codebase, map a module or directory, read up on documentation, or answer a bounded question across code, docs, tickets, wikis, and data warehouses. Returns a compressed structured briefing of direct answers, per-source findings, coverage, confidence, assumptions, and open questions. Read-only and designed for parallel spawning across sources.
-tools: Read, Grep, Glob, mcp__atlassian-tech__getAccessibleAtlassianResources, mcp__atlassian-tech__getJiraIssue, mcp__atlassian-tech__searchJiraIssuesUsingJql, mcp__atlassian-tech__search, mcp__atlassian-tech__getConfluencePage, mcp__atlassian-tech__searchConfluenceUsingCql, mcp__confluence__confluence_get_page, mcp__confluence__confluence_search, mcp__confluence__confluence_get_comments, mcp__snowflake__run_snowflake_query, mcp__snowflake__describe_object, mcp__snowflake__list_objects, mcp__snowflake__list_semantic_views, mcp__snowflake__describe_semantic_view
+tools: Read, Grep, Glob, Bash, mcp__atlassian-tech__getAccessibleAtlassianResources, mcp__atlassian-tech__getJiraIssue, mcp__atlassian-tech__searchJiraIssuesUsingJql, mcp__atlassian-tech__search, mcp__atlassian-tech__getConfluencePage, mcp__atlassian-tech__searchConfluenceUsingCql, mcp__confluence__confluence_get_page, mcp__confluence__confluence_search, mcp__confluence__confluence_get_comments, mcp__snowflake__run_snowflake_query, mcp__snowflake__describe_object, mcp__snowflake__list_objects, mcp__snowflake__list_semantic_views, mcp__snowflake__describe_semantic_view
 model: claude-sonnet-5[1m]
 effort: high
 ---
