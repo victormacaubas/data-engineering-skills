@@ -5,21 +5,21 @@ description: Deep reference for querying Snowflake's SNOWFLAKE.ACCOUNT_USAGE sch
 
 # Snowflake ACCOUNT_USAGE Governance Skill
 
-You have access to the Snowflake MCP tool (`mcp__snowflake__run_snowflake_query`). This skill teaches you which views to query and how to write effective governance queries against `SNOWFLAKE.ACCOUNT_USAGE`.
+You have access to the Snowflake MCP tool (`mcp__snowflake__run_snowflake_query`). This skill shows you which views to query and how to write effective governance queries against `SNOWFLAKE.ACCOUNT_USAGE`.
 
 ## How to Use This Skill
 
 When the user asks a governance question:
 
-1. **Decide the data source.** First ask whether it's a current-state question — if so, prefer a `SHOW` command (no latency); see "Real-time vs Historical" below. Otherwise, for historical/aggregate questions, ask whether to use archive or live views (see "Data Source: Archive vs Live Views").
+1. **Decide the data source.** First ask whether this is a current-state question. If it is, prefer a `SHOW` command (no latency); see "Real-time vs Historical" below. For historical/aggregate questions, ask whether to use archive or live views (see "Data Source: Archive vs Live Views").
 2. Identify which views/tables/commands answer the question (use the Intent → View mapping below)
 3. Show the query with a one-line explanation of what it does
 4. Run the query via the Snowflake MCP
-5. Summarize the results in plain language, highlighting anything that looks unusual or noteworthy
+5. Summarize the results in plain language and call out anything unusual or noteworthy
 
 ## Real-time (`SHOW`) vs Historical (`ACCOUNT_USAGE`)
 
-Before picking a view, decide whether the question is about **current state** or **history/aggregation**. The `ACCOUNT_USAGE` views (and the archive tables below) are powerful for analysis, but they carry up to ~2 hours of latency — so for a freshly created or just-modified object they can return stale or empty results. Snowflake's `SHOW` commands read live object metadata with no latency, and they run fine through the Snowflake MCP.
+Before choosing a view, decide whether the question concerns **current state** or **history/aggregation**. The `ACCOUNT_USAGE` views (and the archive tables below) support analysis, but they carry up to ~2 hours of latency. For a freshly created or modified object, they can return stale or empty results. Snowflake's `SHOW` commands read live object metadata with no latency and run through the Snowflake MCP.
 
 **Reach for `SHOW` commands when:**
 - You're verifying an object that was just created or changed — e.g. a role/user/grant provisioned by Terraform or a recent `GRANT`. `ACCOUNT_USAGE` may not have caught up yet.
@@ -30,7 +30,7 @@ Before picking a view, decide whether the question is about **current state** or
 - You're querying across many objects, joining views, aggregating, or filtering by a time range.
 - You need historical or point-in-time data (who logged in last week, what changed 30 days ago).
 
-`SHOW` can't join or aggregate and is scoped to one object/grantee, so the two are complementary — not interchangeable. Their result columns also differ (`SHOW GRANTS` returns `privilege`, `granted_on`, `name`, `grantee_name`, `grant_option`, `granted_by`), so don't assume `ACCOUNT_USAGE` column names when reading `SHOW` output.
+`SHOW` can't join or aggregate and is scoped to one object/grantee, so the two are complementary. Do not treat them as interchangeable. Their result columns also differ (`SHOW GRANTS` returns `privilege`, `granted_on`, `name`, `grantee_name`, `grant_option`, `granted_by`), so don't assume `ACCOUNT_USAGE` column names when reading `SHOW` output.
 
 **Worked example — the exact case this skill exists to handle:** "Which warehouses can `REPORTING_SERVICE_ROLE` use? It was just created in Terraform." Querying `GRANTS_TO_ROLES` returns empty because the grant hasn't propagated. Instead run `SHOW GRANTS TO ROLE REPORTING_SERVICE_ROLE` — results come back immediately. Filter the output for `granted_on = 'WAREHOUSE'`.
 
@@ -41,7 +41,7 @@ Useful `SHOW` shapes:
 - `SHOW GRANTS ON <object>` — current grants on a specific object.
 - `SHOW ROLES [LIKE '<pattern>']` / `SHOW USERS [LIKE '<pattern>']` — current roles/users.
 
-If the question is historical or spans many objects, fall through to the source decision below.
+If the question is historical or spans many objects, continue to the source decision below.
 
 ## Data Source: Archive vs Live Views
 
@@ -52,19 +52,19 @@ There are two sources for account_usage data:
 | **Archive** | `GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE.<view_name>` | Tables | Refreshed weekly | Fast (tables, no view overhead) |
 | **Live** | `SNOWFLAKE.ACCOUNT_USAGE.<view_name>` | Views | Up to 2-3 hours latency | Slower (views over internal metadata) |
 
-The archive tables have the same schema and column names as the live views. They're materialized once a week, so they won't have the very latest data but queries return much faster.
+The archive tables have the same schema and column names as the live views. They are materialized once a week, so they do not contain the latest data, but queries return much faster.
 
 **Temporal routing — assess the time period first:**
 
 Live views retain only 365 days of data. Before choosing a source, look at when the events you're investigating occurred:
 
 - **Within the last 10 months:** safe to use live views — data is well within retention.
-- **10–12 months ago:** use live views, but you're near the retention edge. If results come back empty or suspiciously sparse for a query that should have data, fall back to archive immediately.
-- **Older than 12 months:** go directly to archive tables. Live views cannot have this data — don't waste a query round-trip on them.
+- **10–12 months ago:** use live views, but you are near the retention edge. If a query that should have data returns empty or suspiciously sparse results, fall back to archive immediately.
+- **Older than 12 months:** query archive tables directly. Live views cannot contain this data, so do not spend a query round-trip on them.
 
 This applies to time-scoped views like QUERY_HISTORY, ACCESS_HISTORY, and LOGIN_HISTORY. Metadata views (TABLES, COLUMNS, ROLES, GRANTS_TO_ROLES, etc.) retain current state plus deletion records regardless of age — those are fine to query live.
 
-**Mid-investigation pivot:** The user's initial framing may point to a recent timeframe, but your queries might reveal that the actual root event happened much earlier (e.g., user says "stopped working in June" but you discover the table was dropped 16 months ago). When this happens, re-evaluate immediately — if the newly discovered event falls outside the 365-day window, switch to archive tables for that line of inquiry without waiting for the user to suggest it. State what you found and why you're switching sources.
+**Mid-investigation pivot:** The user's initial framing may point to a recent timeframe, but your queries might show that the root event happened much earlier (e.g., the user says "stopped working in June" but you discover the table was dropped 16 months ago). Re-evaluate immediately. If the newly discovered event falls outside the 365-day window, switch to archive tables for that line of inquiry without waiting for the user to suggest it. State what you found and why you are switching sources.
 
 **If the time period is within retention, ask the user:**
 > "Should I query the archive tables (`GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE`) for faster results, or the live views (`SNOWFLAKE.ACCOUNT_USAGE`) for the most current data?"
@@ -90,11 +90,11 @@ This applies to time-scoped views like QUERY_HISTORY, ACCESS_HISTORY, and LOGIN_
 
 ## Query Rules
 
-These three rules prevent the most common operational mistakes when querying through the Snowflake MCP:
+Use these three rules to avoid common operational mistakes when querying through the Snowflake MCP:
 
 1. **Always fully qualify object references.** The Snowflake MCP session has no default database or schema set. Unqualified references like `INFORMATION_SCHEMA.COLUMNS` or `TAG_REFERENCES` will error. Always write `SNOWFLAKE.ACCOUNT_USAGE.TAG_REFERENCES`, `GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE.QUERY_HISTORY`, etc.
 
-2. **Filter grant queries server-side.** Never run a broad `SHOW GRANTS TO ROLE <role>` and grep the output client-side — large role hierarchies produce thousands of rows that overflow context. Instead, filter within the query: use `SHOW GRANTS TO ROLE <role>` only for targeted single-role lookups, and prefer `SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES` with `WHERE` clauses for any analysis spanning multiple roles or object types.
+2. **Filter grant queries server-side.** Never run a broad `SHOW GRANTS TO ROLE <role>` and then grep the output client-side. Large role hierarchies produce thousands of rows that overflow context. Filter within the query instead: use `SHOW GRANTS TO ROLE <role>` only for targeted single-role lookups, and prefer `SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_ROLES` with `WHERE` clauses for any analysis spanning multiple roles or object types.
 
 3. **Prefer archive for aggregations.** Aggregation queries (COUNT, MIN/MAX over time, coverage scans) against live ACCOUNT_USAGE views can take minutes or time out. Route these to `GOVERNANCE_DB.ACCOUNT_USAGE_ARCHIVE` by default. Not all views are archived — if the archive table doesn't exist or returns an error, fall back to the live ACCOUNT_USAGE view and tell the user why.
 
@@ -108,7 +108,7 @@ These rules govern how we classify columns. They were established by the team an
 
 ## Classification Introspection
 
-Queries for investigating classification state. These were hard-won across multiple sessions — use them directly instead of re-deriving.
+Use these queries to investigate classification state. They were verified across multiple sessions; use them directly instead of re-deriving them.
 
 ### Checking current classification state
 
@@ -130,7 +130,7 @@ ORDER BY REF_TABLE, REF_COLUMN;
 
 ## Intent → View Mapping
 
-Use this to pick the right view(s) for the user's question. **For "right now" / just-created questions, prefer the `SHOW` commands** (see "Real-time vs Historical" above) — they have no latency:
+Use this to pick the right view(s) for the user's question. **For "right now" / just-created questions, prefer the `SHOW` commands** (see "Real-time vs Historical" above). They have no latency:
 
 | Real-time intent | Command |
 |---|---|
@@ -395,7 +395,7 @@ ORDER BY ah.QUERY_START_TIME DESC;
 
 ## Parsing Complex Columns
 
-Several views have ARRAY/VARIANT columns that require LATERAL FLATTEN:
+These views contain ARRAY/VARIANT columns that require LATERAL FLATTEN:
 
 ### ACCESS_HISTORY arrays
 
@@ -430,7 +430,7 @@ LATERAL FLATTEN(input => dcl.RESULT) f
 
 ## Troubleshooting Access & Masking Issues
 
-When a user reports that a query returns unexpected results (empty results, masked values, joins failing silently), the problem is often rooted in how data flows through our Snowflake layers.
+Unexpected query results (empty results, masked values, or joins failing silently) often stem from how data flows through the Snowflake layers.
 
 **Read `references/data-flow.md`** whenever you're troubleshooting:
 - A query that returns empty results or masked data
@@ -444,7 +444,7 @@ When a user reports that a query returns unexpected results (empty results, mask
 - You need to interpret a column's `DATA_PROTECTION_CLASSIFICATION` value or the policy CASE logic
 - A new schema's CONFIDENTIAL data is masked for everyone (missing the `_SCHEMA_RO_CONFIDENTIAL` role)
 
-Key things to remember during troubleshooting:
+Keep these points in mind during troubleshooting:
 
 1. **PROD_SOURCE_DB objects are views over raw tables.** Masking policies live on the raw tables in `PROD_ENT_LOAD_DB` (or `PROD_ESTUARY_LOAD_DB` / `PROD_FIVETRAN_LOAD_DB`), not on the PROD_SOURCE_DB views. Always check the raw load database for policies.
 
@@ -456,7 +456,7 @@ Key things to remember during troubleshooting:
 
 ## Reference Files
 
-For complete column schemas of each view, consult:
+Consult these references for complete column schemas:
 
 - `references/views-security.md` — USERS, ROLES, GRANTS_TO_ROLES, GRANTS_TO_USERS, LOGIN_HISTORY
 - `references/views-protection.md` — MASKING_POLICIES, ROW_ACCESS_POLICIES, POLICY_REFERENCES, TAGS, TAG_REFERENCES, DATA_CLASSIFICATION_LATEST
@@ -467,4 +467,4 @@ For complete column schemas of each view, consult:
 
 Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
 
-**Infrastructure:** The source of truth for governance objects (tags, masking policies, tag associations, database roles) lives in Terraform. Do not recommend DDL changes directly.
+**Infrastructure:** Terraform is the source of truth for governance objects (tags, masking policies, tag associations, database roles). Do not recommend DDL changes directly.

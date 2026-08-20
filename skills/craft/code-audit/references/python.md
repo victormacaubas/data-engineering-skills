@@ -1,12 +1,12 @@
 # Language Pack: Python
 
-Load when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. This pack sharpens the six generic rubric dimensions with Python-specific footguns. Read it fully before scoring.
+Load this pack when the review scope contains `.py` files, `pyproject.toml`, or `requirements.txt`. It sharpens the six generic rubric dimensions with Python-specific footguns. Read it fully before scoring.
 
 ## Idiom & formatter
 
-- PEP 8, Black-compatible (4-space indents, ~88–100 col). `ruff`/`flake8` for lint, `mypy`/`pyright` for types.
-- Type hints on public APIs. `f-strings` for formatting **except** in logging calls, where lazy `%s` args are correct (`logger.info("x=%s", x)`, not `logger.info(f"x={x}")`) — the f-string formats even when the log level is disabled.
-- Docstrings on public functions/classes/methods when any of these hold: (a) side effects beyond the return value, (b) raises something callers catch, (c) non-obvious semantics (bound inclusivity, empty-input behavior, argument mutation, ordering, units), or (d) touches IO/network/a transaction. If name + type hints fully describe the contract, skip the docstring — restating the signature is noise.
+- Follow PEP 8 and Black-compatible formatting (4-space indents, ~88–100 col). Use `ruff`/`flake8` for lint and `mypy`/`pyright` for types.
+- Add type hints to public APIs. Use `f-strings` for formatting **except** in logging calls, where lazy `%s` args are correct (`logger.info("x=%s", x)`, not `logger.info(f"x={x}")`) — the f-string formats even when the log level is disabled.
+- Write docstrings on public functions/classes/methods when any of these hold: (a) side effects beyond the return value, (b) raises something callers catch, (c) non-obvious semantics (bound inclusivity, empty-input behavior, argument mutation, ordering, units), or (d) touches IO/network/a transaction. If the name + type hints fully describe the contract, skip the docstring — restating the signature is noise.
 
 ## Security (×2.0)
 
@@ -31,17 +31,17 @@ Load when the review scope contains `.py` files, `pyproject.toml`, or `requireme
 
 ## Async, startup & operational footguns
 
-These bugs rarely show up on a happy-path read — they live in the *interaction* of a startup sequence, a retry budget, and an unreachable upstream. They map to the core skill's **Sweep B (failure-mode trace)**. Probe them deliberately; they are routinely the costliest issues in a service and the ones reviewers miss.
+These bugs often emerge from the *interaction* of a startup sequence, retry budget, and unreachable upstream rather than from a happy-path read. They map to the core skill's **Sweep B (failure-mode trace)**. Probe them deliberately because reviewers often miss them and they can be the costliest issues in a service.
 
 - **Readiness blocked by an upstream call.** Anything `await`ed in a FastAPI `lifespan` / `@app.on_event("startup")` **before `yield`** (or before the app reports healthy) gates readiness. If that work calls an external dependency — especially a client with retries and timeouts — a slow or down upstream delays the service becoming available, sometimes for minutes. The status endpoint can't serve, even cached data it already has, until the blocking work finishes or gives up.
 
-- **Retry-budget multiplication.** When a client with timeout `T` and `R` retries is called inside a loop of `N` items, the worst case isn't `T` — it's `N × (R+1) × T`. A 10s timeout, 2 retries, 30-item registry, all called serially at startup against a down upstream = `30 × 3 × 10s = 15 minutes` of blocked readiness. Each piece looks fine in isolation; multiply them through to see the failure. Compute this explicitly rather than eyeballing it (a 10-line script settles it — see the core skill's "verify by execution").
+- **Retry-budget multiplication.** When a client with timeout `T` and `R` retries runs inside a loop of `N` items, the worst case is `N × (R+1) × T`, not `T`. A 10s timeout, 2 retries, and a 30-item registry, all called serially at startup against a down upstream, produce `30 × 3 × 10s = 15 minutes` of blocked readiness. Multiply the pieces to expose the failure. Calculate this explicitly rather than eyeballing it (a 10-line script settles it — see the core skill's "verify by execution").
 
-- **Serial vs concurrent async I/O.** A `for item in items: await client.call(item)` loop runs the calls *sequentially* — total latency is the sum, not the max. If the calls are independent, this usually wants `asyncio.gather(*calls)` with a bounded `Semaphore`. Watch for *inconsistency within the same codebase*: a request path that correctly uses `gather` + semaphore alongside a startup path that loops serially is a smell worth flagging — the author already knows the pattern and didn't apply it where it matters most.
+- **Serial vs concurrent async I/O.** A `for item in items: await client.call(item)` loop runs calls *sequentially*, so total latency is the sum rather than the maximum. If the calls are independent, this usually calls for `asyncio.gather(*calls)` with a bounded `Semaphore`. Watch for *inconsistency within the same codebase*: a request path that correctly uses `gather` + semaphore alongside a startup path that loops serially is a smell worth flagging — the author already knows the pattern and didn't apply it where it matters most.
 
-- **"Best-effort" work placed on a blocking path.** A comment saying *"validation should never fail startup"* sitting next to code that `await`s that validation **before `yield`** is a contradiction: the intent is non-critical, but the placement makes readiness depend on it. Best-effort or advisory work belongs in a background task kicked off *after* the app reports ready (`asyncio.create_task` whose result is observed/logged), not in the readiness-gating section.
+- **"Best-effort" work placed on a blocking path.** A comment saying *"validation should never fail startup"* beside code that `await`s validation **before `yield`** contradicts the implementation: the intent is non-critical, yet the placement makes readiness depend on it. Put best-effort or advisory work in a background task that starts *after* the app reports ready (`asyncio.create_task` whose result is observed/logged), not in the readiness-gating section.
 
-- **Unobserved background tasks.** `asyncio.create_task(...)` without holding a reference or attaching a done-callback: the task can be garbage-collected mid-flight, and its exceptions vanish. Fire-and-forget that swallows failures is High when the task does real work.
+- **Unobserved background tasks.** When `asyncio.create_task(...)` has no held reference or done-callback, the task can be garbage-collected mid-flight and its exceptions vanish. A fire-and-forget task that swallows failures is High when it does real work.
 
 - **Missing short-circuit driving avoidable upstream load.** A resolver that fetches a primary resource, gets `None` (e.g. "DAG not found"), but continues calling the rest of the chain anyway turns a cheap known-negative into N extra upstream calls every refresh — and can mask the clearer "not found" reason behind a later generic error.
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Data flows through four layers in Snowflake before reaching end users. Each layer has different characteristics for governance: where tags are applied, where masking policies take effect, and which roles have access.
+Data passes through four Snowflake layers before it reaches end users. Each layer handles governance differently: where tags are applied, where masking policies take effect, and which roles have access.
 
 ## The Four Layers
 
@@ -56,15 +56,15 @@ Tags and masking policies are applied at two layers:
 
 ## Schema Naming Conventions
 
-The raw load databases sometimes use versioned schema names (e.g., `EXAMPLE_SCHEMA_V1` instead of `EXAMPLE_SCHEMA`). The downstream views in `PROD_SOURCE_DB` abstract this away, so users query `prod_source_db.example_schema.clients` but the base table is actually `PROD_ENT_LOAD_DB.EXAMPLE_SCHEMA_V1.CLIENTS`.
+The raw load databases sometimes use versioned schema names (e.g., `EXAMPLE_SCHEMA_V1` instead of `EXAMPLE_SCHEMA`). The downstream views in `PROD_SOURCE_DB` hide this difference, so users query `prod_source_db.example_schema.clients` while the base table is `PROD_ENT_LOAD_DB.EXAMPLE_SCHEMA_V1.CLIENTS`.
 
-When troubleshooting, always check ACCESS_HISTORY to see the actual `BASE_OBJECTS_ACCESSED` — don't assume the schema name in the user's query matches the raw table schema.
+When troubleshooting, always check ACCESS_HISTORY for the actual `BASE_OBJECTS_ACCESSED`. Do not assume the schema name in the user's query matches the raw table schema.
 
 ## Implications for Troubleshooting
 
 ### Masking policy inheritance through views
 
-When a user queries `PROD_SOURCE_DB` (Layer 3), the masking policies from Layer 1 raw tables still apply. The policy evaluates in the context of the **base table's database** (e.g., `PROD_ENT_LOAD_DB`), not the view's database.
+When a user queries `PROD_SOURCE_DB` (Layer 3), masking policies on Layer 1 raw tables still apply. The policy evaluates in the context of the **base table's database** (e.g., `PROD_ENT_LOAD_DB`), not the view's database.
 
 This means:
 - `IS_DATABASE_ROLE_IN_SESSION()` checks for database roles in the raw load database
@@ -73,7 +73,7 @@ This means:
 
 ### Where to look for masking policies
 
-When a query against `PROD_SOURCE_DB` returns masked data:
+When a `PROD_SOURCE_DB` query returns masked data:
 
 1. **Check POLICY_REFERENCES for the raw load database** — not PROD_SOURCE_DB
    ```sql
@@ -85,7 +85,7 @@ When a query against `PROD_SOURCE_DB` returns masked data:
      AND REF_ENTITY_NAME = '<table_name>';
    ```
 
-2. **Use ACCESS_HISTORY to find the real base table** — the schema name in the user's query might not match:
+2. **Use ACCESS_HISTORY to find the actual base table** — the schema name in the user's query might not match:
    ```sql
    SELECT obj.value:objectName::STRING AS base_object
    FROM SNOWFLAKE.ACCOUNT_USAGE.ACCESS_HISTORY ah,
@@ -112,7 +112,7 @@ When a query against `PROD_SOURCE_DB` returns masked data:
 
 ### Database role scoping
 
-Database roles are scoped per-database. A role named `EXAMPLE_SCHEMA_RO` in `PROD_SOURCE_DB` is a **different** role than `EXAMPLE_SCHEMA_RO` in `PROD_ENT_LOAD_DB`. When masking policies on raw tables use `IS_DATABASE_ROLE_IN_SESSION()`, they check for the role in the raw load database — not in PROD_SOURCE_DB.
+Database roles are scoped per-database. A role named `EXAMPLE_SCHEMA_RO` in `PROD_SOURCE_DB` is **different** from `EXAMPLE_SCHEMA_RO` in `PROD_ENT_LOAD_DB`. When masking policies on raw tables use `IS_DATABASE_ROLE_IN_SESSION()`, they check for the role in the raw load database, not in PROD_SOURCE_DB.
 
 To verify which database roles a service user has in the correct database:
 ```sql

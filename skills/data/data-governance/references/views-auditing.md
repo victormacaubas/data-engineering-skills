@@ -4,11 +4,11 @@
 
 | Column | Type | Description |
 |--------|------|-------------|
-| QUERY_ID | VARCHAR | Query identifier (joins with QUERY_HISTORY) |
+| QUERY_ID | VARCHAR | Query identifier (joins to QUERY_HISTORY) |
 | QUERY_START_TIME | TIMESTAMP_LTZ | Statement start time (UTC) |
 | USER_NAME | VARCHAR | User who issued the query |
 | DIRECT_OBJECTS_ACCESSED | ARRAY | Objects directly named in the query |
-| BASE_OBJECTS_ACCESSED | ARRAY | All base objects needed for execution |
+| BASE_OBJECTS_ACCESSED | ARRAY | All base objects required for execution |
 | OBJECTS_MODIFIED | ARRAY | Objects involved in write operations |
 | OBJECT_MODIFIED_BY_DDL | OBJECT | DDL operation details |
 | POLICIES_REFERENCED | ARRAY | Enforced policies on accessed objects |
@@ -69,17 +69,17 @@
 ```
 
 ### Key limitations
-- Failed queries are NOT logged (use QUERY_HISTORY)
-- Intermediate views between base and direct objects are not shown
-- Stream operations not logged
-- Replication data movement not logged
-- Snowflake-internal views (ACCOUNT_USAGE, ORGANIZATION_USAGE) not logged
-- Records may be truncated when exceeding size limits
+- ACCESS_HISTORY does NOT log failed queries (use QUERY_HISTORY)
+- ACCESS_HISTORY does not show intermediate views between base and direct objects
+- ACCESS_HISTORY does not log stream operations
+- ACCESS_HISTORY does not log replication data movement
+- ACCESS_HISTORY does not log Snowflake-internal views (ACCOUNT_USAGE, ORGANIZATION_USAGE)
+- Snowflake may truncate records that exceed size limits
 
 ### Performance tips
 - Always filter on `QUERY_START_TIME`
 - Use narrow date ranges (start with 1-7 days)
-- When joining with QUERY_HISTORY, filter both sides on time
+- When joining with QUERY_HISTORY, filter both sources on time
 
 ---
 

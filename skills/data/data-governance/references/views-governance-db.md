@@ -1,10 +1,10 @@
 # GOVERNANCE_DB.DATA_MASKING Views — Column Reference
 
-Custom views in `GOVERNANCE_DB.DATA_MASKING` that drive the classification-to-tag pipeline. These are **not** Snowflake system views — they are maintained internally.
+The classification-to-tag pipeline uses custom views in `GOVERNANCE_DB.DATA_MASKING`. These are **not** Snowflake system views; the team maintains them internally.
 
 ## DATA_CLASSIFICATIONS_TO_APPLY
 
-The **final merged view** consumed by the tag-applying procedure. Resolves precedence (manual > auto > default) and produces one row per column with its effective classification.
+The **final merged view** consumed by the tag-applying procedure. It resolves precedence (manual > auto > default) and produces one row per column with its effective classification.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -21,13 +21,13 @@ The **final merged view** consumed by the tag-applying procedure. Resolves prece
 3. Else if automatic classification exists → use it (`CLASSIFICATION_SOURCE = 'AUTOMATIC'`).
 4. Else → default to `CONFIDENTIAL` (`CLASSIFICATION_SOURCE = 'DEFAULT'`).
 
-**Scope:** only BASE TABLEs in PROD_ENT_LOAD_DB, PROD_FIVETRAN_LOAD_DB, PROD_ENT_TRANSFORM_DB, PROD_SOURCE_DB, PROD_ANALYTICS_DB, PROD_MODERN_TREASURY_DB, PROD_VWO_LOAD_DB, PROD_REPORTING_DB, PROD_ENT_ARCHIVE_DB, PROD_ESTUARY_LOAD_DB. Views and temp tables (`_TEMP%`) are excluded.
+**Scope:** limited to BASE TABLEs in PROD_ENT_LOAD_DB, PROD_FIVETRAN_LOAD_DB, PROD_ENT_TRANSFORM_DB, PROD_SOURCE_DB, PROD_ANALYTICS_DB, PROD_MODERN_TREASURY_DB, PROD_VWO_LOAD_DB, PROD_REPORTING_DB, PROD_ENT_ARCHIVE_DB, PROD_ESTUARY_LOAD_DB. Views and temp tables (`_TEMP%`) are excluded.
 
 ---
 
 ## DATA_CLASSIFICATIONS_MANUAL
 
-Manual classification overrides with validity windows. When a row exists here with `VALID_FROM <= now() < VALID_TO`, it takes precedence over automatic classification.
+Manual classification overrides with validity windows. A row with `VALID_FROM <= now() < VALID_TO` takes precedence over automatic classification.
 
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
@@ -40,7 +40,7 @@ Manual classification overrides with validity windows. When a row exists here wi
 | VALID_FROM | TIMESTAMP_NTZ | NO | Start of validity window |
 | VALID_TO | TIMESTAMP_NTZ | YES | End of validity (NULL = open-ended, never expires) |
 
-**Usage:** to declassify a column (e.g., over-classified as CONFIDENTIAL when it should be INTERNAL), insert a row here. The `_TO_APPLY` view picks it up on the next tag-applying run.
+**Usage:** to declassify a column (e.g., over-classified as CONFIDENTIAL when it should be INTERNAL), insert a row here. The next tag-applying run uses it through the `_TO_APPLY` view.
 
 ---
 
