@@ -126,7 +126,7 @@ Adapt syntax and optimization choices to the target warehouse.
 
 ## Review Checklist
 
-When reviewing or optimizing SQL, address correctness risks before style.
+When reviewing or optimizing SQL, lead with correctness risks before style.
 
 - Does the result grain match the business question?
 - Can any join duplicate or drop rows unexpectedly?

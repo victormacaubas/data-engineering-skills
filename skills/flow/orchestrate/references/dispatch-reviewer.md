@@ -1,8 +1,8 @@
 # Dispatching a reviewer — briefing playbook
 
-Use this playbook after the closing gate in `../SKILL.md` has fired and the user has agreed to a
-shape review, or when they request one directly. It covers the orchestrator's review brief and
-after-return path; `structure-reviewer` already has its own role instructions.
+This playbook is orchestrator-side. `structure-reviewer` carries its own scoping rules, method, and
+output template; don't restate them. What follows is what you supply and the value only you can
+add.
 
 ## Fast path: the user asked directly
 
@@ -22,7 +22,7 @@ The reviewer can read the tree and declarations, but not this session. You alone
   that upfront rather than letting the reviewer discover the gap.
 - **What the build actually touched**, separate from everything in the diff. You know which paths
   were in scope for each slice; `git diff` combines your work with other changes in the tree.
-  Getting this wrong produces findings against code no worker in this build wrote.
+  Getting this wrong produces findings against code nobody in this build wrote.
 - **Decisions taken in conversation that never reached the plan or design.** This is the one that
   most affects the output. A mid-build design improvement looks like a violation to anyone
   comparing document and code, so an unreported improvement returns as a confident false finding.

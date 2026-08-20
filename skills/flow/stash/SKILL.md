@@ -48,7 +48,7 @@ Use this when:
 
 - Content ready for proper placement → run `/process-inbox` after stashing; `/stash` only captures it.
 - Writing a finished note directly into a knowledge folder → use `obsidian:obsidian-markdown` to edit the vault directly.
-- URL clipping → tell the user to use Obsidian Web Clipper. It drops content into `inbox/` with article-shaped frontmatter. `/stash` covers manual and conversation capture, not clipping.
+- URL clipping → the user has Obsidian Web Clipper for that. It drops content into `inbox/` with article-shaped frontmatter. `/stash` covers manual and conversation capture, not clipping.
 
 ## Filename scheme
 
@@ -189,4 +189,4 @@ Include the "flagged for re-check" list when you use `[not captured]` / `[approx
 - Never synthesize conversation content into a finished wiki note; that is the distiller's job. Capture raw material.
 - Never fabricate quotes, numbers, or names you don't remember. Flag gaps with `[not captured]`.
 - Never delete or modify existing inbox items. Stash only adds.
-- Do not update INDEX.md or README.md. Inbox is excluded from both, and the distiller handles index updates in its own pass.
+- Don't bother updating INDEX.md or README.md. Inbox is excluded from both, and the distiller handles index updates in its own pass.

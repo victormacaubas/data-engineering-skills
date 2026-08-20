@@ -280,7 +280,7 @@ Introduce patterns when the work needs them.
 
 Prefer `logger` to `print()` in committed files. `print()` writes to stdout without a level, timestamp, module name, or a way to filter or route output. A `logger` call provides all of these at the same typing cost. For a quick debug, progress update, dry-run notice, or error message, use `logger.debug/info/warning/error` first.
 
-`print()` is reasonable in a few places: the body of `if __name__ == "__main__":` in a one-off script, a notebook cell, a short REPL experiment, or a CLI designed to emit machine-readable output (JSON, TSV) to stdout. Outside these cases, use the logger.
+`print()` is reasonable in a few places: the body of `if __name__ == "__main__":` in a one-off script, a notebook cell, a short REPL experiment, or a CLI designed to emit machine-readable output (JSON, TSV) to stdout. Outside these cases, default to the logger.
 
 - Module-level: `logger = logging.getLogger(__name__)` at the top of every file that emits output. Never instantiate a new logger per call.
 - Lazy `%s` formatting: `logger.info("Copied %d files from %s", n, bucket)`. The formatting runs only if the log level is enabled.

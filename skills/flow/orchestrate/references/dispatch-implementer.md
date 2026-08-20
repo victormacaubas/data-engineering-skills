@@ -1,7 +1,9 @@
 # Dispatching the implementer — briefing playbook
 
-Use this playbook at dispatch time. It covers the orchestrator's briefing and after-return work;
-the `implementer` already has its own role instructions.
+This playbook is what the **orchestrator** does to brief a worker well. It does **not** restate
+`agents/implementer.md` — the worker already knows its own method, command allow/forbid lists,
+and output template. Everything here is orchestrator-side: what to supply, what to resolve
+before dispatch, and how to read the result.
 
 ## Before you dispatch
 

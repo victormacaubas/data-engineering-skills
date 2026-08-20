@@ -1,8 +1,8 @@
 # Dispatching a read-only worker — briefing playbook
 
-Use this playbook when the build hits a gap that needs investigation. It covers the
-orchestrator's inputs and how to act on the result; `pathfinder` and `researcher` already have
-their own role instructions.
+This playbook is orchestrator-side. The workers (`pathfinder`, `researcher`) carry their own
+method and output templates; don't restate them. What follows is what you supply and the value
+only you can add.
 
 ## Fast path: one bounded question
 

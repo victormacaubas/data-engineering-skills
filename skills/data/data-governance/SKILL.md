@@ -58,7 +58,7 @@ The archive tables have the same schema and column names as the live views. They
 
 Live views retain only 365 days of data. Before choosing a source, look at when the events you're investigating occurred:
 
-- **Within the last 10 months:** use live views; the data is well within retention.
+- **Within the last 10 months:** safe to use live views — data is well within retention.
 - **10–12 months ago:** use live views, but you are near the retention edge. If a query that should have data returns empty or suspiciously sparse results, fall back to archive immediately.
 - **Older than 12 months:** query archive tables directly. Live views cannot contain this data, so do not spend a query round-trip on them.
 
@@ -465,6 +465,6 @@ Consult these references for complete column schemas:
 - `references/data-flow.md` — Snowflake data flow, materialization layers, and troubleshooting access/masking issues
 - `references/masking-model.md` — how column masking decides what to return (tag→policy model, four-level scheme, CASE logic + sentinel values, and the two ways to unmask a column)
 
-Read these when you need exact column names/types for a specific view, when the user asks about an unfamiliar column, or when troubleshooting access behavior across database layers.
+Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
 
 **Infrastructure:** Terraform is the source of truth for governance objects (tags, masking policies, tag associations, database roles). Do not recommend DDL changes directly.

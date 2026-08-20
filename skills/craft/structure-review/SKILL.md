@@ -1,21 +1,21 @@
 ---
 name: structure-review
-description: Reviews finished changes for code and test structure, conformance to applicable plans, tasks, and documentation, applicable architecture conventions, and readability. Use after implementation and before merge, or to assess module/test design, cohesion, state ownership, duplication, Clean Code, or pattern fit; it is read-only.
+description: Reviews finished changes for code and test structure, conformance to applicable plans, tasks, and documentation, applicable architecture conventions, and readability. Use after implementation and before merge or archive, or to assess module/test design, cohesion, state ownership, duplication, Clean Code, or pattern fit. It never edits the code under review.
 ---
 
 # Structure Review
 
-A senior engineer reviews a finished change before it merges.
+A senior engineer reviews a finished change before it merges or is archived.
 
 Ask three questions:
 
 1. **Is it shaped right?** Cohesion, size, state ownership, duplication, test design, pattern fit.
-2. **Does it follow applicable coding and architecture conventions?** Rules from `CLAUDE.md`, `AGENTS.md`, `ARCHITECTURE.md`, and relevant ADRs.
+2. **Does it follow applicable coding and architecture conventions?** Rules from `CLAUDE.md`, `AGENTS.md`, and relevant ADRs.
 3. **Will the next person understand it?** Names, nesting, magic values, comments that earn their place.
 
 Deliver an **ordered list of changes to make**. If you cannot name a concrete edit, write a note, not a finding.
 
-Review correctness separately. Make one exception: when a structural problem has **already produced** a bug, such as duplication whose copies diverged or a seam that someone already crossed, use the bug as evidence of the structure's cost. First prove it reaches production with Step 4's reachability test, then lead with it. Put unrelated correctness, security, and performance issues in *Noticed in passing* once, for specialist review.
+Review correctness separately. Make one exception: when a structural problem has **already produced** a bug, such as duplication whose copies diverged or a seam that someone already crossed, use the bug as evidence of the structure's cost. First prove it reaches production with Step 4's reachability test, then lead with it. An unrelated bug you merely stumble over gets one line under *Noticed in passing*.
 
 ## Step 1: Scope the change
 
@@ -55,17 +55,23 @@ If a prior report made the finding, give it one line under *Standing debt* — *
 Do this before source, because it changes what counts as a finding. Read only what the change's scope touches:
 
 - **Repository guidance** — `CLAUDE.md`, `AGENTS.md`, and `CONTRIBUTING.md`, in full.
-- **Applicable change-intent documents** — for an OpenSpec change, `proposal.md`, `design.md`, `tasks.md`, and delta specs; otherwise, a refactor plan, design note, ticket, or commit-message body.
-- **ADRs** — open an ADR when its subject appears in the diff.
+- **Applicable change-intent documents** — for an OpenSpec change, `design.md` and delta specs; otherwise, a refactor plan, a design note, a ticket, or the commit-message body.
+- **ADRs** — read titles first. Open an ADR in full only when its subject appears in the diff.
 - **Machine contracts** — `[tool.importlinter]`, ArchUnit tests, eslint boundary rules, and banned imports.
 - **The quality gate** — what a `Makefile`, `justfile`, or CI workflow runs.
 
-Turn each into a **checkable claim** before reading code. "Only `store/` may touch the database" becomes: *does a touched module outside `store/` import the driver?* Stale declarations, unenforced rules, and missing conventions can be findings when they affect changed code.
+Turn each into a **checkable claim** before reading code. "Only `store/` may touch the database" becomes: *does any module outside `store/` import the driver?* List claims that cannot become checks in *Declarations checked*. Stale declarations and unenforced rules can be findings when they affect changed code.
 
-Use these two rules to prevent false positives:
+Use these rules to prevent false positives:
 
 - **A declaration can license what looks like a defect.** If an applicable declaration declares a module cross-cutting, do not flag its low cohesion.
+- **A plan to fix it later is not permission.** A design saying "this module is deliberately cross-cutting" licenses the shape. A backlog saying "we'll split this next quarter" does not — record it as *Standing debt* in one line with a citation, not as a finding.
+- **Unless the queued work would entrench the problem** — then it is a finding, and an urgent one, because the cheap window closes when the plan executes.
 - **The gate owns what the gate checks.** If an import contract already enforces the layer map, run it or note that it runs instead of re-deriving it by reading imports. This review covers what the gate does not.
+
+**A plan document has two uses here and only one of them is yours.** Read it for *intent* — what did this change set out to do, and did it? Do not read it as a list of findings you should not repeat. What a plan already knows still belongs in the report; it just gets one line instead of five.
+
+**When there are no declarations**, say what you looked for and did not find, then do the inverse job: name the conventions the code already follows that are worth writing down. "Four of five packages keep their SQL in one module and `reporting/` does not; nothing says which is intended" is a real finding, and it is the raw material for a conventions file that does not exist yet.
 
 ## Step 3: Eight passes
 
@@ -81,20 +87,20 @@ Record each measurement, including clean ones, and let a clean measurement end t
 
 The highest-value pass, because every finding cites something the team wrote themselves.
 
-- **Against the change's own design** — did the implementation take the shape the applicable change-intent documents described? A design that said "inject a `CommandRunner`" against code that constructs one inline is a finding. So is a design that got silently improved without the document catching up.
+- **Against the change's own design** — did the implementation take the shape `design.md` described? A design that said "inject a `CommandRunner`" against code that constructs one inline is a finding. So is a design that got silently improved without the document catching up.
 - **Against `tasks.md`** — a task marked `[x]` whose behavior is not in the tree.
 - **"Only X may do Y"** — grep for Y outside X. Driver imports, network calls, filesystem writes, and SQL are common subjects.
 - **Layer and dependency rules** — check the imports, unless a contract already checks them.
 - **Naming and placement conventions** — check the outliers, not the conformers.
 
-Three findings only this pass produces: **a declaration nothing enforces**, **a declaration that has gone stale**, and **a missing convention**. Each can be a finding when it affects changed code.
+Three findings only this pass produces: **a declaration nothing enforces** (a rule with no check is followed until it is inconvenient); **a declaration that has gone stale** (worse than a missing rule, because it still reads as authoritative and gets followed); and **inventory masquerading as convention** (a conventions file listing what each module currently contains goes wrong at the first refactor — the durable version says how to decide, and the filesystem already documents what exists).
 
 ### 2. Shape and placement
 
 `wc -l` the touched modules; count top-level definitions.
 
 - **One describable job?** Describe what the module does in one sentence without "and". If the sentence needs a list, use that list as your finding: name each responsibility and where it belongs.
-- **Thin entrypoint?** A command should parse arguments, build config, hand off, and return an exit code. Logic reachable only through the argument parser is slow to test and couples every test to flag names.
+- **Thin entrypoint?** A command parses arguments, builds config, hands off, and returns an exit code. Logic reachable only through the argument parser is slow to test and couples every test to flag names.
 - **Right home?** Flag a private helper that does work a named package already owns — path discovery living in the CLI while a `discovery/` package exists — because it is the cheapest kind of finding to fix.
 
 Size alone is weak evidence, and a threshold alone invites arguments. Size *combined with* multiple responsibilities makes the finding: prefer "630 lines doing four jobs, here they are" over "630 lines, over the limit".
@@ -113,7 +119,7 @@ Count the inverse too: a class whose methods never touch instance state beyond r
 
 Look for repeated definition names across the scope.
 
-- **The same builder defined twice**, especially in tests. Copies drift, and a test that passes because its local copy defaults a field differently proves nothing. The first duplicate is worth flagging, subject to reviewer judgment.
+- **The same builder defined twice**, especially in tests. Copies drift, and a test that passes because its local copy defaults a field differently proves nothing. Worth flagging on the first duplicate rather than the third.
 - **Near-identical helpers in different packages** — usually a sign the thing belongs one layer down, where both can import it.
 - **One value under two names** — a constant aliased in a second module means a grep for either name finds half the usage.
 - **Wrapper pairs with no stated reason.** Check the wrapper before raising it. If it adds a transaction, a lock, or validation, it is a real seam; flag the missing rationale instead.
@@ -186,7 +192,7 @@ When a probe shows two paths disagreeing, determine whether the triggering input
 
 If you get this wrong, you get the verdict wrong. Claiming a live bug that cannot happen costs more than missing one because it is the first claim the author checks and the claim that determines whether they trust the rest.
 
-**Report every actionable finding.** There's no cap on findings — cutting them is how a review stops answering the question it was run to answer.
+**Report everything you found.** There's no cap on findings — cutting them is how a review stops answering the question it was run to answer.
 
 The tier determines the *treatment*. Step 5 gives both shapes:
 
@@ -206,8 +212,8 @@ A finding earns the full block by tier, not by how interesting it was to find. R
 
 A finding fixed in one place comes back in another. When the problem is one a future change could repeat, the fix list carries a second entry for the lesson itself. Put it in one of three places, in this order:
 
-1. **The gate, as a check.** Always prefer this. Make the fix-list entry the contract, lint rule, or test that would fail. This is the only option that makes the same finding impossible to raise twice.
-2. **`CLAUDE.md`, as a rule** — when the lesson is real but nothing can check it mechanically. A recurring lesson can independently propose the actual line; make it a rule about *how to decide*: "private `_x` participates in the caller's transaction, public `x` owns one."
+1. **The gate, as a check.** Always prefer this. A rule with a check is a rule; a rule without one is followed until it is inconvenient. Every *no check exists* row in your Declarations table is a candidate, and the fix-list entry is the contract, lint rule, or test that would fail. This is the only option that makes the same finding impossible to raise twice.
+2. **`CLAUDE.md`, as a rule** — when the lesson is real but nothing can check it mechanically. Propose the actual line, and make it a rule about *how to decide*: "private `_x` participates in the caller's transaction, public `x` owns one." Never an inventory of what currently exists. Inventory goes stale at the first refactor and then misleads.
 3. **Nowhere**, the default and usually right. A one-off needs no rule, and a conventions file that accumulates every lesson anyone learned stops being read.
 
 State which you picked and why. "Nothing can check this mechanically, so it's a `CLAUDE.md` line rather than a contract" gives the reader the decision they need.
@@ -292,18 +298,18 @@ Both finding forms share one numbered sequence — a blocks-reading finding is `
 
 ## How to write a finding
 
-State what is true and what to change. Do not narrate how you found it, explain the review method, or turn a declaration citation into a document discussion. The reader needs the conclusion and evidence, not your path to them.
+State what is true and what to change. Do not narrate how you found it, do not argue with a document, and do not explain the review method. The reader needs the conclusion and evidence, not your path to them.
 
 Do not become telegraphic. A valuable finding may need one sentence of reasoning: *this looks like ceremony but it encodes transaction ownership, so keep it* is worth more than any measurement in the report. Keep the judgment; drop the journey.
 
-Narration cues include "There is an irony worth naming", "worth flagging for two reasons", "Two options, and the second is better", "I would have flagged X, but", and any sentence about what you almost concluded.
+Narration cues include "There is an irony worth naming", "worth flagging for two reasons", "Two options, and the second is better", "I would have flagged X, but", any sentence about what you almost concluded, and any paragraph adjudicating what another document meant.
 
 **Each field has one job and can't do another's.** This keeps a finding to the right size. When fields blur, one quietly becomes an essay.
 
 - **Where** is locations. Not a summary of the problem.
 - **Evidence** is the number and its command, or the excerpt. Not the consequences.
 - **Costs** is what future work gets more expensive. One or two sentences. Not the whole behavior story, the coverage gap, and the history.
-- **Change** is the edit. Not what the author was probably thinking.
+- **Change** is the edit. Not why an existing document failed to catch it, not what the author was probably thinking. If a plan blessed the thing you are flagging, that is half a clause — *`refactor-plan.md:221` blessed this* — not a paragraph.
 
 If a field runs long, check whether it holds another field's content or explains something the fix list already says in one line.
 
@@ -334,7 +340,7 @@ Each item lands in one of five states:
 - **Fixed** — the edit landed and the original evidence no longer reproduces.
 - **Partially fixed** — the measurement moved but didn't clear. Say what remains, with the new number.
 - **Not fixed** — no edit, or an edit that didn't move the measurement.
-- **Waived** — someone decided not to fix it. This closes the item *only* if the decision is recorded in an applicable ADR or `CLAUDE.md`. An unrecorded waiver stays open, because the next review has no way to know and will raise it again forever.
+- **Waived** — someone decided not to fix it. This closes the item *only* if the decision is recorded where declarations live, in an ADR or `CLAUDE.md`. An unrecorded waiver stays open, because the next review has no way to know and will raise it again forever.
 - **Superseded** — other work removed the finding's subject entirely.
 
 **Review the fix diff itself.** A fix can introduce problems of its own: a test deleted rather than repaired, a split that copied instead of moving, or a seam widened to make an assertion pass. Run the passes over the fix. Give anything new normal treatment and a normal fix-list entry.

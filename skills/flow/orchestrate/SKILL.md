@@ -53,7 +53,7 @@ If you cannot satisfy a gate item (for example, a dependency decision needs the 
 
 ### Check for drift
 
-The plan describes the code as it stood when you wrote it. The worker trusts it literally, so a stale instruction produces a wrong edit. Scale the check to the *risk of drift*, not the size of the plan:
+The plan was written against the code as it was. The worker trusts it literally, so a stale instruction produces a wrong edit. Scale the check to the *risk of drift*, not the size of the plan:
 
 - **You read the files while planning and nothing has touched them since** → no check is needed. `git status` on the paths named in the plan confirms that with one command instead of N file reads.
 - **The plan is older than the session, or someone else has been in the tree** → read the files the plan names yourself.
