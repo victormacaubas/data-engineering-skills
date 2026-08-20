@@ -73,10 +73,10 @@
 **Latency:** up to 2 hours. **Retention:** 365 days.
 
 **POLICY_STATUS values:**
-- `ACTIVE` — single policy correctly assigned
-- `MULTIPLE_MASKING_POLICY_ASSIGNED_TO_THE_COLUMN` — conflict (multiple policies on same column)
-- `COLUMN_IS_MISSING_FOR_SECONDARY_ARG` — conditional policy references missing column
-- `COLUMN_DATATYPE_MISMATCH_FOR_SECONDARY_ARG` — conditional policy has type mismatch
+- `ACTIVE` — a single policy is correctly assigned
+- `MULTIPLE_MASKING_POLICY_ASSIGNED_TO_THE_COLUMN` — multiple policies conflict on the same column
+- `COLUMN_IS_MISSING_FOR_SECONDARY_ARG` — a conditional policy references a missing column
+- `COLUMN_DATATYPE_MISMATCH_FOR_SECONDARY_ARG` — a conditional policy has a type mismatch
 
 ---
 
@@ -124,9 +124,9 @@
 **Latency:** up to 2 hours. **Retention:** 365 days.
 
 **Notes:**
-- Does NOT show inherited tags — only direct assignments
+- TAG_REFERENCES does NOT show inherited tags — only direct assignments
 - Deleted columns are excluded
-- `APPLY_METHOD` distinguishes auto-classification from manual tagging
+- `APPLY_METHOD` identifies auto-classification or manual tagging
 
 ---
 
@@ -149,7 +149,7 @@
 
 **Latency:** up to 3 hours. **Retention:** as long as the table exists.
 
-**RESULT column structure** (parse with LATERAL FLATTEN):
+**RESULT column structure** (use LATERAL FLATTEN to parse):
 ```
 {
   "COLUMN_NAME": {

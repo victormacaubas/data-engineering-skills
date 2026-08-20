@@ -1,12 +1,12 @@
 # Tooling
 
-A baseline `pyproject.toml` toolchain for projects that don't have one yet. Read this when scaffolding a new project, or when adding lint/type/test configuration to a repo that has none. When the repo already has tooling config, that config wins — don't fight it (see "How to apply these standards" in the root `SKILL.md`).
+A baseline `pyproject.toml` toolchain for projects that do not have one yet. Read this when scaffolding a new project or adding lint/type/test configuration to a repo that has none. When the repo already has tooling config, that config wins (see "How to apply these standards" in the root `SKILL.md`).
 
-The stack: **uv** for environments and dependencies, **Ruff** for linting and formatting, **mypy** for type checking, **pytest** for tests, **pre-commit** to run the fast checks before every commit. One config file, fast tools, no overlap between them.
+The stack uses **uv** for environments and dependencies, **Ruff** for linting and formatting, **mypy** for type checking, **pytest** for tests, and **pre-commit** for fast checks before every commit. One config file keeps the tools fast and non-overlapping.
 
 ## uv
 
-Use uv for environment and dependency management. It replaces pip, venv, and pip-tools with one fast tool and produces a lockfile by default.
+Use uv for environment and dependency management. It replaces pip, venv, and pip-tools with one tool and produces a lockfile by default.
 
 ```bash
 uv init my-project          # scaffold pyproject.toml
@@ -15,13 +15,13 @@ uv add --dev pytest ruff mypy pre-commit
 uv run pytest               # run inside the managed env, no activate needed
 ```
 
-Commit `uv.lock`. The lockfile is what makes "works on my machine" reproducible — `uv sync` on any machine rebuilds the exact environment.
+Commit `uv.lock`. The lockfile makes "works on my machine" reproducible: `uv sync` rebuilds the exact environment on any machine.
 
-If uv isn't available (locked-down CI images, old infra), `python -m venv` + `pip install` with a pinned `requirements.txt` is the fallback. The principle is the same: pinned, committed, reproducible.
+If uv is unavailable (locked-down CI images, old infra), use `python -m venv` + `pip install` with a pinned `requirements.txt`. The principle stays the same: pinned, committed, reproducible.
 
 ## Ruff
 
-Ruff is both the linter and the formatter — don't add Black or isort alongside it; `ruff format` and the `I` rules cover them.
+Ruff is both the linter and the formatter. Do not add Black or isort alongside it; `ruff format` and the `I` rules cover them.
 
 ```toml
 [tool.ruff]
@@ -42,7 +42,7 @@ select = [
 ]
 ```
 
-This selection enforces several rules from the root standard mechanically — import grouping, naming, the mutable-default footgun — so reviews don't have to. Add `S` (bandit) for security-sensitive codebases. Suppress per-line with `# noqa: <rule>` and a reason, not blanket ignores.
+This selection mechanically enforces several root-standard rules: import grouping, naming, and the mutable-default footgun. Add `S` (bandit) for security-sensitive codebases. Suppress per-line with `# noqa: <rule>` and a reason, not blanket ignores.
 
 ## mypy
 
@@ -55,7 +55,7 @@ strict = true
 warn_unreachable = true
 ```
 
-For third-party libraries without type stubs, override per package — not globally, which would mask real errors everywhere:
+For third-party libraries without type stubs, override per package rather than globally, which would mask real errors everywhere:
 
 ```toml
 [[tool.mypy.overrides]]
@@ -63,7 +63,7 @@ module = "snowflake.connector.*"
 ignore_missing_imports = true
 ```
 
-If `strict = true` is too much for an existing codebase being retrofitted, start with `disallow_untyped_defs = true` on new modules and ratchet up.
+If `strict = true` is too much for a retrofitted codebase, start with `disallow_untyped_defs = true` on new modules and ratchet up.
 
 ## pytest
 
@@ -75,11 +75,11 @@ markers = [
 ]
 ```
 
-`--strict-markers` turns a typo'd marker into an error instead of a silently-never-run test. The `integration` marker matches the Testing section of the root standard: unit tests run everywhere by default; integration tests run with `-m integration` in the lane that has credentials.
+`--strict-markers` turns a typo'd marker into an error instead of a test that never runs. The `integration` marker matches the Testing section of the root standard: unit tests run everywhere by default; integration tests run with `-m integration` in the lane with credentials.
 
 ## import-linter
 
-Nothing above checks the one-way dependency flow that `references/layout.md` argues for. Ruff enforces import *ordering*; nothing here catches a `utils/` module importing from `core/`, which is the failure that actually costs you. `import-linter` closes that gap by reading the import graph statically and failing the build on a violation:
+Nothing above checks the one-way dependency flow in `references/layout.md`. Ruff enforces import *ordering*, but it does not catch a `utils/` module importing from `core/`, which causes the real failure. `import-linter` closes that gap by reading the import graph statically and failing the build on a violation:
 
 ```bash
 uv add --dev import-linter
@@ -107,15 +107,15 @@ source_modules = ["mypackage.core", "mypackage.models", "mypackage.utils"]
 forbidden_modules = ["boto3", "snowflake.connector"]
 ```
 
-The `layers` contract lists packages top to bottom: each may import anything below it, nothing above. The `forbidden` contract is what keeps a driver's types inside the adapter that owns them, and it's worth one per external technology in the project.
+The `layers` contract lists packages top to bottom: each may import anything below it and nothing above. The `forbidden` contract keeps a driver's types inside the adapter that owns them; use one for each external technology in the project.
 
-Two mechanics that will bite on first run. `include_external_packages = true` is required as soon as a forbidden contract names anything outside the root package, standard library included, or the run aborts before checking anything. And every package named in a contract has to exist on disk with an `__init__.py`: an empty package is analyzed and kept, but a missing directory fails with `Missing layer 'mypackage.io': module mypackage.io does not exist.`
+Two mechanics matter on the first run. `include_external_packages = true` is required as soon as a forbidden contract names anything outside the root package, including the standard library; otherwise, the run aborts before checking anything. Every package named in a contract must exist on disk with an `__init__.py`: an empty package is analyzed and kept, but a missing directory fails with `Missing layer 'mypackage.io': module mypackage.io does not exist.`
 
-Run it with `uv run lint-imports`. It executes nothing, so it's fast enough to sit at the front of the gate alongside the linters.
+Run it with `uv run lint-imports`. It executes nothing, so it is fast enough to run at the front of the gate alongside the linters.
 
 ## pre-commit
 
-Run the fast checks on every commit; leave the slow ones (mypy, full test suite) to CI.
+Run fast checks on every commit; leave slow checks (mypy, the full test suite) to CI.
 
 ```yaml
 # .pre-commit-config.yaml
@@ -132,4 +132,4 @@ repos:
       - id: detect-secrets
 ```
 
-`detect-secrets` is the cheap insurance against committing a credential — see `references/security.md` for why that matters even once. Install with `uv run pre-commit install` so the hooks actually fire.
+`detect-secrets` guards against committing a credential. See `references/security.md` for why even one leak matters. Install with `uv run pre-commit install` so the hooks run.

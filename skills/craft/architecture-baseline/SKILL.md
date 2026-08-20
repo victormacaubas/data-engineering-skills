@@ -1,6 +1,6 @@
 ---
 name: architecture-baseline
-description: Establish a project's architectural constraints before any feature work — layer map, runtime dependencies and libraries, identity model, injected seams, error taxonomy, machine-enforced import contracts, testing conventions, and a quality gate that checks all of it. Use this whenever starting a new codebase, scaffolding a repo, or adding the first module to an empty project, and whenever someone says "set up the project", "what structure should this have", "what libraries should we use", or "let's get this started". This decides and declares; it does not build the product. Run it before the first feature change, not after. It declares a graph rather than repairing one, so it is not the tool for a project that already has substantial code.
+description: Turn a design doc into a project's architectural constraints before any feature work — layer map, runtime dependencies and libraries, identity model, injected seams, error taxonomy, machine-enforced import contracts, testing conventions, a quality gate that checks all of it, and a reviewer-facing `docs/ARCHITECTURE.md` indexing the ADRs. Use this whenever starting a new codebase, scaffolding a repo, or adding the first module to an empty project, whenever someone hands over a design doc or technical proposal to build from, and whenever someone says "set up the project", "what structure should this have", "what libraries should we use", or "let's get this started". This decides and declares; it does not build the product. Run it before the first feature change, not after. It declares a graph rather than repairing one, so it is not the tool for a project that already has substantial code.
 ---
 
 # Architecture Baseline
@@ -34,6 +34,7 @@ By the end the repo contains:
 - **Domain types** from the identity decision
 - **Testing conventions**, and the declared homes for factories and fakes
 - **A configured quality gate** — one command, wired into CI, and green against the declarations above
+- **`docs/ARCHITECTURE.md`** — the reviewer-facing map: what the system is, and which ADR to open
 
 It should be small, and most of it is prose and config. If the baseline is taking more than an hour or two of conversation, you have drifted into designing features.
 
@@ -48,6 +49,16 @@ If the person says "you pick," pick, state the reasoning in one line, and flag i
 **Write the artifacts yourself, inline.** They are the record of a conversation you're in, and they're prose and config rather than code. The first *change* gets delegated; the baseline doesn't.
 
 **Dispatch `researcher` when a decision turns on something you'd otherwise guess at.** Decision 2 is the usual case: whether a library is still maintained, what its current API shape is, which of two options the ecosystem actually settled on. Read the return as data and bring it back into the conversation — dispatch to close a fact, never to make the decision.
+
+### Start from the design doc
+
+Ask for it before Decision 1. A design doc usually settles the archetype, sketches the stack, and names the entities, so Decisions 1 through 3 arrive part-drafted and your job on those is to confirm rather than elicit.
+
+Read it as input, not as authority. Two things to pull out: what it decided implicitly, and what it left open. A stack list with no exclusions hasn't done Decision 2; a component diagram with no dependency direction hasn't done Decision 1. Both are still open decisions and still get asked.
+
+If there is no design doc, ask whether one exists elsewhere. If not, run the conversation as it stands — the questions don't change, you just start with fewer answers.
+
+Either way the design doc doesn't survive the baseline. It's a proposal, and proposals go stale the moment the decisions land somewhere checkable. `docs/ARCHITECTURE.md` is what replaces it.
 
 ---
 
@@ -236,6 +247,47 @@ Leave out anything that describes what currently exists:
 
 The test to apply to any line before it goes in: **does this tell someone how to decide, or what is currently true?** The first belongs. The second goes stale, and a stale line in `CLAUDE.md` is worse than a missing one, because it still reads as authoritative and gets followed after it stops being correct.
 
+### `docs/ARCHITECTURE.md`
+
+One page, written for a reviewer — someone who arrives at a finished change without having been in this conversation and has to judge whether it fits. That is a different question from "how do I write code here," which `CLAUDE.md` already answers, so this document doesn't repeat it: no import rules, no testing norms, no gate command. It carries the shape of the system and a map into the ADRs.
+
+Six sections, in this order, each a few lines:
+
+```markdown
+# Architecture
+
+## What this is
+Archetype, entrypoint, runtime stack.
+
+## Shape
+How work flows through the packages, and what each owns.
+
+## Identity
+The grain, the natural key, what a re-run produces.
+
+## Seams
+The injected boundaries, and where they're wired.
+
+## Failure model
+The base exception, and which package translates what.
+
+## Decisions
+The ADR index.
+```
+
+Shape is descriptive — the flow, not the rule. That `store` sits below `core` and owns the SQL is orientation; the "may import" table that makes it enforceable stays in `CLAUDE.md`, and a second copy here just gives a reviewer two versions to reconcile.
+
+The index is the part a reviewer actually uses:
+
+| ADR | What it decides |
+|---|---|
+| [0001 — Layer map](adr/0001-layer-map.md) | Package boundaries and dependency direction. A package owning a technology owns its types, so nothing driver-shaped leaves its adapter. |
+| [0003 — Identity and grain](adr/0003-identity.md) | What one row is, the natural key, and whether re-running the same input yields one record or two. |
+
+Three lines each at most, written so a reviewer can tell **whether to open it**. "Architecture decisions" fails that; naming the surface the ADR governs passes, because someone reviewing a change under `store/` can then see at a glance which two ADRs constrain it. Every ADR gets a row, including the ones that surface later.
+
+The staleness test is not `CLAUDE.md`'s here, since this document is descriptive by design. Ask instead: **would this line change if a decision changed, or if a file was added?** The first belongs. The second is inventory — no directory trees, no module listings, no counts.
+
 ### Docstrings
 
 The Protocols, exception classes, and domain types written above carry the first docstrings this repo will have, which makes them the ones every later module imitates. Settle the rule while there are eight of them rather than eight hundred.
@@ -273,7 +325,9 @@ The format goes in the gate. The rest goes in `CLAUDE.md`, because no linter can
 
 The baseline ends when the gate is green and the decisions are written down. Building the product is the next thing, and it goes through the project's normal propose-and-implement process rather than continuing here — in this repo, that means proposing the first change with `/opsx:propose`.
 
-There is no handoff document, and that's deliberate. Every constraint decided here is already in the repo in a form the next agent hits whether or not it reads any prose — the contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the rules are in `CLAUDE.md`, the reasoning is in the ADRs. **The repo is the handoff.** A document restating it would be a second copy of things that already exist in checkable form, which is the exact failure these seven decisions exist to avoid.
+**The repo is the handoff.** Every constraint decided here is already in it in a form the next agent hits whether or not it reads any prose — the contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the rules are in `CLAUDE.md`, the reasoning is in the ADRs. Nothing written at the end restates any of that; a second copy of something already checkable is the exact failure these seven decisions exist to avoid.
+
+`docs/ARCHITECTURE.md` carries the one thing the repo doesn't hand over cheaply, and it's aimed at the reviewer rather than the builder: what this system is in a page, and which ADR bears on the change in front of them.
 
 ### Why the baseline stops at declarations
 
@@ -292,5 +346,6 @@ And for the same reason this is the wrong tool on a project that already has sub
 - **Rules nobody runs.** A constraint that isn't in the gate is a suggestion, and suggestions lose to whatever pattern is nearest. If you can't make a rule executable, say so in the ADR rather than pretending.
 - **Building instead of deciding.** The baseline writes declarations, config, and prose. The moment you're writing a function body with real logic in it, you've crossed into the first change — stop, and put it in the proposal instead.
 - **Docstrings that retell the ADRs.** This baseline is mostly a writing exercise, and the voice carries into the files it creates — a Protocol whose docstring argues for the seam, an `errors.py` narrating the translation rule. Each one is a second copy of a decision that already has a home, and it starts drifting the moment either side changes. The declaration states its contract; the ADR holds the reasoning.
+- **An `ARCHITECTURE.md` that restates `CLAUDE.md`.** The layer rules and testing norms are already loaded on every task; copied into a page nothing checks, they drift, and a reviewer who can't tell which version is current stops trusting the one that isn't enforced. Orientation and the ADR index, nothing else.
 - **Stopping at the ADRs.** The documents are the cheapest part and the least effective. If the session ends with seven ADRs and no import contracts, nothing has actually changed.
 - **Stopping at a gate that was never run.** Same failure one step later. Config that has never been executed is a claim about the architecture, not a check on it.

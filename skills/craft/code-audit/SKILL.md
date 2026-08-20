@@ -5,19 +5,19 @@ description: Produces a non-destructive, language-agnostic code review as a mach
 
 # Code Reviewer
 
-Act as a thoughtful senior reviewer doing a PR review. Read the code, find the real issues, and emit a structured review. **This skill is read-only with respect to source files** — it never edits the code under review. The only files it writes are the review artifact under `./.code-audit/` and, on request, a rendered markdown view.
+Review code as a thoughtful senior reviewer. Find real issues and emit a structured review. **This skill is read-only with respect to source files** — it never edits code under review. It writes only the review artifact under `./.code-audit/` and, on request, a rendered markdown view.
 
-The guiding principle: every finding cites a specific location, names the violated principle ("bare catch-all in a production path", "missing types on a public API", "unbounded read of user-supplied data"), and proposes a concrete before/after fix. A downstream reader — human or agent — should be able to turn the finding into a code change without further interpretation.
+Each finding must cite a specific location, name the violated principle ("bare catch-all in a production path", "missing types on a public API", "unbounded read of user-supplied data"), and propose a concrete before/after fix. A downstream reader — human or agent — should be able to turn the finding into a code change without further interpretation.
 
 ## Two things that make this skill work
 
-**1. Reason in prose first; serialize last.** The deliverable is a JSON artifact, but JSON is a *storage* format, not a *thinking* format. If you fill schema fields as you discover each issue, the per-finding bookkeeping steals the attention you need for finding bugs, and marginal findings die before you articulate them. So do the whole review as prose reasoning in your working context — narrate each finding's failure story in full — and only once the review is complete, serialize the finished findings into the artifact. The serialization is mechanical clerical work over findings that already exist.
+**1. Reason in prose first; serialize last.** The deliverable is a JSON artifact, but JSON stores the review; it is not the format for reasoning. Filling schema fields while you discover issues turns your attention to bookkeeping and leaves marginal findings unarticulated. Complete the review as prose reasoning in your working context. Narrate each finding's full failure story, then serialize the completed findings into the artifact. Serialization is clerical work on findings you already formed.
 
-**2. When you can't confirm a theory by reading, run it.** A reviewer who silently drops everything it can't prove statically misses the most important bugs — operational and runtime failures rarely show up on a happy-path read. You may execute code to confirm or refute a suspicion (see Step 4). Confirming a theory promotes it to a real finding; refuting it saves you from a false positive. Never *drop* a plausible finding just because you couldn't confirm it from the text — go verify it.
+**2. Run theories you cannot confirm by reading.** Static reading misses important operational and runtime failures. You may execute code to confirm or refute a suspicion (see Step 4). A confirmation makes the theory a finding; a refutation prevents a false positive. Never *drop* a plausible finding because the text cannot confirm it — verify it.
 
 ## Step 1: Scope the review
 
-The user (or orchestrator) points you at one of three things. Figure out which before reading code — the scope determines what "complete review" means.
+The user (or orchestrator) selects one of three scopes. Identify it before reading code — the scope determines what "complete review" means.
 
 | Mode | Use when | Review boundary |
 |---|---|---|
@@ -25,11 +25,11 @@ The user (or orchestrator) points you at one of three things. Figure out which b
 | `paths` | User names file(s) or a directory | Every source file in scope, treating a directory as a cohesive unit (comment on architecture as well as per-file findings). Read a directly imported helper one hop out when a finding depends on it; don't expand into a full repo crawl. |
 | `repo` | Whole-repository audit | Triage first, then deep-review entry points, security-sensitive paths, high-complexity files, and churn hotspots. Skim the rest and record what was deep-reviewed vs skimmed vs skipped in the coverage object. |
 
-For `diff`, run `git diff <base>...HEAD` (default base `main`). If the scope is ambiguous, ask once, then proceed — prefer `diff` when there's an unmerged branch with changes. If the scope resolves to zero reviewable source files (diff only touches lockfiles or generated output), say so in a short artifact rather than inventing findings.
+For `diff`, run `git diff <base>...HEAD` (default base `main`). If the scope is ambiguous, ask once, then proceed — prefer `diff` when an unmerged branch has changes. If the scope resolves to zero reviewable source files (the diff only touches lockfiles or generated output), say so in a short artifact rather than invent findings.
 
 ### Scope hygiene — what never to read or flag
 
-These directories and files are generated, vendored, or cache output. Reading them burns your budget, and flagging code inside them is a false positive — the author didn't write it. Exclude them from every mode and record them in `target.excludes`:
+These directories and files contain generated, vendored, or cache output. Reading them uses your budget, and flagging code inside them creates a false positive because the author did not write it. Exclude them from every mode and record them in `target.excludes`:
 
 ```
 .venv  venv  env  __pycache__  .mypy_cache  .pytest_cache  .ruff_cache
@@ -39,11 +39,11 @@ lockfiles (poetry.lock, package-lock.json, yarn.lock, uv.lock, Cargo.lock)
 generated/vendored code (anything under a generated/ or vendor/ path, *_pb2.py, *.min.js)
 ```
 
-If a finding genuinely depends on something inside an excluded path (a pinned version in a lockfile, a generated client's shape), reference it as context in the explanation — don't raise a finding *located* in the excluded file.
+If a finding depends on something inside an excluded path (a pinned version in a lockfile, a generated client's shape), reference it as context in the explanation — do not raise a finding *located* in the excluded file.
 
 ## Step 2: Detect language(s) and load the matching pack
 
-Identify the languages in scope from file extensions, shebangs, import syntax, and config files (`pyproject.toml`, `package.json`, `*.tf`, `dbt_project.yml`). Load the matching pack(s) from `references/` **fully before scoring** — each maps its footguns onto the six rubric dimensions and changes what counts as Critical vs Low in that language. Resolve the path relative to this `SKILL.md`; don't hard-code an install path.
+Identify the languages in scope from file extensions, shebangs, import syntax, and config files (`pyproject.toml`, `package.json`, `*.tf`, `dbt_project.yml`). Load the matching pack(s) from `references/` **fully before scoring** — each maps its footguns to the six rubric dimensions and changes what counts as Critical vs Low in that language. Resolve the path relative to this `SKILL.md`; do not hard-code an install path.
 
 | If the scope contains… | Load |
 |---|---|
@@ -57,13 +57,13 @@ For mixed scope, load every relevant pack. If no pack exists for a language in s
 
 ## Step 3: Read thoroughly, then run two sweeps
 
-Read every file in scope completely before scoring anything — use `Read`, not `head`/`tail`. Use `Grep` to locate patterns across the scope (catch-all handlers, debug prints, hardcoded secrets, wildcard imports — the packs list what's worth grepping per language). If a finding depends on a callee outside scope, read the callee too. Speculation is not a finding; every finding needs a location anchor.
+Read every file in scope completely before scoring anything — use `Read`, not `head`/`tail`. Use `Grep` to locate patterns across the scope (catch-all handlers, debug prints, hardcoded secrets, wildcard imports — the packs list patterns worth grepping for each language). If a finding depends on a callee outside scope, read the callee too. Speculation is not a finding; every finding needs a location anchor.
 
-After the read, do two deliberate sweeps. The first catches bugs that live *in a unit*; the second catches bugs that live *between units*. Reviewers reliably do the first and skip the second, which is where the costliest issues hide.
+After reading, run two deliberate sweeps. The first catches bugs *in a unit*; the second catches bugs *between units*. Reviewers often skip the second sweep, where costly issues hide.
 
 ### Sweep A — unit coverage
 
-Reading top-to-bottom, it's easy to flag the loud problem (a `*` wildcard, a `:latest` tag) and skip the quiet one one line away. Before scoring, account for every unit of the thing you're reviewing — not just the parts that caught your eye:
+Top-to-bottom reading makes it easy to flag a loud problem (a `*` wildcard, a `:latest` tag) and miss a quiet one nearby. Before scoring, account for every unit under review — not only the parts that caught your eye:
 
 - **Enumerate the units.** List the resources / functions / statements / IAM actions in scope. Confirm you formed a judgment on each, even if the judgment is "fine". A unit you never mention is a unit you never reviewed.
 - **Check for what's referenced but not defined.** A name used but not declared in scope (a log group, bucket, role, env var) is a common silent gap — either it's managed elsewhere (note it) or it's missing (flag it).
@@ -71,9 +71,9 @@ Reading top-to-bottom, it's easy to flag the loud problem (a `*` wildcard, a `:l
 
 ### Sweep B — failure-mode / scenario trace
 
-The worst bugs aren't in any single unit; they live in the *interaction* of several across a runtime scenario. A serial startup loop is fine; a retrying HTTP client is fine; but a serial startup loop that calls a retrying client *before the app reports ready* means a slow upstream blocks readiness for `N × (retries+1) × timeout` seconds — a bug you only see by composing three facts across two files into a story.
+Many costly bugs live in the *interaction* of units across a runtime scenario. A serial startup loop that calls a retrying HTTP client *before the app reports ready* lets a slow upstream block readiness for `N × (retries+1) × timeout` seconds. You find this bug by combining three facts across two files into a failure story.
 
-So enumerate the runtime scenarios the code participates in and trace each one across files, asking what actually happens:
+List the runtime scenarios that involve the code and trace each one across files. Ask what happens:
 
 - **Startup / readiness** — what blocks the service from becoming ready? Anything awaited before the app reports healthy that depends on a slow or unreachable upstream is suspect.
 - **Shutdown / cancellation** — are in-flight tasks drained, resources released, loops cancelled cleanly?
@@ -82,11 +82,11 @@ So enumerate the runtime scenarios the code participates in and trace each one a
 - **Retry / replay / concurrent execution** — does a retried or concurrently-run operation stay correct (idempotency, races, check-then-act)?
 - **Restart during an incident** — if the process restarts while its main dependency is down, does it recover, or does it wedge?
 
-Write the failure story for each scenario that has a real risk. If you can compose a concrete story (input X, state Y, observed Z, expected W), it's a finding. If you can't confirm the story from the code, that's your cue to verify by execution (Step 4) — not to drop it.
+Write a failure story for each scenario with a real risk. If you can compose a concrete story (input X, state Y, observed Z, expected W), raise a finding. If code cannot confirm the story, verify it by execution (Step 4) rather than dropping it.
 
 ## Step 4: Build findings against the six-dimension rubric
 
-Score six dimensions. Weights reflect that a silent-wrong-answer bug or a security hole costs more than a stylistic nit. The "what it covers" column is the language-agnostic baseline; the loaded pack sharpens each row.
+Score six dimensions. The weights reflect the greater cost of a silent-wrong-answer bug or security hole over a stylistic nit. The "what it covers" column provides the language-agnostic baseline; the loaded pack sharpens each row.
 
 | Dimension | Weight | What it covers (language-agnostic) |
 |---|---|---|
@@ -99,7 +99,7 @@ Score six dimensions. Weights reflect that a silent-wrong-answer bug or a securi
 
 ### Probes to run while reviewing
 
-These surface the issues a happy-path read misses. The three most-missed are **idempotency**, **concurrency**, and **resource-lifecycle** — probe them explicitly:
+These probes surface issues that a happy-path read misses. Reviewers most often miss **idempotency**, **concurrency**, and **resource-lifecycle**, so probe them explicitly:
 
 - For every changed unit, ask what happens with empty input, null input, a callee error, concurrent invocation, and retry.
 - Chase every `except`/catch block. A swallowed error that drops data, returns partial success, or exits 0 after a partial failure is high impact.
@@ -110,13 +110,13 @@ These surface the issues a happy-path read misses. The three most-missed are **i
 
 ### Verify by execution when a theory is unconfirmed
 
-When a finding depends on runtime behavior you can't settle by reading, confirm it rather than guess. This is what separates a real operational finding from a dropped suspicion.
+When a finding depends on runtime behavior you cannot settle by reading, confirm it rather than guess. This distinguishes an operational finding from an unverified suspicion.
 
 - **Allowed:** run the project's existing test suite (e.g. `pytest`, `npm test`); write a throwaway scratch script in a temp dir to exercise a pure function, reproduce a boundary condition, or compute a worst-case (e.g. the retry-budget multiplication from Sweep B).
-- **Forbidden:** spinning up or booting the actual application (no starting the server, no `uvicorn`/`gunicorn`/`next dev`, no long-running processes) — it wastes time and tokens and rarely settles the question a unit test or a 10-line script can. Never edit the source under review, never mutate tracked files, never do anything irreversible or that touches a real/prod system. Scratch files live in a temp dir and are never committed.
+- **Forbidden:** spinning up or booting the actual application (no starting the server, no `uvicorn`/`gunicorn`/`next dev`, no long-running processes) — it rarely settles questions that a unit test or 10-line script can settle. Never edit the source under review, mutate tracked files, or do anything irreversible or that touches a real/prod system. Scratch files live in a temp dir and are never committed.
 - **Record it.** Whatever you ran (and its result) goes in the artifact's `verification` block, so a reader knows which findings are dynamically confirmed vs reasoned statically.
 
-A finding you confirmed by running gets `confidence: high`. A plausible finding you couldn't run gets a lower confidence and a note saying what's unconfirmed — but it still gets raised.
+A finding you confirmed by running gets `confidence: high`. A plausible finding you could not run gets lower confidence and a note that states what remains unconfirmed — but you still raise it.
 
 ### Severity buckets
 
@@ -125,7 +125,7 @@ A finding you confirmed by running gets `confidence: high`. A plausible finding 
 - **Medium** — quality issues that compound: long functions, missing types on public APIs, magic numbers, missing docstrings, missing DI seam, scattered config, gratuitous pattern adding indirection, missing log line at a non-obvious decision point, missing correlation ID, missing tests on a new code path.
 - **Low** — nits: import ordering, naming tweaks, minor docstring wording, redundant comments, helper-extraction or pattern-adoption proposals where the existing code is fine.
 
-Severity weighs against what the service is *for*. The same readiness-blocking bug is Medium in a batch job and High in a status dashboard whose entire purpose is to stay up while its upstream is down. State that reasoning when it moves the severity.
+Set severity according to what the service is *for*. The same readiness-blocking bug is Medium in a batch job and High in a status dashboard whose purpose is to stay up while its upstream is down. State that reasoning when it changes the severity.
 
 ### Scoring bands (0–10) per dimension
 
@@ -138,7 +138,7 @@ Severity weighs against what the service is *for*. The same readiness-blocking b
 
 ### Overall score — derived from findings, never asserted
 
-Scores are a *function of* the findings, not a parallel judgment. A high score sitting above an empty findings list is meaningless; a reader can't check it. Settle the six dimension scores against the findings and the calibration guardrails below, then compute:
+Derive scores from the findings, not from a parallel judgment. A high score above an empty findings list gives the reader nothing to check. Settle the six dimension scores against the findings and the calibration guardrails below, then compute:
 
 ```
 overall = (Security*2.0 + Correctness*2.0 + Performance*1.5 + Architecture*1.5 + ErrorHandling*1.0 + Readability*1.0) / 9.0
@@ -165,7 +165,7 @@ When waffling between two scores, ask **"Would I block merge on this?"** Yes →
 
 ### Don't pad — and don't under-report
 
-A clean module deserves a short artifact with high scores and few findings; never invent findings to look thorough. But the opposite failure is just as real: an empty findings list is a strong claim ("I found nothing"), not a safe default. Before you conclude a dimension is clean, confirm both sweeps and the probes actually ran for it. Surface medium- and low-confidence findings (flagged as such) — don't silently drop a plausible issue because you couldn't fully confirm it. A two-finding artifact of real issues beats a ten-finding one with eight fabricated lows, and it also beats a zero-finding one that skipped the scenario sweep.
+A clean module merits a short artifact with high scores and few findings; never invent findings to look thorough. An empty findings list makes a strong claim ("I found nothing"), so do not use it as a safe default. Before you conclude a dimension is clean, confirm that both sweeps and the probes ran for it. Surface medium- and low-confidence findings with their confidence marked — do not silently drop a plausible issue because you could not fully confirm it. A two-finding artifact of real issues is more useful than a ten-finding artifact with eight fabricated lows or a zero-finding artifact that skipped the scenario sweep.
 
 ## Step 5: Write the artifact
 
@@ -277,7 +277,7 @@ Render the markdown beside its JSON, in the same date directory.
 
 ## Handoff contract
 
-The artifact is a cross-session work order. An agent with no conversation state must be able to rebuild context from `repo`, `target`, and `conventions`, relocate each finding by `anchor.excerpt`, apply a fix, run the per-finding `verification`, and write status back to the same JSON.
+The artifact is a cross-session work order. An agent with no conversation state must be able to rebuild context from `repo`, `target`, and `conventions`; relocate each finding by `anchor.excerpt`; apply a fix; run the per-finding `verification`; and write status back to the same JSON.
 
 | Status | Set by | Meaning |
 |---|---|---|
@@ -292,7 +292,7 @@ When a consumer sets a non-open state, `resolution` is `{"outcome": "fixed|wontf
 
 ## How to write a good finding
 
-The finding is the atomic unit. Each must stand alone for a downstream consumer.
+Each finding is the atomic unit and must stand alone for a downstream consumer.
 
 **Bad — vague, no anchor, no fix:**
 > The error handling in the runner is not great. Some exceptions are caught too broadly.

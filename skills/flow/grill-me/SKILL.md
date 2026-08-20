@@ -5,19 +5,19 @@ description: Pressure-test and sharpen any change-shaped idea or artifact before
 
 # Grill Me
 
-Pressure-test a change before the user commits to it. Treat any supplied idea, plan, proposal, design, spec, task list, ADR, PRD, BRD, or similar artifact as material to sharpen through conversation.
+Pressure-test a change before the user commits to it. Use conversation to sharpen any supplied idea, plan, proposal, design, spec, task list, ADR, PRD, BRD, or similar artifact.
 
 ## Start
 
-Build just enough context to challenge the change well:
+Build just enough context to challenge the change:
 
 1. Identify the change the user wants to improve.
 2. Read any artifact or file the user explicitly points to.
-3. Inspect surrounding repo or project context only when it can answer a factual question or reveal a contradiction. If a `CONTEXT.md` glossary exists, read it — you'll use it to challenge terminology against the project's established language.
+3. Inspect surrounding repo or project context only when it can answer a factual question or reveal a contradiction. If a `CONTEXT.md` glossary exists, read it. Use it to challenge terminology against the project's established language.
 4. Restate the change in one concise sentence if the user's intent is fuzzy.
 5. Ask the first pressure question instead of giving a full review upfront.
 
-Keep the critique loop read-only: do not create, edit, or route artifacts while questioning. Capturing the outcome as an ADR is a sanctioned capstone *after* convergence, with the user's go-ahead — see "Capturing the Outcome." For anything beyond that (turning decisions into code or spec edits), pause the loop and use the appropriate editing or planning workflow.
+Keep the critique loop read-only: do not create, edit, or route artifacts while questioning. Capturing the outcome as an ADR is a sanctioned capstone *after* convergence, with the user's go-ahead. See "Capturing the Outcome." For anything beyond that (turning decisions into code or spec edits), pause the loop and use the appropriate editing or planning workflow.
 
 ## Critique Loop
 
@@ -30,7 +30,7 @@ Keep the session conversational and demanding:
 - Explain why a question matters when the trade-off is not obvious.
 - Prefer concrete scenarios over abstract debate.
 - Use discovered project facts to challenge claims instead of asking the user to restate facts available in the repo.
-- Track resolved decisions, assumptions, and remaining structural concerns conversationally.
+- Track resolved decisions, assumptions, and remaining structural concerns in conversation.
 
 ## Question Style
 
@@ -66,32 +66,32 @@ Do not summarize prematurely. If a new structural concern arises mid-summary, su
 
 ## Capturing the Outcome
 
-The loop produces decisions; some are worth recording. Once you have converged — not before — consider whether the session resolved a decision that earns an Architectural Decision Record (ADR).
+The loop produces decisions. Some are worth recording. Once you have converged, not before, consider whether the session resolved a decision that earns an Architectural Decision Record (ADR).
 
 Offer an ADR only when all three hold:
 
-1. **Hard to reverse** — changing course later carries real cost.
-2. **Surprising without context** — a future reader will ask "why this way?"
-3. **The product of a real trade-off** — genuine alternatives existed and one was chosen for specific reasons.
+1. **Hard to reverse:** changing course later carries real cost.
+2. **Surprising without context:** a future reader will ask "why this way?"
+3. **The product of a real trade-off:** genuine alternatives existed and one was chosen for specific reasons.
 
-If any is missing, skip it. An easy-to-reverse decision will just be reversed; an unsurprising one needs no explanation; a decision with no alternative records nothing. Offering an ADR every session trains the user to ignore the offer — reserve it for decisions that will actually puzzle someone later.
+If any criterion is missing, skip it. Easy-to-reverse decisions will be reversed. Unsurprising decisions need no explanation. A decision with no alternative records nothing. Offering an ADR every session trains the user to ignore the offer. Reserve it for decisions that will puzzle someone later.
 
-When the test holds, offer once: "This decision is worth recording as an ADR — want me to capture it?" Do not write it unprompted. The loop stays read-only until the user accepts.
+When all three criteria hold, offer once: "This decision is worth recording as an ADR — want me to capture it?" Do not write it unprompted. The loop stays read-only until the user accepts.
 
-On acceptance, write the ADR following [adr-format.md](./references/adr-format.md). Write it to the project's ADR home when one exists or clearly belongs; when you are grilling a loose idea with no project around it, present the ADR inline and offer to place it. The format file covers both paths.
+On acceptance, write the ADR following [adr-format.md](./references/adr-format.md). Write it to the project's ADR home when one exists or the ADR clearly belongs there. When you are grilling a loose idea with no project around it, present the ADR inline and offer to place it. The format file covers both paths.
 
 ## Handling Pushback
 
 When the user pushes back on a question:
 
-- "Out of scope" or "not now" — accept it. If the dismissed point is a genuine risk, note it as a known assumption once, then move on. Do not return to it.
-- "I don't care" about a structural decision — push once with a concrete scenario showing why the choice has consequences. If the user still dismisses it, accept their position and move on.
-- New information that contradicts a prior challenge — update your model. Do not defend the original framing.
+- "Out of scope" or "not now": accept it. If the dismissed point is a genuine risk, note it as a known assumption once, then move on. Do not return to it.
+- "I don't care" about a structural decision: push once with a concrete scenario showing why the choice has consequences. If the user still dismisses it, accept their position and move on.
+- New information that contradicts a prior challenge: update your model. Do not defend the original framing.
 - Never repeat a question the user has already dismissed, even in different framing.
 
 ## Out Of Scope
 
-- Do not create or edit the artifact being grilled. (The optional ADR capstone is a new record of the session's outcome — not an edit to the grilled artifact — and only with the user's go-ahead.)
+- Do not create or edit the artifact being grilled. (The optional ADR capstone records the session's outcome, not an edit to the grilled artifact, and requires the user's go-ahead.)
 - Do not implement code changes.
 - Do not turn the session into a broad review dump; keep pressure on one unresolved branch at a time.
 - Do not score the artifact unless the user asks for a verdict or readiness rating.

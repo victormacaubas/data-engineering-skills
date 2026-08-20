@@ -1,11 +1,11 @@
 # Language Pack: JavaScript / TypeScript
 
-Load when the review scope contains `.js`, `.ts`, `.mjs`, `.cjs`, or a Node `package.json` (non-React). For `.jsx`/`.tsx`, load this **and** `references/react.md`. This pack sharpens the six generic rubric dimensions; read it fully before scoring.
+Load this pack when the review scope contains `.js`, `.ts`, `.mjs`, `.cjs`, or a Node `package.json` (non-React). For `.jsx`/`.tsx`, load this **and** `references/react.md`. This pack sharpens the six generic rubric dimensions. Read it fully before scoring.
 
 ## Idiom & formatter
 
-- Prettier + ESLint. `const`/`let`, never `var`. Strict equality `===`/`!==`. ES modules over CommonJS in new code.
-- TypeScript: `strict` mode on; explicit return types on exported functions; avoid `any` (prefer `unknown` + narrowing); avoid non-null `!` assertions that paper over a real nullability question.
+- Use Prettier + ESLint. Use `const`/`let`, never `var`. Use strict equality `===`/`!==`. Use ES modules over CommonJS for new code.
+- TypeScript: enable `strict` mode; give exported functions explicit return types; avoid `any` (prefer `unknown` + narrowing); avoid non-null `!` assertions that paper over a real nullability question.
 
 ## Security (×2.0)
 
@@ -34,7 +34,7 @@ Load when the review scope contains `.js`, `.ts`, `.mjs`, `.cjs`, or a Node `pac
 
 ## Architecture & Design (×1.5)
 
-JS/TS supports OO and functional styles; apply the **SOLID** lens to class-based code, and the same single-responsibility / dependency-inversion spirit to module-and-function code.
+JS/TS supports OO and functional styles. Apply the **SOLID** lens to class-based code and the same single-responsibility / dependency-inversion spirit to module-and-function code.
 
 - God modules; classes/functions constructing their own HTTP/DB clients with no injection seam.
 - Circular imports; business logic in route handlers instead of a service layer.
@@ -70,7 +70,7 @@ console\.log               # debug logging in prod
 
 ## Calibration hints
 
-- A floating (unawaited) promise whose rejection is never handled is at least **High** under Correctness — it's a fire-and-forget with unobserved failures.
+- A floating (unawaited) promise whose rejection is never handled is at least **High** under Correctness — it is a fire-and-forget operation with unobserved failures.
 - `await` in a loop over independent calls is a **Performance** finding, usually Medium unless it's on a hot path or large N (then High).
 - A loose `==` at a trust boundary (auth check, parsing) is **High**; elsewhere it's Medium/Low.
 - `as any`/non-null `!` at a trust boundary that hides a real nullability bug is **High** under Correctness, not just a style nit.

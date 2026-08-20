@@ -1,15 +1,15 @@
 # Language Pack: React
 
-Load **in addition to** `references/javascript-typescript.md` when the scope contains `.jsx`/`.tsx` React components or hooks. This pack adds React-specific footguns on top of the JS/TS pack; read both before scoring.
+Load this pack **in addition to** `references/javascript-typescript.md` when the scope contains `.jsx`/`.tsx` React components or hooks. It adds React-specific footguns to the JS/TS pack. Read both before scoring.
 
 ## Idiom
 
-- Function components + hooks (not class components in new code). Hooks called unconditionally at the top level (Rules of Hooks). Components named `PascalCase`, hooks named `useX`.
-- Derived state computed during render, not mirrored into `useState` + `useEffect`.
+- Use function components + hooks, not class components in new code. Call hooks unconditionally at the top level (Rules of Hooks). Name components `PascalCase` and hooks `useX`.
+- Compute derived state during render; do not mirror it into `useState` + `useEffect`.
 
 ## Security (×2.0)
 
-- `dangerouslySetInnerHTML` with unsanitized content (XSS) — flag every occurrence and demand a sanitizer (DOMPurify) or justification.
+- `dangerouslySetInnerHTML` with unsanitized content (XSS) — flag every occurrence and require a sanitizer (DOMPurify) or justification.
 - User-controlled `href`/`src` allowing `javascript:` URLs; rendering untrusted markdown/HTML without sanitization.
 - Secrets in client-bundled env vars (`NEXT_PUBLIC_*`, `VITE_*`, CRA `REACT_APP_*`) — these ship to the browser.
 
@@ -26,17 +26,17 @@ Load **in addition to** `references/javascript-typescript.md` when the scope con
 
 ## Performance (×1.5)
 
-- Inline object/array/function props causing children to re-render every time (when the child is memoized or the cost is real); missing `React.memo`/`useMemo`/`useCallback` where a profiler would show waste — **but** flag as a proposal, not a mandate; premature memoization is its own smell.
+- Inline object/array/function props causing children to re-render every time (when the child is memoized or the cost is real); missing `React.memo`/`useMemo`/`useCallback` where a profiler would show waste — **but** flag this as a proposal, not a mandate; premature memoization is its own smell.
 - Expensive computation in render not memoized; large lists without virtualization.
 - `useEffect` doing work on every render due to an unstable dependency.
 - Context value as an inline object re-rendering all consumers each render.
 
 ## Architecture & Design (×1.5)
 
-React is component/hook-based rather than class-based; the relevant lens is single-responsibility and composition (the "S" and dependency-inversion spirit of SOLID), not inheritance hierarchies.
+React uses components and hooks rather than classes. Apply the single-responsibility and composition lens (the "S" and dependency-inversion spirit of SOLID), not inheritance hierarchies.
 
-- God components doing fetching + business logic + presentation; should split into a container/hook + presentational component.
-- Business logic duplicated across components instead of a shared custom hook; prop drilling many levels where context or composition fits.
+- God components that fetch data, contain business logic, and render presentation should be split into a container/hook + presentational component.
+- Business logic duplicated across components instead of a shared custom hook; prop drilling through many levels where context or composition fits.
 - Effects used as a substitute for event handlers (deriving state in an effect that should be computed inline or set in the handler).
 
 ## Error Handling & Resilience (×1.0)

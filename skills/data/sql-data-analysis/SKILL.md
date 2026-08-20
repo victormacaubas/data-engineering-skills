@@ -5,11 +5,11 @@ description: Canonical SQL standards for analytics, reporting, extraction, trans
 
 # SQL Data Analysis
 
-Use this skill to produce SQL that is correct, readable, reviewable, performant, and cost-aware. Optimize first for trustworthy analytical results, then for maintainability, then for speed and spend.
+Use this skill to write correct, readable, reviewable, performant, cost-aware SQL. Prioritize trustworthy analytical results, then maintainability, then speed and spend.
 
 ## Query Contract
 
-Before writing SQL, identify the query contract. Ask only when the answer cannot be inferred safely.
+Before writing SQL, identify the query contract. Ask only when you cannot infer the answer safely.
 
 - Define the business question and expected grain of the result.
 - Identify the source tables, join keys, event timestamps, and relevant date boundaries.
@@ -25,10 +25,10 @@ Always produce SQL that can be pasted into the target environment with minimal e
 - Use the active SQL dialect when known; otherwise write portable ANSI-style SQL and note dialect assumptions.
 - Avoid `select *` except during short-lived exploration; list production columns explicitly.
 - Use lowercase keywords: `select`, `from`, `where`, `join`, `group by`.
-- Use leading commas for column lists; this makes diffs cleaner and columns easier to comment out.
+- Use leading commas for column lists; they make diffs cleaner and columns easier to comment out.
 - Use consistent indentation: 4 spaces. Break major clauses onto new lines.
 - Use explicit `inner join`, `left join`, `cross join`, or `full outer join`; never use implicit comma joins.
-- Prioritize CTEs for complex logic; CTEs are preferable to nested subqueries.
+- Prefer CTEs to nested subqueries for complex logic.
 - Qualify columns in multi-table queries.
 - Alias every expression, aggregation, and window calculation.
 - Name CTEs as pipeline stages, not implementation trivia: `source_orders`, `filtered_orders`, `daily_revenue`, `ranked_customers`.
@@ -66,7 +66,7 @@ order by customer_revenue.gross_revenue desc
 
 ## Correctness Rules
 
-Protect against silent wrong answers. Be explicit about grain, joins, time, and nulls.
+Guard against silent errors. Be explicit about grain, joins, time, and nulls.
 
 - Validate join cardinality before trusting metrics: one-to-one, many-to-one, one-to-many, or many-to-many.
 - Pre-aggregate one-to-many tables before joining to a fact table when the join would duplicate measures.
@@ -83,7 +83,7 @@ Protect against silent wrong answers. Be explicit about grain, joins, time, and 
 
 ## Analytics Patterns
 
-Choose patterns that make the metric definition auditable.
+Use patterns that keep metric definitions auditable.
 
 - Build queries as a pipeline: source, filter, normalize, deduplicate, join, aggregate, final select.
 - Keep each CTE at a clear grain and avoid mixing row-level and aggregate logic in the same stage.
@@ -96,7 +96,7 @@ Choose patterns that make the metric definition auditable.
 
 ## Performance And Cost
 
-Treat warehouse work as paid compute over data volume. Reduce scanned data, shuffled data, and repeated work.
+Account for warehouse compute costs across data volume. Reduce scanned data, shuffled data, and repeated work.
 
 - Filter partition/date columns early with sargable predicates; avoid wrapping partition columns in functions when it prevents pruning.
 - Select only required columns, especially in columnar warehouses.
@@ -115,7 +115,7 @@ Treat warehouse work as paid compute over data volume. Reduce scanned data, shuf
 
 ## Warehouse Awareness
 
-Adapt syntax and optimization choices to the warehouse.
+Adapt syntax and optimization choices to the target warehouse.
 
 - BigQuery: prefer partition filters, avoid `select *`, check bytes processed, use `qualify` when helpful, and use approximate functions only by choice.
 - Snowflake: watch warehouse size and auto-suspend behavior, use clustering only when pruning benefits justify maintenance cost, and use `qualify` for window filters.
@@ -126,7 +126,7 @@ Adapt syntax and optimization choices to the warehouse.
 
 ## Review Checklist
 
-When reviewing or optimizing SQL, lead with correctness risks before style.
+When reviewing or optimizing SQL, address correctness risks before style.
 
 - Does the result grain match the business question?
 - Can any join duplicate or drop rows unexpectedly?

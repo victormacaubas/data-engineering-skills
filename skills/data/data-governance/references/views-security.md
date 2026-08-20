@@ -83,9 +83,9 @@
 **Latency:** up to 2 hours. **Retention:** 365 days.
 
 **Notes:**
-- Excludes grants to database roles from databases created from shares
-- Excludes grants on dropped objects
-- Filter `DELETED_ON IS NULL` for current grants
+- GRANTS_TO_ROLES excludes grants to database roles from databases created from shares
+- GRANTS_TO_ROLES excludes grants on dropped objects
+- Filter `DELETED_ON IS NULL` to retrieve current grants
 
 ---
 
@@ -104,7 +104,7 @@
 
 **Notes:**
 - Re-granting a revoked role creates a new row
-- Does NOT include privilege grants to users (only role grants)
+- GRANTS_TO_USERS does NOT include privilege grants to users (only role grants)
 
 ---
 
@@ -134,5 +134,5 @@
 **Latency:** up to 2 hours. **Retention:** 365 days.
 
 **Notes:**
-- `0.0.0.0` appears for internal Snowflake operations (Snowsight, Snowpark Container Services)
-- Does not record internal system user activity
+- Snowflake uses `0.0.0.0` for internal operations (Snowsight, Snowpark Container Services)
+- LOGIN_HISTORY does not record internal system user activity

@@ -1,25 +1,25 @@
 # Language Pack: Terraform / HCL
 
-Load when the review scope contains `.tf` or `.tfvars` files. This pack sharpens the six generic rubric dimensions for infrastructure-as-code; read it fully before scoring.
+Load this pack when the review scope contains `.tf` or `.tfvars` files. It sharpens the six generic rubric dimensions for infrastructure-as-code. Read it fully before scoring.
 
-> IaC remaps the rubric: "Correctness" is dominated by state/drift and resource-replacement hazards, "Performance" is largely N/A (note it and move on), and "Security" carries extra weight because a misconfigured resource is a live exposure, not a latent bug. Detect the provider (aws/gcp/azure) from `provider` blocks and resource prefixes, and adapt examples accordingly.
+> Apply the rubric differently to IaC: state/drift and resource-replacement hazards dominate "Correctness"; "Performance" is largely N/A (note it and move on); and "Security" carries extra weight because a misconfigured resource is a live exposure rather than a latent bug. Detect the provider (aws/gcp/azure) from `provider` blocks and resource prefixes, then adapt examples accordingly.
 
 ## Standing audits — run these in paths/whole-config mode, not just on diffs
 
-Many footguns below are phrased as "a change that…". That framing fits a `diff` review, but in a `paths` or `repo` review there is no diff — you audit the configuration **as it stands**. The most-missed Terraform classes hide exactly here, because a property that's simply *absent* never shows up as a "change". Run these as explicit enumerations, tied to Sweep A — judge *every* matching resource, not the first one that catches your eye:
+Many footguns below use the framing "a change that…". That framing fits a `diff` review, but a `paths` or `repo` review has no diff — audit the configuration **as it stands**. Reviewers often miss Terraform classes here because an *absent* property does not appear as a "change". Run these as explicit enumerations tied to Sweep A — judge *every* matching resource, not only the first one that catches your eye:
 
-- **Stateful-resource protection.** For every S3 bucket, RDS/Aurora instance, EBS volume, DynamoDB table, EFS, or other stateful resource, confirm each protection is present or flag its absence — independent of any diff:
+- **Stateful-resource protection.** For every S3 bucket, RDS/Aurora instance, EBS volume, DynamoDB table, EFS, or other stateful resource, confirm each protection is present or flag its absence, independent of any diff:
   - `lifecycle { prevent_destroy = true }` on anything whose loss is unrecoverable.
   - Versioning (`aws_s3_bucket_versioning`) and backups (`deletion_protection`, RDS backup retention, snapshots).
   - Encryption at rest (SSE/KMS) and a public-access block.
-  A stateful bucket carrying none of these is an accidental-`terraform destroy` or fat-fingered-delete away from unrecoverable data loss, in any scope.
-- **S3 per-bucket checklist.** For *each* bucket, walk the whole list: public-access-block, SSE encryption, versioning, an SSL-enforcing bucket policy (`aws:SecureTransport`), and access logging. Catching one bucket's gap and missing the identical gap on the bucket declared 20 lines down is the classic enumeration miss.
-- **Container-image supply chain.** `image_tag_mutability = "MUTABLE"` on a production ECR repo lets a pushed tag be overwritten — a published image can change underneath you (supply-chain + rollback hazard). A `:latest` or otherwise unpinned image tag in an ECS/EKS task definition makes deploys non-reproducible and rollback unreliable; prefer an immutable tag pinned to a digest.
-- **Scoped-resource validation.** A wildcard *action* isn't the only over-broad shape. A *narrow* action on `resources = ["*"]` (e.g. `ecr:InitiateLayerUpload`, `s3:PutObject`) that could be scoped to a specific ARN is still a finding — sweep for `resources = ["*"]` and ask whether each statement could name the resource it actually needs.
+  A stateful bucket without these protections risks unrecoverable data loss from an accidental `terraform destroy` or fat-fingered delete, in any scope.
+- **S3 per-bucket checklist.** For *each* bucket, walk the full list: public-access-block, SSE encryption, versioning, an SSL-enforcing bucket policy (`aws:SecureTransport`), and access logging. Finding one bucket's gap but missing the identical gap 20 lines later is a common enumeration miss.
+- **Container-image supply chain.** `image_tag_mutability = "MUTABLE"` on a production ECR repo lets someone overwrite a pushed tag, so a published image can change underneath you (supply-chain + rollback hazard). A `:latest` or otherwise unpinned image tag in an ECS/EKS task definition makes deploys non-reproducible and rollback unreliable; prefer an immutable tag pinned to a digest.
+- **Scoped-resource validation.** A wildcard *action* is not the only over-broad shape. A *narrow* action on `resources = ["*"]` (e.g. `ecr:InitiateLayerUpload`, `s3:PutObject`) that could be scoped to a specific ARN remains a finding — sweep for `resources = ["*"]` and ask whether each statement could name the resource it needs.
 
 ## Idiom & formatter
 
-- `terraform fmt` clean; `terraform validate` / `tflint` / `tfsec`/`checkov` in the toolchain. Snake_case names; one resource concern per module. Variables typed and described; outputs documented.
+- Keep `terraform fmt` clean; use `terraform validate` / `tflint` / `tfsec`/`checkov` in the toolchain. Use snake_case names and one resource concern per module. Type and describe variables; document outputs.
 - Pin provider and module versions (`required_providers` with `~>`); pin the Terraform version.
 
 ## Security (×2.0) — weighted heavily for IaC
@@ -49,7 +49,7 @@ Infra plans don't have a runtime hot path. Note "not applicable to IaC" in the r
 
 ## Architecture & Design (×1.5)
 
-Terraform is declarative IaC with no objects, so **SOLID does not apply** — don't force it. This dimension here means *module composition, blast-radius control, environment separation, and DRY*: small composable modules, sensible state boundaries, no copy-pasted resource blocks.
+Terraform is declarative IaC with no objects, so **SOLID does not apply** — do not force it. In this dimension, assess *module composition, blast-radius control, environment separation, and DRY*: small composable modules, sensible state boundaries, and no copy-pasted resource blocks.
 
 - Monolithic root module mixing networking + compute + data + IAM — large blast radius, hard to reason about. Should be composable modules.
 - Copy-pasted resource blocks that should be a module + `for_each`; hardcoded values that should be variables/locals.

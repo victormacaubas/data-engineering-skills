@@ -1,13 +1,13 @@
 # Language Pack: SQL
 
-Load when the review scope contains `.sql` files, dbt models, or warehouse queries. Covers analytical SQL across BigQuery, Snowflake, Redshift, Postgres, DuckDB, Trino, and Spark SQL — **adapt syntax to the active dialect** (detect from `dbt_project.yml` profile, file path, or function names). This pack sharpens the six generic rubric dimensions; read it fully before scoring.
+Load this pack when the review scope contains `.sql` files, dbt models, or warehouse queries. It covers analytical SQL across BigQuery, Snowflake, Redshift, Postgres, DuckDB, Trino, and Spark SQL — **adapt syntax to the active dialect** (detect from `dbt_project.yml` profile, file path, or function names). It sharpens the six generic rubric dimensions. Read it fully before scoring.
 
-> SQL maps onto the rubric a little differently from imperative code: "Correctness" is dominated by join fan-out and NULL semantics, "Performance" by scan/shuffle cost, and "Error Handling" by idempotency/rerun safety rather than try/catch. The dimension names stay the same; the content shifts.
+> Apply the rubric differently to SQL than to imperative code: join fan-out and NULL semantics dominate "Correctness"; scan/shuffle cost dominates "Performance"; and idempotency/rerun safety, rather than try/catch, dominates "Error Handling." Keep the dimension names the same and adjust their content.
 
 ## Idiom & formatter
 
-- Leading commas or trailing commas consistently; uppercase keywords (or follow the repo's existing convention — match, don't impose). CTEs over nested subqueries. One column per line in long SELECTs. `sqlfluff` is the common linter.
-- dbt: `ref()`/`source()` instead of hardcoded table names; models named by layer (`stg_`, `int_`, `fct_`, `dim_`).
+- Use leading or trailing commas consistently; use uppercase keywords, or follow the repo's convention — match it, do not impose one. Prefer CTEs to nested subqueries. Put one column per line in long SELECTs. `sqlfluff` is the common linter.
+- dbt: use `ref()`/`source()` instead of hardcoded table names; name models by layer (`stg_`, `int_`, `fct_`, `dim_`).
 
 ## Security (×2.0)
 
@@ -37,7 +37,7 @@ Load when the review scope contains `.sql` files, dbt models, or warehouse queri
 
 ## Architecture & Design (×1.5)
 
-SQL is declarative and has no objects, so **SOLID does not apply** — don't force it. This dimension here means *layering, modularity, and DRY*: clean staging→intermediate→mart separation, single-responsibility models, no copy-pasted logic, sensible materialization.
+SQL is declarative and has no objects, so **SOLID does not apply** — do not force it. In this dimension, assess *layering, modularity, and DRY*: clean staging→intermediate→mart separation, single-responsibility models, no copy-pasted logic, and sensible materialization.
 
 - Monolithic query doing staging + business logic + presentation in one statement — should be CTEs or separate dbt models by layer.
 - Repeated subquery logic copy-pasted instead of a CTE or an `int_` model; hardcoded table names instead of `ref()`/`source()`.
@@ -68,7 +68,7 @@ DISTINCT                # is it masking a fan-out?
 
 ## Calibration hints
 
-- A join fan-out feeding an aggregate is a **silent-wrong-answer bug → Critical/High under Correctness**; treat it like any silent data-corruption finding.
+- A join fan-out that feeds an aggregate creates a **silent-wrong-answer bug → Critical/High under Correctness**; treat it like any silent data-corruption finding.
 - A `NOT IN (subquery-with-NULLs)` is at least **High** — it silently returns the wrong row set.
 - A non-idempotent `INSERT` in a scheduled job that double-counts on rerun is **High** under Error Handling.
 - A missing partition-pruning predicate on a large partitioned table caps **Performance ≤ 6** (the "unbounded scan" guardrail, data-layer flavor).

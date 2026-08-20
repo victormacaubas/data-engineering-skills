@@ -5,11 +5,11 @@ description: Write tickets and comments in plain, human-sounding language via th
 
 # Write Ticket
 
-Your job is to help the user write things in Jira that read like a teammate wrote them, not a language model. That means both creating new tickets and posting comments on existing ones. Same voice, same care, two different actions.
+Help the user write Jira content that sounds like a teammate wrote it, not a language model. This includes new tickets and comments on existing ones. Use the same voice and care for each.
 
 ## Which mode?
 
-Figure out from context whether the user wants to **create** a new ticket or **respond** to an existing one. You usually won't have to ask.
+Use the context to decide whether the user wants to **create** a new ticket or **respond** to an existing one. You usually won't need to ask.
 
 - **Create mode.** The user wants to file a new ticket (task, bug, spike). Phrases like "file a ticket for this", "open an issue", "track this as a task", or just describing a piece of work that needs tracking.
 - **Respond mode.** The user wants to comment on an existing ticket. Phrases like "respond to PROJ-123", "update the ticket", "post what we did", or pasting a rough draft they want cleaned up before posting.
@@ -33,7 +33,7 @@ If the user hasn't given you enough to write a useful ticket, ask. Don't invent 
 
 ### Structure by ticket type
 
-Keep the structure only as heavy as the ticket needs. A two line task doesn't need five headings. A gnarly bug does.
+Use only as much structure as the ticket needs. A two-line task doesn't need five headings. A gnarly bug does.
 
 #### Task
 
@@ -89,7 +89,7 @@ What comes out of the spike. Usually a short writeup, a recommendation, or a pro
 How long this should take before we cut it off and decide with what we have.
 ```
 
-You don't need every section every time. If something genuinely has nothing to say, leave it out rather than filling it with "N/A" or filler.
+You don't need every section every time. If a section has nothing to say, leave it out instead of filling it with "N/A" or filler.
 
 ### Show draft and create
 
@@ -97,7 +97,7 @@ Before calling the Atlassian MCP, show the user the draft ticket so they can twe
 
 > Here's the draft. Say the word and I'll create it, or tell me what to change.
 
-Once they approve, create it. If the user gives you a long thread of context (Slack conversation, error logs, meeting notes), your job is to compress it into the ticket, not copy it verbatim. Pull out what matters and leave the rest.
+Once they approve, create it. If the user gives you a long thread of context (Slack conversation, error logs, meeting notes), compress it into the ticket rather than copying it verbatim. Include what matters and leave the rest.
 
 ---
 
@@ -105,13 +105,13 @@ Once they approve, create it. If the user gives you a long thread of context (Sl
 
 ### The three sub-modes
 
-Figure out which fits from context. You usually won't have to ask.
+Use the context to decide which fits. You usually won't need to ask.
 
 1. **Polish mode.** The user pasted a rough draft (a few sentences, maybe with typos, awkward phrasing, or just too long). Clean it up: fix grammar, tighten, make it clearer. Keep their voice, don't rewrite it into something they wouldn't say. Skip the ticket lookup unless they reference one. Polish mode does **not** need up-front questions unless something is genuinely ambiguous.
 
-2. **Draft-from-ticket mode.** The user mentioned a ticket (by key like `PROJ-123`, by URL, or by description) and wants a response. Read the ticket first, then ask the user targeted questions about what they did, where things stand, and anything else the ticket thread is asking for. Then draft.
+2. **Draft-from-ticket mode.** The user mentioned a ticket (by key like `PROJ-123`, by URL, or by description) and wants a response. Read the ticket first. Then ask targeted questions about what they did, where things stand, and anything else the ticket thread asks for. Then draft.
 
-3. **Session-context mode.** You just finished some work together (fixed a bug, ran an investigation, shipped a PR) and the user wants to report it on a ticket. Read the ticket for context on what the audience is expecting, then confirm the key facts with the user before drafting. Even when you think you know what happened, a quick "so what I'd say is X, Y, Z, does that match what you want to report?" is better than inventing.
+3. **Session-context mode.** You just finished some work together (fixed a bug, ran an investigation, shipped a PR) and the user wants to report it on a ticket. Read the ticket to learn what the audience expects, then confirm the key facts with the user before drafting. Even when you think you know what happened, a quick "so what I'd say is X, Y, Z, does that match what you want to report?" is better than inventing.
 
 These modes blend in practice. A single request might be "clean this up and post it on PROJ-456" which is polish + post. That's fine, just do both.
 
@@ -122,8 +122,8 @@ For polish mode, the flow is short: clean up the draft, show it, post on approva
 For draft-from-ticket and session-context modes:
 
 1. **Identify the ticket.** If the user gave a key or URL, grab it. If not, ask which ticket you're responding to.
-2. **Read the ticket.** Use `mcp__atlassian-tech__getJiraIssue` with `responseContentFormat: "markdown"`. Pay attention to the latest comments, not just the description. The thread tells you who's asking what and in what tone. Note if there's a specific question to answer, a status request, or a stakeholder waiting on something.
-3. **Ask the user targeted questions before drafting.** This is the part that matters. After reading the ticket, work out what the response needs to cover, and ask the user a small number of specific questions to fill it in. Examples:
+2. **Read the ticket.** Use `mcp__atlassian-tech__getJiraIssue` with `responseContentFormat: "markdown"`. Pay attention to the latest comments, not just the description. They show who is asking for what and in what tone. Note any specific question to answer, status request, or stakeholder waiting on something.
+3. **Ask the user targeted questions before drafting.** After reading the ticket, identify what the response needs to cover and ask a small number of specific questions to fill in the gaps. Examples:
    - "The ticket asks if the fix is deployed. Is it on prod, staging, or just merged?"
    - "What did you actually change? I can see some commits on this branch but want to make sure I describe it right."
    - "Is there a next step or is this closing out?"
@@ -132,11 +132,11 @@ For draft-from-ticket and session-context modes:
 5. **Show the draft.** Format it as it'll appear in Jira. Something like "Here's the draft. Say the word and I'll post it on PROJ-123, or tell me what to change."
 6. **Post on approval.** Use `mcp__atlassian-tech__addCommentToJiraIssue` with `contentFormat: "markdown"`.
 
-The reason to ask before drafting is that responses are short, and a wrong fact or wrong emphasis in a 3-sentence comment is more jarring than in a long ticket. Better to confirm for 20 seconds than to write something the user has to largely rewrite.
+Ask before drafting because responses are short. A wrong fact or emphasis in a 3-sentence comment stands out more than it does in a long ticket. Confirming for 20 seconds beats writing something the user has to largely rewrite.
 
 ### Comment structure
 
-Most comments don't need headings. They're a few sentences to a short paragraph. Only structure it if you genuinely have multiple distinct things to say (e.g., "here's what I did", "here's what I'm still not sure about", "here's next steps").
+Most comments don't need headings. They run from a few sentences to a short paragraph. Add structure only when you have multiple distinct things to say (e.g., "here's what I did", "here's what I'm still not sure about", "here's next steps").
 
 **Common comment shapes:**
 
@@ -148,18 +148,18 @@ Most comments don't need headings. They're a few sentences to a short paragraph.
 
 #### The "Open question" pattern
 
-When the comment contains a direct ask to another person (a question that needs an answer, a request to review, a poke to a stakeholder), pull it out into its own short section with a clear heading like **Open question** or **What I need from you**. Two reasons:
+When a comment includes a direct ask to another person (a question that needs an answer, a request to review, a poke to a stakeholder), put it in a short section with a clear heading like **Open question** or **What I need from you**. Two reasons:
 
-1. In a long comment, a question buried in paragraph 4 often goes unanswered. A dedicated section makes the ask impossible to miss.
-2. The reader knows at a glance whether this comment needs something from them or is just an FYI.
+1. A question buried in paragraph 4 of a long comment often goes unanswered. A dedicated section makes the ask impossible to miss.
+2. The reader can tell at a glance whether the comment needs something from them or is just an FYI.
 
-Keep the section tight: name the person, state the question, say what you'd do with the answer. One or two sentences. If the comment has no ask, skip this section, don't invent one.
+Keep the section tight: name the person, state the question, and say what you'd do with the answer. Use one or two sentences. If the comment has no ask, skip this section. Don't invent one.
 
 ---
 
 ## Writing in human voice
 
-The whole reason this skill exists is that default AI writing has a tell. Tickets and comments full of em dashes and "comprehensive solutions" make the author look like they outsourced their job. Avoid the tells.
+This skill exists because generic AI writing has obvious tells. Tickets and comments full of em dashes and "comprehensive solutions" make the author look like they outsourced their job. Avoid them.
 
 ### Things to avoid
 
@@ -175,15 +175,15 @@ Use the plain version. "Use" beats "leverage". "Make sure" beats "ensure". "Help
 
 > It's important to note that, It's worth mentioning, In order to, As such, Furthermore, Moreover, Additionally (as a transition word), In conclusion, I hope this helps, Please let me know if you have any questions
 
-On that last one: if it's useful to invite follow-up, write it in your own words ("lmk if it pops back up", "happy to dig more if you want"). The canned version reads like a corporate email.
+If it makes sense to invite follow-up, write it in your own words ("lmk if it pops back up", "happy to dig more if you want"). The canned version reads like a corporate email.
 
-**Over-structured bullet lists** where every bullet is the same length and grammar. Real people write some short bullets and some longer ones. They don't rewrite every line to match. For a comment, prose usually beats bullets anyway.
+**Over-structured bullet lists** where every bullet has the same length and grammar. Don't rewrite every line to match. In comments, prose usually beats bullets.
 
 **Hedging softeners.** "We may want to consider potentially looking into" should just be "We should look at".
 
 **Opening with a greeting when the thread doesn't use them.** If the rest of the thread is "ok thanks" and "pushed the fix", don't open yours with "Hi team, I wanted to follow up regarding...". Match the thread.
 
-**Forced groups of three.** Bundling things into a tidy triple ("faster, cleaner, and more reliable") to sound thorough is a strong tell. Real updates rarely have exactly three of everything. Say the number of things you actually mean, even if that's one or two.
+**Forced groups of three.** Bundling things into a tidy triple ("faster, cleaner, and more reliable") to sound thorough is a strong tell. Updates rarely have exactly three of everything. State the number of things you mean, even if that's one or two.
 
 **Dressed-up "is".** "The job serves as the entry point", "this stands as the root cause", "the script functions as a wrapper". Just write "is" or "does". Dodging the plain verb is one of the most recognizable AI habits.
 
@@ -191,9 +191,9 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 
 **`-ing` clauses that fake depth.** "Reverted the change, ensuring stability and improving reliability." The trailing participle adds words, not information. Cut it, or replace it with a specific fact: "Reverted the change. The nightly run passed clean afterward."
 
-**Significance inflation.** "This plays a crucial role in the pipeline", "this underscores the importance of monitoring". Say what the thing does, not how important it is. The reader can judge importance themselves.
+**Significance inflation.** "This plays a crucial role in the pipeline", "this underscores the importance of monitoring". Say what the thing does. Let the reader judge its importance.
 
-**Cutting-through-noise phrases.** "The real question is...", "at its core...", "what really matters here is...". They promise a deep insight and then usually restate the obvious with extra ceremony. Drop the windup and say the point.
+**Cutting-through-noise phrases.** "The real question is...", "at its core...", "what really matters here is...". They promise a deep insight, then restate the obvious with extra ceremony. Drop the windup and state the point.
 
 ### Things to do
 
@@ -203,7 +203,7 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 - Admit uncertainty when it's real. "Not sure if this fully fixes it, but it clears the symptom we were seeing" is fine.
 - Match the tone of the thread. If prior comments are casual, stay casual. If the ticket has a PM or external stakeholder asking formally, lift slightly but don't go corporate.
 - Use second person or first person plural naturally. "We need to" or "You'll hit this when".
-- **Do a quick self-audit before showing the draft.** Reread it once and ask yourself: "what here would give away that a model wrote it?" Then fix those specific spots. It takes seconds and catches the tells that slip through while you're focused on getting the facts right.
+- **Do a quick self-audit before showing the draft.** Reread it and ask: "what here would give away that a model wrote it?" Fix those spots. This takes seconds and catches tells that slip through while you focus on getting the facts right.
 
 ### Before/after examples
 
@@ -223,7 +223,7 @@ On that last one: if it's useful to invite follow-up, write it in your own words
 
 ## Polishing drafts
 
-Drafts may have grammar issues. Fix these confidently. The user wants the text to read smoothly, not to preserve mistakes out of some misguided respect for the original.
+Drafts may have grammar issues. Fix them confidently. The user wants smooth text, not preserved mistakes.
 
 Common things to watch for and quietly fix:
 - **Articles** (`a`, `an`, `the`): often missing or used where not needed.
@@ -234,21 +234,21 @@ Common things to watch for and quietly fix:
 - **False friends**: words that look like Portuguese/Spanish/etc. but mean something different in English ("eventually" doesn't mean "possibly", "actually" doesn't mean "currently").
 - **Slightly off phrasings** that are grammatically OK but not what a native speaker would say. Rephrase into something natural.
 
-Beyond fixing errors, **upgrade the vocabulary where it helps the user sound like a native speaker in their field**. Two things to look for:
+Beyond fixing errors, **improve vocabulary where it helps the user sound like a native speaker in their field**. Look for two things:
 
-1. **Reach for the word a native speaker would actually use.** If the user wrote "I made some tests", a native would say "I ran some tests". If the user wrote "the problem happens sometimes", a native would often say "the issue pops up intermittently" or "it's flaky". Don't swap words just to show off vocabulary, but when the natural word is clearly better, use it.
+1. **Reach for the word a native speaker would use.** If the user wrote "I made some tests", a native would say "I ran some tests". If the user wrote "the problem happens sometimes", a native would often say "the issue pops up intermittently" or "it's flaky". Don't swap words to show off vocabulary. Use the natural word when it is clearly better.
 
-2. **Use domain jargon when it fits.** The right term usually exists. Examples: "hits the warehouse", "backfill", "upstream/downstream", "row count", "query plan", "cold start", "idempotent", "flaky", "re-run the DAG", "bumped the version", "pinned the dependency", "spun up", "stood up", "drain the queue", "dual-write", "read replica". If the user described something in plain English and there's a standard technical term for it, use the standard term. If they already used the right term, leave it.
+2. **Use domain jargon when it fits.** The right term usually exists. Examples: "hits the warehouse", "backfill", "upstream/downstream", "row count", "query plan", "cold start", "idempotent", "flaky", "re-run the DAG", "bumped the version", "pinned the dependency", "spun up", "stood up", "drain the queue", "dual-write", "read replica". If the user describes something in plain English and a standard technical term fits, use it. If they already used the right term, leave it.
 
-The tricky balance: fix the English and sharpen the vocabulary, but keep the personality. If the original reads like a casual Slack message, the polished version should still read like a casual Slack message, just without the grammar speed bumps and with the sharper word choices.
+The balance matters: fix the English and sharpen the vocabulary while keeping the personality. If the original reads like a casual Slack message, the polished version should too, without the grammar speed bumps and with sharper word choices.
 
-If the user seems uncertain about their draft ("not sure if this sounds right"), briefly say which specific parts you changed and why, in one line each. That way they learn the pattern, and they can push back if you changed something they actually meant.
+If the user seems uncertain about their draft ("not sure if this sounds right"), briefly explain which parts you changed and why, in one line each. This helps them learn the pattern and push back if you changed something they meant.
 
 ---
 
 ## Flag things before posting, don't silently fix
 
-When you're polishing a draft or writing from session context, some issues deserve a quick heads-up to the user before you post, rather than a silent fix. These are the kinds of things where a silent fix risks posting something wrong or where the user has context you don't.
+When you're polishing a draft or writing from session context, flag some issues before posting instead of silently fixing them. A silent fix can post something wrong or miss context that only the user has.
 
 Flag these up front when you see them:
 
@@ -257,7 +257,7 @@ Flag these up front when you see them:
 - **Facts that feel uncertain or contradictory** in the draft. If the user wrote "deployed to prod" in one spot and "merged to main" in another, ask which is right before posting.
 - **Ambiguous references** you had to guess at. If "it" could mean two things and you picked one, say so.
 
-Keep the flags short: a numbered list before the draft, one line each. Don't turn it into a lecture.
+Keep the flags short: a numbered list before the draft, one line each. Don't turn them into a lecture.
 
 ---
 
@@ -267,7 +267,7 @@ Once the user approves, use the Atlassian MCP.
 
 ### Getting the cloudId
 
-Try the site hostname first (e.g., `your-site.atlassian.net`) as `cloudId`. If that fails, call `mcp__atlassian-tech__getAccessibleAtlassianResources` to list available cloudIds.
+Try the site hostname first (e.g., `your-site.atlassian.net`) as `cloudId`. If it fails, call `mcp__atlassian-tech__getAccessibleAtlassianResources` to list available cloudIds.
 
 ### Creating a ticket (create mode)
 
@@ -279,7 +279,7 @@ Call `mcp__atlassian-tech__createJiraIssue` with:
 - `description`: the body, formatted as markdown
 - `contentFormat`: `"markdown"`
 
-If the user wants priority, labels, components, or a specific assignee, pass them in `additional_fields`. Don't add these unless asked. Cluttered tickets are worse than sparse ones.
+If the user wants priority, labels, components, or a specific assignee, pass them in `additional_fields`. Don't add them unless asked. Sparse tickets beat cluttered ones.
 
 Report back the issue key and URL so the user can open it.
 
@@ -303,7 +303,7 @@ If the user wants to mention someone, ask for the person's account ID or use `mc
 
 - **Don't invent facts.** If you don't know whether the fix is in prod or staging, don't write that it's in prod. Ask, or say "deployed to staging" if that's what you know.
 - **Don't add a "Generated by Claude" footer.** The whole point is that the output should look like the user wrote it.
-- **Don't copy the full ticket back into a comment.** A comment is a response, not a recap. If something needs referencing, quote the relevant line or link a PR.
+- **Don't copy the full ticket back into a comment.** A comment is a response, not a recap. If you need to reference something, quote the relevant line or link a PR.
 - **If the ticket is in another project**, that's fine, the user will say so. Just use the right project key.
 - **If the user asks you to just output the text without posting**, do that. No need to insist on going through the MCP.
-- **If you're unsure whether something belongs in a ticket**, lean toward leaving it out. Future readers will thank you.
+- **If you're unsure whether something belongs in a ticket**, lean toward leaving it out. Future readers benefit from less noise.

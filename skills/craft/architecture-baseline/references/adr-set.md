@@ -43,6 +43,8 @@ One per decision. Write the ones you actually decided — if a project genuinely
 
 Extra decisions will surface during the conversation. The test for whether one deserves its own ADR: **would a reasonable person implementing a future change make a different choice without knowing this?** If yes, it's an ADR. If it only affects the code being written right now, it's a comment or nothing.
 
+Every ADR gets a row in the index in `docs/ARCHITECTURE.md`, the ones that surface mid-change included. An ADR missing from the index is one a reviewer has no way to know exists.
+
 ### 0001. Layer map and dependency direction
 
 The table from Decision 1: which packages exist, what each owns, what each may import.
