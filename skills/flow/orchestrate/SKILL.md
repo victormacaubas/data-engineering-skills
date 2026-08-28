@@ -15,15 +15,15 @@ Dispatch runs in both directions, but task tracking is one-way: the main session
 
 First, identify the plan source. It is one of:
 
-1. **An OpenSpec change directory** — `openspec/changes/<name>/`. Resolve it through the CLI, not filename convention. If you do not know the name, use `openspec list --json` to see what is active. `openspec status --change "<name>" --json` returns `schemaName`, `changeRoot`, and per-artifact progress. `openspec instructions apply --change "<name>" --json` returns `contextFiles`: the concrete paths for *this* schema, not assumed `tasks.md`/`proposal.md`/`design.md` paths (other schemas use different artifact names). Read those paths. They preserve intent and acceptance criteria that task titles compress, making them the richest source. Resolve rather than guess. If the change lives in a **store** (a standalone OpenSpec repo registered on this machine), run `openspec store list --json` for its id and pass `--store <id>` on every command above.
-2. **A plan file** — a path you were given, or `~/.claude/plans/<name>.md` if a plan-mode plan was approved this session.
-3. **A plan that exists nowhere on disk** — settled in conversation, never written to a file. Externalize it before dispatch (next section).
+1. **An OpenSpec change directory**: `openspec/changes/<name>/`. Resolve it through the CLI, not filename convention. If you do not know the name, use `openspec list --json` to see what is active. `openspec status --change "<name>" --json` returns `schemaName`, `changeRoot`, and per-artifact progress. `openspec instructions apply --change "<name>" --json` returns `contextFiles`: the concrete paths for *this* schema, not assumed `tasks.md`/`proposal.md`/`design.md` paths (other schemas use different artifact names). Read those paths. They preserve intent and acceptance criteria that task titles compress, making them the richest source. Resolve rather than guess. If the change lives in a **store** (a standalone OpenSpec repo registered on this machine), run `openspec store list --json` for its id and pass `--store <id>` on every command above.
+2. **A plan file**: a path you were given, or `~/.claude/plans/<name>.md` if a plan-mode plan was approved this session.
+3. **A plan that exists nowhere on disk**: settled in conversation, never written to a file. Externalize it before dispatch (next section).
 
 Then read only material you do not already hold reliably. **Re-read when:**
 
 - The plan predates a compaction, or you cannot state its task list and acceptance criteria without hedging.
-- You have not read it — the user pointed you to a change directory another person authored.
-- It's the task-tracking artifact (`tasks.md` under spec-driven, or whatever `contextFiles` resolved for this schema). Always re-read: re-run `openspec status --change "<name>" --json` for the progress summary, and open the file itself for full task text — it's mutable tracking state that a prior loop iteration or a parallel session may have changed since.
+- You have not read it: the user pointed you to a change directory another person authored.
+- It's the task-tracking artifact (`tasks.md` under spec-driven, or whatever `contextFiles` resolved for this schema). Always re-read: re-run `openspec status --change "<name>" --json` for the progress summary, and open the file itself for full task text, because it's mutable tracking state that a prior loop iteration or a parallel session may have changed since.
 
 **Don't re-read when you authored the artifacts this session and nothing has written to them since.** You already retain the intent, trade-offs, and acceptance criteria at full fidelity. Re-reading a `design.md` you wrote twenty minutes ago wastes the context this skill protects. Say so in one line and move on.
 
@@ -43,7 +43,7 @@ Make three checks in one pass over the slice before you dispatch. Scope each to 
 
 Scan the slice for anything the worker is forbidden from provisioning, and do it first. Otherwise, the worker halts with a handoff:
 
-- **A working environment to test in** → If none exists, **ask the user** how to handle it — create one, or dispatch without a test bar (worker verifies by inspection only) — rather than dispatching a worker whose verification step is doomed to fail.
+- **A working environment to test in** → If none exists, **ask the user** how to handle it (create one, or dispatch without a test bar, where the worker verifies by inspection only) rather than dispatching a worker whose verification step is doomed to fail.
 - **New dependencies** → declare them in the project's lock/config and install now. The worker may only `uv sync` deps already declared; it cannot add, upgrade, or install undeclared ones.
 - **Terraform** → run `terraform init` yourself (downloads providers, creates `.terraform/`). The worker may only run `validate` and `fmt`.
 - **Validation tooling the verification bar names** (linter, type checker, test runner) → make it runnable now. The worker runs checks; it can't provision them.
@@ -59,36 +59,36 @@ The plan was written against the code as it was. The worker trusts it literally,
 - **The plan is older than the session, or someone else has been in the tree** → read the files the plan names yourself.
 - **The surface is large or unfamiliar** → dispatch a bounded `pathfinder` to map it and report drift. Brief it per `references/dispatch-readers.md`.
 
-Resolve any drift — update the plan or the dispatch — *before* dispatch.
+Resolve any drift (update the plan or the dispatch) *before* dispatch.
 
 ### Close the unknowns
 
 The `implementer` is told to trust your research and will not verify it. Resolve anything it would have to guess now:
 
-- **A syntax or API shape you're not certain of** — a Terraform resource's arguments, a library's call signature, a version's behavior. Dispatch `researcher`, or check the docs yourself.
-- **A convention or contract living outside the plan** — how a sibling module does this, what shape the upstream caller expects, what a Confluence page or ticket says the acceptance criteria actually are. Dispatch `pathfinder`.
-- **A fact about data you're about to transform** — a column's real type, whether a table is populated, how many rows a filter actually matches. Dispatch `pathfinder` with the query, or run it yourself.
+- **A syntax or API shape you're not certain of**: a Terraform resource's arguments, a library's call signature, a version's behavior. Dispatch `researcher`, or check the docs yourself.
+- **A convention or contract living outside the plan**: how a sibling module does this, what shape the upstream caller expects, what a Confluence page or ticket says the acceptance criteria actually are. Dispatch `pathfinder`.
+- **A fact about data you're about to transform**: a column's real type, whether a table is populated, how many rows a filter actually matches. Dispatch `pathfinder` with the query, or run it yourself.
 
 `references/dispatch-readers.md` defines the briefing contract for both workers and the fast path for one bounded question. Reading is the inexpensive half of orchestration. Dispatch freely here: an unknown that reaches the `implementer` returns as a guess or `blocking: true`, and either costs a full round trip.
 
 ## Dispatch loop
 
-**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract — send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook, so you can pull it in fresh after a mid-loop compaction. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
+**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract; send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook, so you can pull it in fresh after a mid-loop compaction. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
 
-- **Bound every slice** with explicit task numbers ("tasks 3–7") — never "implement the plan."
-- **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs — that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
+- **Bound every slice** with explicit task numbers ("tasks 3–7"), never "implement the plan."
+- **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs; that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
 
 ### Dispatch as one batch, synthesize once
 
-When a step needs several workers on independent assignments, emit **all** of their dispatches in a single message. Never dispatch, comment, then dispatch again — staggered starts stagger the returns, and every return arrives as a separate turn you then have to resist filling.
+When a step needs several workers on independent assignments, emit **all** of their dispatches in a single message. Never dispatch, comment, then dispatch again: staggered starts stagger the returns, and every return arrives as a separate turn you then have to resist filling.
 
-Before the batch, write one line per worker naming it and its scope. Nothing more. No hypotheses, no expected findings, no reasoning about what the code probably does — anything you assert before the evidence lands is something you may have to retract in front of the user.
+Before the batch, write one line per worker naming it and its scope. Nothing more. No hypotheses, no expected findings, no reasoning about what the code probably does. Anything you assert before the evidence lands is something you may have to retract in front of the user.
 
 The returns wake you one at a time. **On a partial return, the whole turn is recording, not reasoning:** note that the worker is back (`pathfinder (auth) back — 2 of 3`), tick tasks that worker actually verified, log a `blocking: true` to resolve later. Then stop. No summary of the finding, no conclusion drawn from it, no revised plan, no answer to the user's question.
 
 Hold because reasoning on return 1 of 3 is usually *wasted*, not merely early. Return 2 reverses a premise and voids the paragraph built on it; return 3 does it again. You pay for three drafts, the user reads two wrong ones, and the correct synthesis was available for the price of one. The batch is a barrier: the next substantive thing you say comes after the last worker is back.
 
-One return justifies breaking the barrier: one that makes the rest of the batch moot — a `blocking: true` you cannot resolve, or a finding that invalidates the other assignments. Say that in one line and stop the remaining work rather than synthesizing around it.
+One return justifies breaking the barrier: one that makes the rest of the batch moot, whether a `blocking: true` you cannot resolve or a finding that invalidates the other assignments. Say that in one line and stop the remaining work rather than synthesizing around it.
 
 ## Closing the build
 
@@ -112,7 +112,7 @@ A single-slice change to existing files, with no new module or shape note in the
 
 Ask once in one line, then accept the answer. Do not argue, raise it again later in the same build, or turn a decline into a smaller version of the same question. If the user says no, the build is done.
 
-When the user agrees — or asks for a review directly — **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path. It sits outside this file because the gate fires at the end of a build, when a compaction is most likely to have lost the detail.
+When the user agrees, or asks for a review directly, **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path. It sits outside this file because the gate fires at the end of a build, when a compaction is most likely to have lost the detail.
 
 ## Guardrails
 
@@ -121,5 +121,5 @@ When the user agrees — or asks for a review directly — **read `references/di
 - **Hand back on blocking questions.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf.
 - **Dispatch a batch in one message.** All workers for one step, one message, one line of preamble naming each scope. Dispatch-comment-dispatch staggers the returns and invites narration between them.
 - **Don't reason on a partial return.** Record it and stop. Synthesis happens once, after the last worker in the batch is back.
-- **Never hand the `implementer` an unknown.** It will not research or verify — see *Pre-flight → Close the unknowns*.
+- **Never hand the `implementer` an unknown.** It will not research or verify. See *Pre-flight → Close the unknowns*.
 - **Don't re-read what you already hold.** Re-establish context only when your understanding is stale. Re-reading your own artifacts uses the context this skill protects.

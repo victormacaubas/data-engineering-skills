@@ -21,6 +21,7 @@
       "name": "flow",
       "source": "./skills/flow",
       "skills": [
+        "./atlassian-cli",
         "./grill-me",
         "./orchestrate",
         "./scout",

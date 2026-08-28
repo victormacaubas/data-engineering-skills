@@ -77,7 +77,7 @@ There is no dispatchable question yet. Two minutes of `ls` and `git log` might s
 
 So: **look cheaply, then ask, then dispatch.** The test forbids skipping to the third step by fanning out workers across a repo on a hunch. Orientation takes a few tool calls; a fan-out consumes several thousand tokens and produces a synthesis you must redo when the question changes shape.
 
-When cheap orientation does not clarify the question, bring the user a question—ideally with what you found and two or three candidate readings, so they can choose rather than start from scratch.
+When cheap orientation does not clarify the question, bring the user a question, ideally with what you found and two or three candidate readings, so they can choose rather than start from scratch.
 
 ### Dispatch when
 
@@ -118,7 +118,7 @@ This skill fails in two recognizable ways:
 
 **Front-loading.** Fanning out before a question exists. The earlier guidance retires this pattern.
 
-**Stalling.** Going quiet while a worker runs turns the session into a wait for a report. Recon should run *alongside* the conversation: there is almost always another angle to discuss, a diagram to sketch, or an assumption to challenge while the worker reads. Pick one that does not depend on what the worker is fetching — *Dispatch as one batch* below has the dependence test, and it is what separates keeping the thread alive from narrating a return before its siblings arrive.
+**Stalling.** Going quiet while a worker runs turns the session into a wait for a report. Recon should run *alongside* the conversation: there is almost always another angle to discuss, a diagram to sketch, or an assumption to challenge while the worker reads. Pick one that does not depend on what the worker is fetching. *Dispatch as one batch* below has the dependence test, and it is what separates keeping the thread alive from narrating a return before its siblings arrive.
 
 Keep the thread alive by *talking to the user*, not by building machinery. Do not start a `Monitor`, a polling loop, or a sleep-and-check to wait on a worker. You receive a notification when it finishes, so a waiter adds cost without value. Per your global CLAUDE.md: wait on task notifications, never busy-poll.
 
@@ -126,15 +126,15 @@ Keep the thread alive by *talking to the user*, not by building machinery. Do no
 
 When two or three independent questions have piled up, dispatch all of their workers in **one message**, with a single line naming each worker and its question. Dispatching one, discussing it, then dispatching another staggers the returns and multiplies the moments where you are tempted to narrate.
 
-Resist drafting an answer while workers run. It feels productive, but a return that reverses a headline claim invalidates the paragraph built on it, so you rewrite rather than write — and if you showed the user the draft first, you told them something false. This is the most common way an interleaved session wastes tokens: a draft asserts "nothing in this repo does X," a worker returns three things that do X, and everything downstream is redone.
+Resist drafting an answer while workers run. It feels productive, but a return that reverses a headline claim invalidates the paragraph built on it, so you rewrite rather than write, and if you showed the user the draft first, you told them something false. This is the most common way an interleaved session wastes tokens: a draft asserts "nothing in this repo does X," a worker returns three things that do X, and everything downstream is redone.
 
 The returns wake you one at a time, so make the partial-return turn mechanical: note that the worker is back (`pathfinder (auth) back — 2 of 3`) and nothing else about what it said. Fold nothing in, conclude nothing, revise no recommendation. The next substantive thing you say comes after the last worker in the batch is back.
 
-**This is not the same as going quiet.** The test is *dependence*, not silence: keep discussing anything that stays true regardless of what the workers find — trade-offs on settled ground, the structure, a constraint, a diagram, a risk the returns cannot change. Just leave alone the threads waiting on a pending answer. Then synthesize once, from complete information.
+**This is not the same as going quiet.** The test is *dependence*, not silence: keep discussing anything that stays true regardless of what the workers find, such as trade-offs on settled ground, the structure, a constraint, a diagram, or a risk the returns cannot change. Just leave alone the threads waiting on a pending answer. Then synthesize once, from complete information.
 
 When the batch is fully back, fold it into the conversation rather than pasting it. Give the user the finding and its effect on the decision, not the briefing's section headers. If a return contradicts something you said, state that plainly and move on.
 
-The one return that justifies breaking the barrier is one that makes the rest of the batch moot — a `blocking: true` you cannot resolve, or a finding that invalidates the other questions. Say so in one line and drop the remaining threads rather than synthesizing around them.
+The one return that justifies breaking the barrier is one that makes the rest of the batch moot, whether a `blocking: true` you cannot resolve or a finding that invalidates the other questions. Say so in one line and drop the remaining threads rather than synthesizing around them.
 
 ## Briefing a worker
 
