@@ -50,6 +50,9 @@ The workers cannot see the whole picture or each other.
 
 ## Acting on returns
 
+- **Wait for the whole batch before you reason about any of it.** A partial return earns one line noting the
+  worker is back, and nothing about what it said. Keep discussing whatever does not depend on a pending
+  answer; see `../SKILL.md` → *Dispatch as one batch, synthesize once*.
 - **Read `Assumptions` before the findings.** Verify any assumption that would change the
   conversation's direction. A worker that assumed `legacy/` was out of scope may have skipped what
   you asked about.

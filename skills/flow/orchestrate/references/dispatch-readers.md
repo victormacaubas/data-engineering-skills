@@ -51,6 +51,9 @@ Workers cannot see the whole picture or each other. Provide what they cannot sup
 
 ## Acting on returns
 
+- **Wait for the whole batch before you reason about any of it.** A partial return earns one line noting
+  the worker is back — no summary, no conclusion, no revised dispatch. `../SKILL.md` → *Dispatch as one
+  batch, synthesize once* has the reasoning and the one exception.
 - `Confidence: low` → widen the scope and re-dispatch, or carry the gap forward explicitly. Do not
   hand a low-confidence finding to the implementer as settled fact.
 - Read `Assumptions` and verify any that materially affect the slice. Pause on `blocking: true`

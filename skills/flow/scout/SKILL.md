@@ -118,19 +118,23 @@ This skill fails in two recognizable ways:
 
 **Front-loading.** Fanning out before a question exists. The earlier guidance retires this pattern.
 
-**Stalling.** Going quiet while a worker runs turns the session into a wait for a report. Recon should run *alongside* the conversation: there is almost always another angle to discuss, a diagram to sketch, or an assumption to challenge while the worker reads.
+**Stalling.** Going quiet while a worker runs turns the session into a wait for a report. Recon should run *alongside* the conversation: there is almost always another angle to discuss, a diagram to sketch, or an assumption to challenge while the worker reads. Pick one that does not depend on what the worker is fetching — *Dispatch as one batch* below has the dependence test, and it is what separates keeping the thread alive from narrating a return before its siblings arrive.
 
 Keep the thread alive by *talking to the user*, not by building machinery. Do not start a `Monitor`, a polling loop, or a sleep-and-check to wait on a worker. You receive a notification when it finishes, so a waiter adds cost without value. Per your global CLAUDE.md: wait on task notifications, never busy-poll.
 
-### Hold the synthesis until the returns land
+### Dispatch as one batch, synthesize once
 
-Resist drafting an answer while workers run. It feels productive, but a return that reverses a headline claim invalidates the paragraph built on it, so you rewrite rather than write. If you present the draft before the correction arrives, you tell the user something false.
+When two or three independent questions have piled up, dispatch all of their workers in **one message**, with a single line naming each worker and its question. Dispatching one, discussing it, then dispatching another staggers the returns and multiplies the moments where you are tempted to narrate.
 
-This is the most common way an interleaved session wastes tokens: a draft asserts "nothing in this repo does X," a worker returns three things that do X, and you must redo everything downstream.
+Resist drafting an answer while workers run. It feels productive, but a return that reverses a headline claim invalidates the paragraph built on it, so you rewrite rather than write — and if you showed the user the draft first, you told them something false. This is the most common way an interleaved session wastes tokens: a draft asserts "nothing in this repo does X," a worker returns three things that do X, and everything downstream is redone.
 
-While you wait, do work that remains valid regardless of the return: discuss trade-offs that do not depend on the unknown, sketch the structure, surface a risk, or ask about a constraint. Then synthesize once from complete information.
+The returns wake you one at a time, so make the partial-return turn mechanical: note that the worker is back (`pathfinder (auth) back — 2 of 3`) and nothing else about what it said. Fold nothing in, conclude nothing, revise no recommendation. The next substantive thing you say comes after the last worker in the batch is back.
 
-When a return arrives, fold it into the conversation rather than pasting it. Give the user the finding and its effect on the decision, not the briefing's section headers. If a return contradicts something you said, state that plainly and move on.
+**This is not the same as going quiet.** The test is *dependence*, not silence: keep discussing anything that stays true regardless of what the workers find — trade-offs on settled ground, the structure, a constraint, a diagram, a risk the returns cannot change. Just leave alone the threads waiting on a pending answer. Then synthesize once, from complete information.
+
+When the batch is fully back, fold it into the conversation rather than pasting it. Give the user the finding and its effect on the decision, not the briefing's section headers. If a return contradicts something you said, state that plainly and move on.
+
+The one return that justifies breaking the barrier is one that makes the rest of the batch moot — a `blocking: true` you cannot resolve, or a finding that invalidates the other questions. Say so in one line and drop the remaining threads rather than synthesizing around them.
 
 ## Briefing a worker
 
@@ -177,7 +181,7 @@ Once a plan exists and is ready to build, use `orchestrate`: it runs the pre-fli
 - **Never dispatch to decide.** Ask workers what is, not what to do.
 - **Don't front-load a fan-out.** No question, no dispatch; cheap orientation needs no permission and often produces the question.
 - **Don't build a waiter.** No `Monitor`, no polling loop. Notifications only.
-- **Don't draft against partial returns.** Synthesize once, when the workers are back.
+- **Dispatch a batch in one message, synthesize after the last return.** Record a partial return in one line and nothing more; reason about it only once the whole batch is back. Keep talking meanwhile about whatever does not depend on a pending answer.
 - **Don't re-dispatch what you already have.** If a worker answered it, the answer stands; go back to the briefing rather than spawning a second agent over the same ground.
 - **Don't present `Confidence: low` as settled.** Widen the scope and re-dispatch, or carry it forward as an open question the user can see. A low-confidence finding laundered into a confident statement is worse than no finding.
 - **Don't auto-capture.** Offer, then let the user choose.
