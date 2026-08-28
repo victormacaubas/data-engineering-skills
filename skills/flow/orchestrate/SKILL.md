@@ -78,6 +78,18 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 - **Bound every slice** with explicit task numbers ("tasks 3–7") — never "implement the plan."
 - **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs — that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
 
+### Dispatch as one batch, synthesize once
+
+When a step needs several workers on independent assignments, emit **all** of their dispatches in a single message. Never dispatch, comment, then dispatch again — staggered starts stagger the returns, and every return arrives as a separate turn you then have to resist filling.
+
+Before the batch, write one line per worker naming it and its scope. Nothing more. No hypotheses, no expected findings, no reasoning about what the code probably does — anything you assert before the evidence lands is something you may have to retract in front of the user.
+
+The returns wake you one at a time. **On a partial return, the whole turn is recording, not reasoning:** note that the worker is back (`pathfinder (auth) back — 2 of 3`), tick tasks that worker actually verified, log a `blocking: true` to resolve later. Then stop. No summary of the finding, no conclusion drawn from it, no revised plan, no answer to the user's question.
+
+Hold because reasoning on return 1 of 3 is usually *wasted*, not merely early. Return 2 reverses a premise and voids the paragraph built on it; return 3 does it again. You pay for three drafts, the user reads two wrong ones, and the correct synthesis was available for the price of one. The batch is a barrier: the next substantive thing you say comes after the last worker is back.
+
+One return justifies breaking the barrier: one that makes the rest of the batch moot — a `blocking: true` you cannot resolve, or a finding that invalidates the other assignments. Say that in one line and stop the remaining work rather than synthesizing around it.
+
 ## Closing the build
 
 The build is finished once you complete the last slice's after-return work: read the handoff, resolve `blocking: true` items, run handed-off commands, and tick tasks. Ask one question: should someone review this change's *shape* before it goes further?
@@ -107,5 +119,7 @@ When the user agrees — or asks for a review directly — **read `references/di
 - **Never `git commit` / `git push` unless the user asks.** If on the default branch, branch first.
 - **Cede the deciding phase.** If the plan is not settled, that is conversation, not this skill. Do not force a half-baked plan into a dispatch.
 - **Hand back on blocking questions.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf.
+- **Dispatch a batch in one message.** All workers for one step, one message, one line of preamble naming each scope. Dispatch-comment-dispatch staggers the returns and invites narration between them.
+- **Don't reason on a partial return.** Record it and stop. Synthesis happens once, after the last worker in the batch is back.
 - **Never hand the `implementer` an unknown.** It will not research or verify — see *Pre-flight → Close the unknowns*.
 - **Don't re-read what you already hold.** Re-establish context only when your understanding is stale. Re-reading your own artifacts uses the context this skill protects.

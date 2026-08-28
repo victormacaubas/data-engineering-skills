@@ -30,6 +30,11 @@ depends on rather than instructing the worker to find it.
 "implement the plan." An unbounded slice makes the worker pick its own scope and defeats
 orchestration.
 
+**Emit a parallel batch in one message.** All dispatches for one step go out together; do not dispatch,
+comment, then dispatch again. The returns then wake you one at a time, and the after-return playbook below
+is per-slice recording only until the last worker is back — see `../SKILL.md` → *Dispatch as one batch,
+synthesize once* for what a partial-return turn may and may not contain.
+
 **Own separation for parallel runs.** If you dispatch more than one worker at once, give each a
 *disjoint* slice **and** an explicit may-touch / must-not-touch file list. Workers detect and
 report visible overlap but will not carve up work for you — that is your responsibility. When two
