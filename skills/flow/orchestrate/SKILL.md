@@ -73,7 +73,7 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 
 ## Dispatch loop
 
-**Read `references/dispatch-implementer.md` at dispatch time.** It contains the full briefing and after-return playbook, so you can pull it in fresh after a mid-loop compaction. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
+**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract — send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook, so you can pull it in fresh after a mid-loop compaction. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
 
 - **Bound every slice** with explicit task numbers ("tasks 3–7") — never "implement the plan."
 - **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs — that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
