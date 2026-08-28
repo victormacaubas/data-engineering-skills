@@ -7,9 +7,8 @@ before dispatch, and how to read the result.
 
 ## The dispatch contract
 
-Fill this out and send it as the prompt. The form exists because prose guidance fails silently — a
-skipped instruction looks identical to one that did not apply, while an empty slot is visible. Every
-line should carry a value before you dispatch, except the two marked optional.
+Fill this out and send it as the prompt. Every line should carry a value before you dispatch,
+except the two marked optional.
 
 ```
 Slice: tasks 3–7 of <plan path>
@@ -19,30 +18,26 @@ Non-goals: <what this slice does not touch>
 Edge cases: <optional — only when the behavior is non-obvious>
 Sources: plan <path> · design <section> · ADRs <NNNN> · specs <path>
 You may decide: naming, file placement, private helpers, which local pattern to follow
-You must report as blocking rather than decide: new dependency · new seam · schema or grain change ·
-  public contract change
+You must report as blocking rather than decide:
+  new dependency · new seam · schema or grain change · public contract change
 Verification bar: <exact command> must pass
 Must not touch: <optional — file list, parallel dispatches only>
 ```
 
-Two slots earn their place by closing known failure modes. **Non-goals** preempts touch-surface
-creep, the worker's most common overreach: it will not edit outside its slice, but "outside its
-slice" is yours to define. **You may decide / must report** moves the ambiguity boundary out of your
-head and into text the worker actually reads — it used to live only here, as advice to you.
+`Non-goals` exists because an unbounded edge is a guess. Absent one, the worker takes the smallest
+reasonable reading of its slice and records the boundary it assumed under `Decisions made`, so you
+learn what it decided after the fact. Naming the boundary keeps that call yours.
 
-The four escalation triggers are not a general risk list. They are the decisions a project declares
-in its ADRs: dependencies, injected seams, identity and grain, public contracts. A worker that
-settles one of those silently has overturned an architectural decision from inside a task slice,
-which is why they halt instead of getting a best guess. Everything else it may resolve locally, and
-records as it goes.
+The escalation line is the project's ADR set turned into a halt condition — dependencies, injected
+seams, identity and grain, public contracts — because a worker that settles one of those silently
+has overturned an architectural decision from inside a task slice. Dependencies and correctness-risk
+contracts are already standing behavior in `agents/implementer.md`; `new seam` and `schema or grain
+change` are project-declared, so they reach the worker only if you put them here.
 
-`Sources` takes paths, not skill names. The worker has `Read`, so a plan, design section, ADR, or
-spec file is actionable. It has no `Skill` tool — skills reach it only through the `skills:` preload
-in `agents/claude/implementer.md`, so naming one in the prompt does nothing. A standard that should
-apply to every slice belongs in that preload, not in this form.
-
-Keep filled values short. The contract is the slice's boundary, not a restatement of the plan; the
-worker reads the plan itself from `Sources`.
+`Sources` takes file paths, not skill names: the worker has `Read` but no `Skill` tool, so a
+standard that should apply to every slice belongs in its `skills:` preload. Keep filled values
+short — the contract states the slice's boundary, while the plan itself travels by path, or inline
+when it is short enough to paste.
 
 ## Before you dispatch
 
@@ -68,27 +63,30 @@ halts. `../SKILL.md` → *Pre-flight → Close the unknowns* is the checklist; r
 here. At dispatch time, state in the prompt every syntax, contract, and data fact the slice
 depends on rather than instructing the worker to find it.
 
-**Bound the slice** (`Slice`)**.** Give explicit task numbers ("tasks 3–7", "the auth-middleware items"), never
-"implement the plan." An unbounded slice makes the worker pick its own scope and defeats
-orchestration.
+**Bound the slice** (`Slice`)**.** Give explicit task numbers ("tasks 3–7", "the auth-middleware
+items"), never "implement the plan." An unbounded slice makes the worker pick its own scope and
+defeats orchestration.
 
-**Emit a parallel batch in one message.** All dispatches for one step go out together; do not dispatch,
-comment, then dispatch again. The returns then wake you one at a time, and the after-return playbook below
-is per-slice recording only until the last worker is back — see `../SKILL.md` → *Dispatch as one batch,
-synthesize once* for what a partial-return turn may and may not contain.
+**Emit a parallel batch in one message.** All dispatches for one step go out together; do not
+dispatch, comment, then dispatch again. The returns then wake you one at a time, and the
+after-return playbook below is per-slice recording only until the last worker is back — see
+`../SKILL.md` → *Dispatch as one batch, synthesize once* for what a partial-return turn may and
+may not contain.
 
-**Own separation for parallel runs** (`Must not touch`)**.** If you dispatch more than one worker at once, give each a
-*disjoint* slice **and** an explicit may-touch / must-not-touch file list. Workers detect and
-report visible overlap but will not carve up work for you — that is your responsibility. When two
-workers edit a shared file, you create a merge collision.
+**Own separation for parallel runs** (`Must not touch`)**.** If you dispatch more than one worker at
+once, give each a *disjoint* slice **and** an explicit may-touch / must-not-touch file list.
+Workers detect and report visible overlap but will not carve up work for you — that is your
+responsibility. When two workers edit a shared file, you create a merge collision.
 
-**Resolve correctness-risk ambiguity first** (`You may decide` / `must report`)**.** Settle anything touching externally visible
-behavior, data models, security, migrations, or API contracts before dispatch. The worker halts
-on these instead of guessing, so an unresolved issue returns as `blocking: true` and costs a round
-trip. You may leave implementation-style ambiguity (naming, file placement, which local pattern)
-to the worker; it follows and records the surrounding convention.
+**Resolve correctness-risk ambiguity first** (`You may decide` / `must report`)**.** Settle anything
+touching externally visible behavior, data models, security, migrations, or API contracts before
+dispatch. The worker halts on these instead of guessing, so an unresolved issue returns as
+`blocking: true` and costs a round trip. You may leave implementation-style ambiguity (naming, file
+placement, which local pattern) to the worker; it follows and records the surrounding convention.
 
-**State the verification bar** (`Verification bar`)**.** Name the exact command the slice must pass ("must pass `uv run pytest tests/auth`", "`uv run mypy` clean"). The worker runs it and reports the outcome. Without a bar, it verifies loosely.
+**State the verification bar** (`Verification bar`)**.** Name the exact command the slice must pass
+("must pass `uv run pytest tests/auth`", "`uv run mypy` clean"). The worker runs it and reports the
+outcome. Without a bar, it verifies loosely.
 
 **Type the slice first.** The worker handles deterministic edits well. For slices that need shell
 execution the worker cannot do — lockfile regen, codegen, migrations, dependency installs — run
