@@ -19,28 +19,16 @@ Edge cases: <optional — only when the behavior is non-obvious>
 Sources: plan <path> · design <section> · ADRs <NNNN> · specs <path>
 You may decide: naming, file placement, private helpers, which local pattern to follow
 You must report as blocking rather than decide:
-  new dependency · public contract change · <project-declared decisions, if any>
+  new dependency · public contract change · <decisions declared in docs/adr/ that this slice
+  could touch; omit if none>
 Verification bar: <exact command> must pass
 Must not touch: <optional — file list, parallel dispatches only>
 ```
 
-`Non-goals` exists because an unbounded edge is a guess. Absent one, the worker takes the smallest
-reasonable reading of its slice and records the boundary it assumed under `Decisions made`, so you
-learn what it decided after the fact. Naming the boundary keeps that call yours.
+Keep filled values short: the contract states the slice's boundary, not the plan's content.
 
-The escalation line turns declared architectural decisions into halt conditions: a worker that
-settles one silently has overturned it from inside a task slice. Where `docs/adr/` exists, that
-set supplies the third position — name only the decisions this slice could plausibly touch, not
-the whole index. A repo scaffolded by `craft:architecture-baseline` declares seven; seams,
-identity and grain, and the error taxonomy are the ones a slice most often walks into. Where
-nothing is declared, leave the position empty rather than inventing triggers. The two universals
-are already standing behavior in `agents/implementer.md`, so restating them in slice context costs
-nothing, but the slot earns its keep through the declared half.
-
-`Sources` takes file paths, not skill names: the worker has `Read` but no `Skill` tool, so a
-standard that should apply to every slice belongs in its `skills:` preload. Keep filled values
-short — the contract states the slice's boundary, while the plan itself travels by path, or inline
-when it is short enough to paste.
+Skills are not sources. No worker has the `Skill` tool, so naming one here does nothing silently —
+a standard that must apply to every slice belongs in the agent's `skills:` preload instead.
 
 ## Before you dispatch
 
