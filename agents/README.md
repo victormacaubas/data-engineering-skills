@@ -16,11 +16,13 @@ Every supported agent has one variant in each directory with the same filename a
 
 | Agent | Variants | Claude Code model | Cursor CLI model | Description | Intentional Cursor CLI difference |
 |-------|----------|-------------------|------------------|-------------|-----------------------------------|
-| `pathfinder` | [Claude](claude/pathfinder.md) · [Cursor](cursor/pathfinder.md) | `claude-sonnet-5[1m]` | `claude-sonnet-5[effort=high,context=1m]` | Explores code, documents, tickets, wikis, and data warehouses and returns a compressed, source-grounded briefing. | Uses `readonly: true`. Cursor pins Sonnet 5 with high effort and 1M context, while using available read/MCP capabilities instead of Claude's tool allowlist. |
+| `pathfinder` | [Claude](claude/pathfinder.md) · [Cursor](cursor/pathfinder.md) | `claude-sonnet-5[1m]` | `claude-sonnet-5[effort=high,context=1m]` | Explores code, documents, tickets, wikis, and data warehouses and returns a compressed, source-grounded briefing. | Uses `readonly: true`. Cursor pins Sonnet 5 with high effort and 1M context, and works from available read capabilities instead of Claude's tool allowlist. It cannot preload skills, so the prompt names the governance and Atlassian CLI skills in both prefixed and unprefixed forms and records the fallback. |
 | `researcher` | [Claude](claude/researcher.md) · [Cursor](cursor/researcher.md) | `claude-sonnet-5[1m]` | `claude-sonnet-5[effort=high,context=1m]` | Researches bounded web questions and returns structured findings with fetched sources. | Uses `readonly: true`. Prompt references use generic web-search and page-fetching capabilities because Claude-specific tool identifiers are not portable. |
 | `implementer` | [Claude](claude/implementer.md) · [Cursor](cursor/implementer.md) | `claude-sonnet-5[1m]` | `gpt-5.6-terra[reasoning=xhigh,context=1m,fast=false]` | Implements bounded plan slices, writes code and tests, runs verification, and returns a structured status report. | Not read-only because it writes implementation artifacts. Cursor cannot reproduce Claude's tool allowlist, `permissionMode`, or skill preloading; the prompt loads `craft:python-engineering-standards` when installed and otherwise records the fallback. |
 | `code-auditor` | [Claude](claude/code-auditor.md) · [Cursor](cursor/code-auditor.md) | `claude-opus-4-6[1m]` | `gpt-5.6-sol[reasoning=high,context=1m]` | Runs a defect-focused code audit and writes the JSON review artifact before returning its verdict and score. | Not read-only because it writes `.code-audit/` reports. Cursor cannot restrict writes to only that report path or preload `craft:code-audit`; prompt guardrails preserve the source-read-only contract and require loading the installed skill. |
 | `structure-reviewer` | [Claude](claude/structure-reviewer.md) · [Cursor](cursor/structure-reviewer.md) | `claude-opus-4-6[1m]` | `gpt-5.6-sol[reasoning=high,context=1m]` | Reviews structure and project conformance, writes a markdown report, and returns the gate verdict and highest-leverage fixes. | Not read-only because it writes `.structure-review/` reports. Cursor cannot restrict writes to only that report path or preload `craft:structure-review`; prompt guardrails preserve the source-read-only contract and require loading the installed skill. |
+
+`pathfinder` reads Jira and Confluence through the [Atlassian CLI](https://developer.atlassian.com/cloud/acli/), which the installer does not provide. Install and authenticate `acli` separately, or Jira and Confluence assignments fail while code and Snowflake assignments still work.
 
 ## Platform behavior
 
@@ -28,10 +30,11 @@ Claude Code variants retain their existing model pins, tool allowlists, permissi
 
 ### Skill preloads are namespaced
 
-Claude Code namespaces every plugin-provided skill as `<plugin-name>:<skill-name>`, so a `skills:` preload must name the marketplace plugin too. All three preloading agents draw from the `craft` plugin:
+Claude Code namespaces every plugin-provided skill as `<plugin-name>:<skill-name>`, so a `skills:` preload must name the marketplace plugin too. Preloads span all three plugins, and `pathfinder` preloads two:
 
 | Agent | Preload |
 |---|---|
+| `pathfinder` | `data:data-governance`, `flow:atlassian-cli` |
 | `implementer` | `craft:python-engineering-standards` |
 | `code-auditor` | `craft:code-audit` |
 | `structure-reviewer` | `craft:structure-review` |

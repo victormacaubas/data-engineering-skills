@@ -13,6 +13,7 @@ Codex is retired. Mention it only in clearly labeled guidance for inspecting and
 **For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
 
 - Skills are self-contained. A skill and its `references/` carry everything needed to follow it, and should never point at another skill for content — including a sibling in the same group.
+- **Don't over-explain in a skill body.** No meta-commentary on what the skill does, why it exists, or what it will carry you through; whoever is reading it already loaded it. Write the instruction and the trap it avoids, not a case for following it.
 - Each release-ready skill is a kebab-case directory at `skills/<group>/<name>/`, where `<group>` is `craft`, `flow`, or `data`. Skill names must be unique across all three groups.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
 - Optional subdirectories are `scripts/`, `assets/`, and `references/`. A catalog entry sources the group directory, so these files are packaged with `SKILL.md` and top-level agents remain excluded.

@@ -27,6 +27,8 @@ If the prompt names sources but no focus, default to: what this source is, what 
 
 Pick the playbook per source type. When an assignment spans types, run each playbook on its own source, then reconcile them in `Synthesis`.
 
+Jira and Confluence reads go through the `acli` CLI, which must already be installed and authenticated. Load the installed Atlassian CLI skill for its command surface — `flow:atlassian-cli` from the marketplace plugin, or unprefixed `atlassian-cli` from the Cursor fallback script — and fall back to `acli <command> --help` if neither is installed.
+
 ### Code
 
 Follow this order. Do not skip steps.
@@ -39,15 +41,17 @@ Follow this order. Do not skip steps.
 
 ### Documents (Confluence pages, vault notes, local docs)
 
-Read the whole page rather than skimming for keywords — the decision you need is often in a table or a comment thread, not the summary. Pull **decisions and open threads**, not a prose recap of what the page says. Follow links out at most one hop, and say in Coverage where you stopped.
+Read the whole page rather than skimming for keywords — the decision you need is often in a table, a callout, or a trailing note, not the summary. Pull **decisions and open threads**, not a prose recap of what the page says. Follow links out at most one hop, and say in Coverage where you stopped.
 
-For Confluence, call `getAccessibleAtlassianResources` first to resolve the cloud ID; never guess it.
+For Confluence, read the page source rather than the rendered view, and pull the page ID out of the URL rather than guessing it.
 
 ### Jira
 
-Use `getJiraIssue` for a known key, `searchJiraIssuesUsingJql` when you have to find candidates. Report status, assignee, what is actually being asked, acceptance criteria, and blocking links. Never infer a status, assignee, or resolution you did not read — quote the field.
+Ask for the fields you actually need — the defaults omit comments and links — and read the comment thread when the discussion matters more than the description. Quote from JSON output: the table renderers silently drop fields you requested, and a dropped field looks exactly like an empty one.
 
-Also call `getAccessibleAtlassianResources` first here.
+When you have to find candidates rather than read a known key, bound the search and report the true total. Never paginate a whole project into your context; if you saw only the head of a result set, say so in `Coverage`.
+
+Report status, assignee, what is actually being asked, acceptance criteria, and blocking links. Never infer a status, assignee, or resolution you did not read — quote the field.
 
 ### Snowflake
 
@@ -57,7 +61,7 @@ Prefer `describe_object` / `list_objects` / `describe_semantic_view` for shape q
 
 Aggregate rather than dumping rows: `COUNT`, `GROUP BY`, `MIN`/`MAX` over a page of raw records.
 
-If the assignment is a governance question and the orchestrator supplied view names or a query, use them — the orchestrator has the `data-governance` reference and the stronger model. Your job is to execute and compress, not to rediscover which `ACCOUNT_USAGE` view holds the answer. If no query was supplied and you are unsure which view is authoritative, say so in `Assumptions` rather than guessing at a view name.
+If the assignment is a governance question, load the installed governance skill to pick the view — `data:data-governance` from the marketplace plugin, or unprefixed `data-governance` from the Cursor fallback script — and name your choice in `Assumptions`. If neither is installed, say so in `Questions for orchestrator` (blocking) rather than guessing at a view name; a plausible-looking guess is the one error the orchestrator cannot catch from your briefing.
 
 ## Budget discipline
 
