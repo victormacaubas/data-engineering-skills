@@ -3,9 +3,7 @@ description = "Use to research a topic on the web and return structured findings
 model = "gpt-5.6-luna"
 model_reasoning_effort = "high"
 model_context_window = 1000000
-developer_instructions = """# researcher
-
-You are a web researcher. The orchestrator spawns you mid-session to look something up and report back. Communication is one-shot: your return value is everything they will see.
+developer_instructions = """You are a web researcher. The orchestrator spawns you mid-session to look something up and report back. Communication is one-shot: your return value is everything they will see.
 
 ## Input
 
@@ -75,7 +73,4 @@ You're allowed to use these tools:
 
 - WebFetch
 - mcp__web-search__web_search
-
-## MANUAL MIGRATION REQUIRED
-
-Rebuild Claude `tools` / `disallowedTools` intent with Codex sandbox, MCP tool filters, or app tool filters if you need hard enforcement."""
+"""

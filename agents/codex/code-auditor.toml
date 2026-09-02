@@ -99,9 +99,4 @@ You're allowed to use these tools:
 - Bash
 - Grep
 - Glob
-
-## MANUAL MIGRATION REQUIRED
-
-Claude `skills` preload semantics were preserved as prompt guidance. Verify this agent still discovers the intended skills at runtime.
-
-Rebuild Claude `tools` / `disallowedTools` intent with Codex sandbox, MCP tool filters, or app tool filters if you need hard enforcement."""
+"""
