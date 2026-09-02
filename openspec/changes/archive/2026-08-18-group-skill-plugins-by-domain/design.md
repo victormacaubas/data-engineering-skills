@@ -1,6 +1,6 @@
 ## Context
 
-The repository distributes eleven skills through two Git-backed marketplace catalogs. Each entry names a plugin and points its `source` at the matching `skills/<name>/` directory, which holds `SKILL.md` at its root. Claude Code loads that as a single-skill plugin whose name comes from the catalog entry, and `strict: false` means no `plugin.json` is required.
+The repository distributes release-ready skills through two Git-backed marketplace catalogs. Each entry names a plugin and points its `source` at the matching `skills/<name>/` directory, which holds `SKILL.md` at its root. Claude Code loads that as a single-skill plugin whose name comes from the catalog entry, and `strict: false` means no `plugin.json` is required.
 
 Claude Code namespaces plugin skills as `<plugin-name>:<skill-name>`, and the namespace is mandatory — it exists to keep plugin skills from colliding with personal, project, and enterprise skills. With one plugin per skill, both halves are the same word.
 
@@ -17,6 +17,8 @@ Two consequences motivate this change. The visible one is `/data-governance:data
 - Correct the three silently-failing agent preloads.
 - Repair the Cursor fallback installer, which the layout change breaks.
 - Make the group-membership constraint explicit, so a future regrouping is recognised as breaking.
+- Publish one native Codex plugin that provides the shared skills and all five Codex-native custom agents.
+- Keep the Codex marketplace metadata at its required `.agents/plugins/marketplace.json` path while allowing the repository to continue ignoring unrelated `.agents/` state.
 
 **Non-Goals:**
 
@@ -24,6 +26,7 @@ Two consequences motivate this change. The visible one is `/data-governance:data
 - Preserving per-skill install granularity within a group.
 - Automatic migration for existing installs.
 - Publishing to either platform's public marketplace.
+- Replacing Codex's plugin-provided agents with a legacy `~/.codex/agents` installer.
 
 ## Decisions
 
@@ -119,6 +122,16 @@ It installs into `~/.cursor/skills/<name>/`, which is a plain skills location ra
 
 The Cursor catalog gets the same three entries and sources. Whether Cursor CLI honours a `skills` array in a marketplace entry is not documented well enough to assume. Task 2.5 resolves it against a real install before the change is archived. If the array is unsupported, the fallbacks in order are: add a `.cursor-plugin/plugin.json` per group declaring the same paths; failing that, nest each group's members under `skills/<group>/skills/` so the default scan finds them.
 
+### 8. Codex uses the shared source tree through symlink-first installers
+
+Codex needs no marketplace metadata or plugin adapter. `scripts/install-codex-skills.sh` reuses the existing flat-skill selection and safety behavior to symlink release-ready skills from `skills/<group>/<name>/` into `~/.codex/skills/`. This preserves a single skill source of truth, supports `--skills`, `--group`, `--copy`, and `CODEX_SKILLS_DIR`, and updates linked skills immediately after `git pull`.
+
+Codex custom agents are TOML files under `agents/codex/`. The existing `scripts/install-agents.sh` accepts `--platform codex`, validates selected `.toml` variants, and symlinks or copies them into `~/.codex/agents/`, using `CODEX_AGENTS_DIR` as the target override. The generated TOMLs preserve each Claude agent's developer instructions while converting model, effort, and sandbox settings to Codex-native fields; skill references are unprefixed because Codex installs the repository skills into a flat directory.
+
+### 9. The README has one platform-ordered install section
+
+`README.md` contains a single `## Install` section with three platform subsections in this order: Claude Code, Codex, Cursor CLI. Each subsection includes its installation and update path. Cursor's restricted-team fallback follows the Cursor marketplace instructions. Custom-agent prerequisites remain close to the platform instructions rather than being a disconnected later section.
+
 ## Risks / Trade-offs
 
 - **Group membership is public API.** Mitigated by a spec requirement and a `CLAUDE.md` rule, not by tooling. Accepted.
@@ -126,6 +139,7 @@ The Cursor catalog gets the same three entries and sources. Whether Cursor CLI h
 - **A skill can exist on disk and load nowhere** if the catalog array misses it. Mitigated by the catalog/directory agreement check in task 1.4.
 - **Every existing user reinstalls.** Eleven uninstalls, three installs, documented under migration. No automatic cleanup, consistent with the repository's non-destructive migration rule.
 - **Git history for eleven directories moves.** Use `git mv` so rename detection holds.
+- **Codex source links must resolve after a checkout moves.** Mitigated by absolute installer-created links and temporary-target tests for skills and agents.
 
 ## Migration Plan
 
@@ -133,7 +147,8 @@ The Cursor catalog gets the same three entries and sources. Whether Cursor CLI h
 2. Rewrite both catalogs and correct the three agent preloads in the same commit, so no catalog ever names a plugin root that does not exist and no agent is left pointing at a stale identifier.
 3. Fix `scripts/install-cursor-skills.sh` in the same commit, since the move breaks it.
 4. Document the uninstall-and-reinstall path in `README.md`, alongside the existing legacy-skill cleanup guidance.
-5. Do not remove or rewrite anyone's installed plugins.
+5. Add the Codex skill installer, TOML agent sources, and Codex branch in the existing agent installer.
+6. Do not remove or rewrite anyone's installed plugins.
 
 ## Open Questions
 

@@ -4,27 +4,47 @@ Define the repository onboarding, contributor guidance, and baseline files neede
 ## Requirements
 
 ### Requirement: README with complete onboarding
-The repository SHALL include a root `README.md` that provides complete onboarding for marketplace-installed skills and script-installed agents on Claude Code and Cursor CLI.
+The `README.md` SHALL have one `## Install` section ordered Claude Code, Codex, then Cursor CLI. It SHALL document marketplace registration, group/plugin installation, the namespaced invocation form, Codex symlink installation, agent installation, updates, the Cursor fallback installer, and migration from the previous per-skill plugins.
 
 #### Scenario: New user reads README
 - **WHEN** a user opens `README.md`
 - **THEN** they find the repository purpose and directory structure
-- **AND** instructions for registering the Git-backed Claude Code marketplace
-- **AND** instructions for registering the Git-backed Cursor marketplace in Cursor CLI without public marketplace submission
-- **AND** instructions for installing individual skills
-- **AND** instructions for installing Claude Code and Cursor CLI agents
-- **AND** update, migration, uninstall, and troubleshooting guidance
-- **AND** no active Codex installation instructions
+- **AND** a single `## Install` section ordered Claude Code, Codex, then Cursor CLI
+- **AND** installation and update guidance for each platform
+- **AND** migration, uninstall, and troubleshooting guidance
+
+#### Scenario: New user installs skills
+- **WHEN** a user follows the README
+- **THEN** they register the marketplace and install the `craft`, `flow`, and `data` plugins
+- **AND** they learn that skills invoke as `/<group>:<skill-name>`
+- **AND** they find the group-to-skill table
+
+#### Scenario: User installs from Codex
+- **WHEN** a user follows the Codex subsection of `## Install`
+- **THEN** they install skills with `scripts/install-codex-skills.sh`
+- **AND** they can find the documented symlink and copy update procedure
+- **AND** they learn that Codex agents install from `agents/codex/` through `install-agents.sh --platform codex`
+
+#### Scenario: Existing user migrates from per-skill plugins
+- **WHEN** a user has the eleven previous per-skill plugins installed
+- **THEN** the README explains uninstalling them and installing the three group plugins
+- **AND** no documented command removes their existing installations automatically
 
 ### Requirement: Repository guidance reflects the distribution contract
-The repository's agent-facing guidance SHALL describe marketplace-managed skills, platform-specific agent sources, and the OpenSpec requirement for install-contract changes.
+The repository's agent-facing guidance SHALL describe domain-grouped marketplace plugins, the namespaced skill invocation form, platform-specific agent sources, and the OpenSpec requirement for install-contract changes.
 
 #### Scenario: Coding agent opens the repository
 - **WHEN** a coding agent reads the repository guidance
-- **THEN** it identifies `skills/` as the shared skill source of truth
-- **AND** identifies the Claude Code and Cursor CLI marketplace catalogs
-- **AND** identifies the Claude Code and Cursor CLI agent source directories
-- **AND** does not describe Codex as a supported platform
+- **THEN** it identifies `skills/<group>/<name>/` as the shared skill source of truth
+- **AND** identifies the Claude Code and Cursor CLI marketplace catalogs and the three domain groups they expose
+- **AND** identifies `scripts/install-codex-skills.sh` and `agents/codex/` as the Codex distribution sources
+- **AND** identifies the Claude Code, Cursor CLI, and Codex agent source directories
+- **AND** describes Codex as a supported platform
+
+#### Scenario: Coding agent references a skill
+- **WHEN** repository guidance or an agent definition names an installed skill
+- **THEN** it uses the `<group>:<skill-name>` form
+- **AND** records that group membership is part of the published name
 
 ### Requirement: CLAUDE.md with repo-specific guidance
 The repository SHALL include a `CLAUDE.md` at the root that instructs Claude Code how to work within this project.

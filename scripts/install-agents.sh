@@ -5,8 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 CLAUDE_AGENTS_SRC="$REPO_DIR/agents/claude"
 CURSOR_AGENTS_SRC="$REPO_DIR/agents/cursor"
+CODEX_AGENTS_SRC="$REPO_DIR/agents/codex"
 CLAUDE_TARGET_DIR="${CLAUDE_AGENTS_DIR:-$HOME/.claude/agents}"
 CURSOR_TARGET_DIR="${CURSOR_AGENTS_DIR:-$HOME/.cursor/agents}"
+CODEX_TARGET_DIR="${CODEX_AGENTS_DIR:-$HOME/.codex/agents}"
 
 PLATFORM="claude"
 AGENT_SELECTION="all"
@@ -14,18 +16,20 @@ COPY_MODE=false
 
 claude_agents=()
 cursor_agents=()
+codex_agents=()
 available_agents=()
 selected_agents=()
 DISCOVERED_AGENTS=()
 CLAUDE_INSTALLED=0
 CURSOR_INSTALLED=0
+CODEX_INSTALLED=0
 
 usage() {
   cat <<EOF
 Usage: $0 [options]
 
 Options:
-  --platform claude|cursor|both
+  --platform claude|cursor|codex|both
       Agent platform to install. Defaults to claude.
 
   --agents all|none|name[,name...]
@@ -41,6 +45,7 @@ Options:
 Target overrides:
   CLAUDE_AGENTS_DIR   Defaults to \$HOME/.claude/agents
   CURSOR_AGENTS_DIR   Defaults to \$HOME/.cursor/agents
+  CODEX_AGENTS_DIR    Defaults to \$HOME/.codex/agents
 EOF
 }
 
@@ -77,12 +82,13 @@ print_list() {
 
 discover_agents() {
   local source_dir="$1"
+  local extension="$2"
   local agent_file
 
   DISCOVERED_AGENTS=()
-  for agent_file in "$source_dir"/*.md; do
+  for agent_file in "$source_dir"/*."$extension"; do
     [ -f "$agent_file" ] || continue
-    DISCOVERED_AGENTS+=("$(basename "${agent_file%.md}")")
+    DISCOVERED_AGENTS+=("$(basename "${agent_file%.$extension}")")
   done
 }
 
@@ -97,11 +103,14 @@ add_available_agent() {
 build_available_agents() {
   local agent_name
 
-  discover_agents "$CLAUDE_AGENTS_SRC"
+  discover_agents "$CLAUDE_AGENTS_SRC" "md"
   claude_agents=("${DISCOVERED_AGENTS[@]}")
 
-  discover_agents "$CURSOR_AGENTS_SRC"
+  discover_agents "$CURSOR_AGENTS_SRC" "md"
   cursor_agents=("${DISCOVERED_AGENTS[@]}")
+
+  discover_agents "$CODEX_AGENTS_SRC" "toml"
+  codex_agents=("${DISCOVERED_AGENTS[@]}")
 
   available_agents=()
   case "$PLATFORM" in
@@ -110,6 +119,9 @@ build_available_agents() {
       ;;
     cursor)
       available_agents=("${cursor_agents[@]}")
+      ;;
+    codex)
+      available_agents=("${codex_agents[@]}")
       ;;
     both)
       for agent_name in "${claude_agents[@]}" "${cursor_agents[@]}"; do
@@ -196,6 +208,11 @@ preflight_selected_agents() {
        [ ! -f "$CURSOR_AGENTS_SRC/$agent_name.md" ]; then
       missing_variants+=("Cursor CLI: agents/cursor/$agent_name.md")
     fi
+
+    if [ "$PLATFORM" = "codex" ] &&
+       [ ! -f "$CODEX_AGENTS_SRC/$agent_name.toml" ]; then
+      missing_variants+=("Codex: agents/codex/$agent_name.toml")
+    fi
   done
 
   if [ "${#missing_variants[@]}" -gt 0 ]; then
@@ -244,6 +261,7 @@ is_repo_symlink() {
 backup_existing_path() {
   local target_path="$1"
   local agent_name="$2"
+  local extension="$3"
   local ts
   local backup_path
   local suffix=1
@@ -256,13 +274,14 @@ backup_existing_path() {
   done
 
   mv "$target_path" "$backup_path"
-  echo "  [BACKUP] $agent_name.md -> $backup_path"
+  echo "  [BACKUP] $agent_name.$extension -> $backup_path"
 }
 
 install_platform_agents() {
   local platform="$1"
   local source_dir="$2"
   local target_dir="$3"
+  local extension="$4"
   local agent_name
   local agent_file
   local target_path
@@ -273,25 +292,25 @@ install_platform_agents() {
   fi
 
   for agent_name in "${selected_agents[@]}"; do
-    agent_file="$source_dir/$agent_name.md"
-    target_path="$target_dir/$agent_name.md"
+    agent_file="$source_dir/$agent_name.$extension"
+    target_path="$target_dir/$agent_name.$extension"
 
     if [ -L "$target_path" ]; then
       if is_repo_symlink "$target_path"; then
         rm "$target_path"
       else
-        backup_existing_path "$target_path" "$agent_name"
+        backup_existing_path "$target_path" "$agent_name" "$extension"
       fi
     elif [ -e "$target_path" ]; then
-      backup_existing_path "$target_path" "$agent_name"
+      backup_existing_path "$target_path" "$agent_name" "$extension"
     fi
 
     if [ "$COPY_MODE" = true ]; then
       cp "$agent_file" "$target_path"
-      echo "  [COPY] $agent_name.md -> $target_path"
+      echo "  [COPY] $agent_name.$extension -> $target_path"
     else
       ln -s "$agent_file" "$target_path"
-      echo "  [LINK] $agent_name.md -> $target_path"
+      echo "  [LINK] $agent_name.$extension -> $target_path"
     fi
 
     installed=$((installed + 1))
@@ -300,6 +319,7 @@ install_platform_agents() {
   case "$platform" in
     claude) CLAUDE_INSTALLED="$installed" ;;
     cursor) CURSOR_INSTALLED="$installed" ;;
+    codex) CODEX_INSTALLED="$installed" ;;
   esac
 }
 
@@ -308,6 +328,7 @@ print_plan() {
   case "$PLATFORM" in
     claude) echo "  Platforms: Claude Code" ;;
     cursor) echo "  Platforms: Cursor CLI" ;;
+    codex) echo "  Platforms: Codex" ;;
     both) echo "  Platforms: Claude Code, Cursor CLI" ;;
   esac
   echo "  Mode:      $([ "$COPY_MODE" = true ] && echo copy || echo symlink)"
@@ -317,6 +338,9 @@ print_plan() {
   fi
   if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "both" ]; then
     echo "  Cursor target: $CURSOR_TARGET_DIR"
+  fi
+  if [ "$PLATFORM" = "codex" ]; then
+    echo "  Codex target: $CODEX_TARGET_DIR"
   fi
   echo ""
 }
@@ -333,6 +357,11 @@ print_empty_source_messages() {
     echo "No valid Cursor CLI agents found in $CURSOR_AGENTS_SRC."
     echo "Add definitions as agents/cursor/<name>.md."
   fi
+
+  if [ "$PLATFORM" = "codex" ] && [ "${#codex_agents[@]}" -eq 0 ]; then
+    echo "No valid Codex agents found in $CODEX_AGENTS_SRC."
+    echo "Add definitions as agents/codex/<name>.toml."
+  fi
 }
 
 print_summary() {
@@ -345,6 +374,9 @@ print_summary() {
   if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "both" ]; then
     echo "  Cursor CLI:  $CURSOR_INSTALLED installed to $CURSOR_TARGET_DIR"
   fi
+  if [ "$PLATFORM" = "codex" ]; then
+    echo "  Codex:       $CODEX_INSTALLED installed to $CODEX_TARGET_DIR"
+  fi
 }
 
 while [[ $# -gt 0 ]]; do
@@ -355,7 +387,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --platform)
       if [[ $# -lt 2 || "$2" == --* ]]; then
-        echo "--platform requires a value: claude, cursor, or both" >&2
+        echo "--platform requires a value: claude, cursor, codex, or both" >&2
         usage >&2
         exit 1
       fi
@@ -392,10 +424,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$PLATFORM" in
-  claude|cursor|both) ;;
+  claude|cursor|codex|both) ;;
   *)
     echo "Unknown platform: $PLATFORM" >&2
-    echo "Valid platforms: claude, cursor, both" >&2
+    echo "Valid platforms: claude, cursor, codex, both" >&2
     exit 1
     ;;
 esac
@@ -420,12 +452,17 @@ fi
 
 if [ "$PLATFORM" = "claude" ] || [ "$PLATFORM" = "both" ]; then
   echo "Installing Claude Code agents"
-  install_platform_agents "claude" "$CLAUDE_AGENTS_SRC" "$CLAUDE_TARGET_DIR"
+  install_platform_agents "claude" "$CLAUDE_AGENTS_SRC" "$CLAUDE_TARGET_DIR" "md"
 fi
 
 if [ "$PLATFORM" = "cursor" ] || [ "$PLATFORM" = "both" ]; then
   echo "Installing Cursor CLI agents"
-  install_platform_agents "cursor" "$CURSOR_AGENTS_SRC" "$CURSOR_TARGET_DIR"
+  install_platform_agents "cursor" "$CURSOR_AGENTS_SRC" "$CURSOR_TARGET_DIR" "md"
+fi
+
+if [ "$PLATFORM" = "codex" ]; then
+  echo "Installing Codex agents"
+  install_platform_agents "codex" "$CODEX_AGENTS_SRC" "$CODEX_TARGET_DIR" "toml"
 fi
 
 print_summary

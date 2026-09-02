@@ -1,6 +1,6 @@
 # Authoring a custom agent
 
-Custom agents are autonomous workers installed separately from marketplace skills. Every supported agent has a complete Claude Code definition and a complete Cursor CLI definition.
+Custom agents are autonomous workers installed separately from marketplace skills. Every supported agent has complete Claude Code, Codex, and Cursor CLI definitions.
 
 ## Source layout
 
@@ -9,24 +9,24 @@ agents/
 ├── README.md
 ├── claude/
 │   └── my-agent.md
+├── codex/
+│   └── my-agent.toml
 └── cursor/
     └── my-agent.md
 ```
 
-Agent files are individual markdown files, not directories. The two platform directories must contain the same kebab-case agent-name set. In each file, the frontmatter `name` must match the filename without `.md`.
+Claude and Cursor agent files are Markdown; Codex agent files are TOML. All three platform directories must contain the same kebab-case agent-name set. Each definition's `name` must match its filename without the extension.
 
 ## Platform frontmatter
 
 Both variants require `name` and `description`. Use only fields supported and intended for that platform.
 
-| Concern | Claude Code variant | Cursor CLI variant |
-|---------|---------------------|--------------------|
-| Model | Claude Code model identifier or alias | Cursor CLI-supported model identifier |
-| Read-only behavior | Claude tool allowlist or denied tools, backed by prompt guardrails | `readonly: true`, backed by prompt guardrails |
-| Background behavior | Express in the prompt or a supported Claude field | `is_background` where intended |
-| Tool controls | `tools` and other Claude-supported permission fields | Do not copy Claude-only tool allowlists as if Cursor enforced them |
-| Skill preload | `skills`, namespaced as `<group>:<skill-name>` | No equivalent field; name the skill in prose, trying the namespaced form then the bare one |
-| Effort and permissions | Claude-supported `effort`, `permissionMode`, and related fields | Omit Claude-only controls and state the intended behavior in the prompt |
+| Concern | Claude Code variant | Codex variant | Cursor CLI variant |
+|---------|---------------------|---------------|--------------------|
+| Model | Claude Code model identifier or alias | `model` and `model_reasoning_effort` | Cursor CLI-supported model identifier |
+| Read-only behavior | Claude tool allowlist or denied tools, backed by prompt guardrails | `sandbox_mode` plus prompt guardrails | `readonly: true`, backed by prompt guardrails |
+| Tool controls | `tools` and other Claude-supported permission fields | Prompt guidance or Codex sandbox/MCP controls | Do not copy Claude-only tool allowlists as if Cursor enforced them |
+| Skill preload | `skills`, namespaced as `<group>:<skill-name>` | Prompt guidance only; Codex has no preload equivalent | No equivalent field; name the skill in prose, trying the namespaced form then the bare one |
 
 Parsing the same frontmatter on both platforms is not capability parity. In particular, a read-only Cursor worker must set `readonly: true`; copying a Claude `tools:` allowlist is not an equivalent restriction.
 
@@ -35,13 +35,13 @@ Parsing the same frontmatter on both platforms is not capability parity. In part
 1. Create matching files:
 
    ```bash
-   touch agents/claude/my-agent.md agents/cursor/my-agent.md
+   touch agents/claude/my-agent.md agents/cursor/my-agent.md agents/codex/my-agent.toml
    ```
 
 2. Give both files the same `name`, task purpose, input contract, method, output contract, and safety intent.
 3. Add platform-specific model and capability fields.
 4. Adjust prompt text where one platform cannot express the other's tool, permission, model, or preload behavior.
-5. Add both variants to `agents/README.md`, including models and intentional platform differences.
+5. Add all three variants to `agents/README.md`, including models and intentional platform differences.
 6. Install and exercise each variant on its own platform.
 
 Keep the files complete. Do not make one variant include or point to the other, and do not introduce a generated-agent build step.
@@ -97,6 +97,7 @@ Or call the installer directly:
 
 ```bash
 ./scripts/install-agents.sh --platform claude --agents all
+./scripts/install-agents.sh --platform codex --agents all
 ./scripts/install-agents.sh --platform cursor --agents pathfinder,researcher
 ./scripts/install-agents.sh --platform both --agents my-agent
 ```
@@ -104,7 +105,7 @@ Or call the installer directly:
 The supported selections are:
 
 ```text
---platform claude|cursor|both
+--platform claude|cursor|codex|both
 --agents all|none|name[,name...]
 --copy
 ```
@@ -116,6 +117,7 @@ Default targets:
 | Platform | Source | Target | Override |
 |----------|--------|--------|----------|
 | Claude Code | `agents/claude/` | `~/.claude/agents/` | `CLAUDE_AGENTS_DIR` |
+| Codex | `agents/codex/` | `~/.codex/agents/` | `CODEX_AGENTS_DIR` |
 | Cursor CLI | `agents/cursor/` | `~/.cursor/agents/` | `CURSOR_AGENTS_DIR` |
 
 Example overrides:

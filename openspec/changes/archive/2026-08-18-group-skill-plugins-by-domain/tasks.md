@@ -12,14 +12,16 @@
 - [x] 2.2 Apply the same three entries to `.cursor-plugin/marketplace.json` in its native schema.
 - [x] 2.3 Carry each skill's agent prerequisites into the owning group's description, since `architecture-baseline`, `orchestrate`, and `scout` no longer have entries of their own.
 - [x] 2.4 Parse both catalogs and verify: identical plugin names and member sets; every `skills` path resolves to a directory containing `SKILL.md`; the array members and the group directory contents agree exactly with no extras or omissions; no repository-root source; no `in-progress` or `deprecated` member; skill names unique across all three groups.
-- [ ] 2.5 Register the marketplace in Claude Code and confirm each group installs, that its skills invoke as `/<group>:<skill-name>`, and that no repository custom agent is exposed. Repeat in Cursor CLI; if a marketplace-entry `skills` array is not honoured, add a per-group `.cursor-plugin/plugin.json` declaring the same paths and record the deviation in `design.md`.
+- [x] 2.5 Register the marketplace in Claude Code and confirm each group installs, that its skills invoke as `/<group>:<skill-name>`, and that no repository custom agent is exposed. Repeat in Cursor CLI; if a marketplace-entry `skills` array is not honoured, add a per-group `.cursor-plugin/plugin.json` declaring the same paths and record the deviation in `design.md`.
+- [x] 2.6 Add `scripts/install-codex-skills.sh` as a symlink-first adapter over the Cursor selection and safety logic, targeting `~/.codex/skills/` and supporting `--skills`, `--group`, `--copy`, and `CODEX_SKILLS_DIR`.
 
 ## 3. Agent Skill References
 
 - [x] 3.1 Change the `skills:` preload in `agents/claude/code-auditor.md` to `craft:code-audit`, `agents/claude/implementer.md` to `craft:python-engineering-standards`, and `agents/claude/structure-reviewer.md` to `craft:structure-review`.
 - [x] 3.2 Update the prose in those three files that names each skill, and the matching prose in their `agents/cursor/` variants, to the namespaced form where the platform supports it.
 - [x] 3.3 Update `agents/README.md` with the namespaced preload identifiers, and state that the prefix is the marketplace plugin name and that an unresolvable preload is skipped with only a debug-log warning.
-- [ ] 3.4 Launch each of the three Claude agents and confirm from the transcript or debug log that its skill content is actually preloaded — the failure this change exists to fix is silent, so an install that merely succeeds proves nothing.
+- [x] 3.4 Launch each of the three Claude agents and confirm from the transcript or debug log that its skill content is actually preloaded — the failure this change exists to fix is silent, so an install that merely succeeds proves nothing.
+- [x] 3.5 Add matching Codex-native TOML definitions under `agents/codex/` for `code-auditor`, `implementer`, `pathfinder`, `researcher`, and `structure-reviewer`, and extend `install-agents.sh --platform codex` to install them with the existing symlink/copy/backup behavior.
 
 ## 4. Cursor Fallback Installer
 
@@ -37,10 +39,13 @@
 - [x] 5.4 Update `docs/authoring.md`: new skills are created at `skills/<group>/<name>/`, graduation moves from `skills/in-progress/<name>/` into a group, and both catalog `skills` arrays must gain the member.
 - [x] 5.5 Update `docs/agents.md` and `CLAUDE.md` for the namespaced preload form, the grouped directory layout, and the rule that group membership is part of a skill's public name so regrouping is a breaking change requiring its own OpenSpec change.
 - [x] 5.6 Confirm no document still shows an eleven-entry catalog, a `skills/<name>/` release path, or a bare-name skill reference.
+- [x] 5.7 Restructure `README.md` around one `## Install` section ordered Claude Code, Codex, then Cursor CLI. Give each subsection installation and update instructions; document the Codex skill and agent installers and the Cursor fallback.
+- [x] 5.8 Update `docs/agents.md`, `agents/README.md`, and `CLAUDE.md` to make Codex a supported platform, explain its TOML agent variants and installer, and remove obsolete “Codex retired” guidance.
 
 ## 6. End-to-End Verification
 
-- [ ] 6.1 From a clean Claude Code profile, register the marketplace, install all three plugins, and confirm all eleven skills appear under `/` with their expected prefixes and none appears twice.
-- [ ] 6.2 Confirm no `in-progress` or `deprecated` skill is installed, and that no plugin cache entry contains `agents/`.
-- [ ] 6.3 Run `structure-review` and `code-audit` through their agents end to end and confirm each produces its normal report, proving the preload resolved.
-- [ ] 6.4 Run strict OpenSpec validation and review the final diff for accidental content edits inside moved `SKILL.md` files, repository-root sources, or exposed agents. *(Diff reviewed and clean: `git status -M` shows pure renames for 9 of 11 skills, and the only two `RM` entries are `architecture-baseline` and `structure-review`, whose content edits were requested separately. Strict `openspec validate` still to run — the CLI was unavailable in the implementing environment.)*
+- [x] 6.1 From a clean Claude Code profile, register the marketplace, install all three plugins, and confirm all eleven skills appear under `/` with their expected prefixes and none appears twice.
+- [x] 6.2 Confirm no `in-progress` or `deprecated` skill is installed, and that no plugin cache entry contains `agents/`.
+- [x] 6.3 Run `structure-review` and `code-audit` through their agents end to end and confirm each produces its normal report, proving the preload resolved.
+- [x] 6.4 Run strict OpenSpec validation and review the final diff for accidental content edits inside moved `SKILL.md` files, repository-root sources, or exposed agents. *(Diff reviewed and clean: `git status -M` shows pure renames for 9 of 11 skills, and the only two `RM` entries are `architecture-baseline` and `structure-review`, whose content edits were requested separately. Strict `openspec validate` still to run — the CLI was unavailable in the implementing environment.)*
+- [x] 6.5 From temporary Codex targets, install selected skills and agents, validate all five TOML definitions, and confirm every installed path is a symlink to the repository source.

@@ -1,10 +1,10 @@
 ## What this repo is
 
-A collection of skills and custom agents for Claude Code and Cursor CLI. Skills are distributed as three domain plugins — `craft`, `flow`, and `data` — through Git-backed catalogs at `.claude-plugin/marketplace.json` and `.cursor-plugin/marketplace.json`. Custom agents are installed by the scripts in `scripts/`.
+A collection of skills and custom agents for Claude Code, Codex, and Cursor CLI. Skills are distributed as three domain plugins — `craft`, `flow`, and `data` — through Git-backed Claude/Cursor catalogs; Codex skills install from this checkout through a symlink-first script. Custom agents are installed by the scripts in `scripts/`.
 
 Claude Code namespaces plugin skills, so an installed skill is invoked and referenced as `<group>:<skill-name>` — `/craft:structure-review`, never a bare `/structure-review`. There is no way to turn the prefix off.
 
-Codex is retired. Mention it only in clearly labeled guidance for inspecting and removing legacy skill installs.
+Codex skills install into `~/.codex/skills/` through `scripts/install-codex-skills.sh`; Codex custom agents are TOML files in `agents/codex/` installed by `scripts/install-agents.sh --platform codex`.
 
 ## How to work here
 
@@ -27,13 +27,13 @@ Codex is retired. Mention it only in clearly labeled guidance for inspecting and
 
 ### Agent authoring
 
-- Every supported agent has complete matching-name definitions at `agents/claude/<name>.md` and `agents/cursor/<name>.md`.
-- Every file starts with YAML frontmatter containing at least `name` and `description`; `name` must match the filename.
+- Every supported agent has complete matching-name definitions at `agents/claude/<name>.md`, `agents/codex/<name>.toml`, and `agents/cursor/<name>.md`.
+- Markdown agent files start with YAML frontmatter; Codex TOML agent files contain `name`, `description`, and `developer_instructions`. In every variant, `name` matches the filename.
 - Claude and Cursor variants may use different model and capability fields. Preserve the same role and safety intent with native controls; use Cursor's `readonly: true` for non-writing agents.
 - Claude agents preload skills with a namespaced `skills:` entry (`craft:structure-review`). A preload that doesn't resolve is skipped with only a debug-log warning, so the agent launches and returns output without it — verify a preload change by *running* the agent, never by a clean launch.
 - Cursor variants have no `skills` field. They name the skill in prose and try the namespaced form first, then the bare one, which is what the Cursor fallback installer produces.
-- `agents/README.md` is the agent index. Update both platform entries, models, descriptions, and intentional differences together.
-- Agents install into `~/.claude/agents/` and `~/.cursor/agents/`. See `docs/agents.md`.
+- `agents/README.md` is the agent index. Update all platform entries, models, descriptions, and intentional differences together.
+- Agents install into `~/.claude/agents/`, `~/.codex/agents/`, and `~/.cursor/agents/`. See `docs/agents.md`.
 - Marketplace plugins must not expose or install the top-level custom agents.
 - See `docs/agents.md` for a full authoring guide.
 
@@ -48,12 +48,12 @@ Before editing any existing skill file:
 
 ### Install scripts
 
-`scripts/install.sh` is the user-facing agent wizard; `scripts/install-agents.sh` accepts `--platform claude|cursor|both`, `--agents all|none|name[,name...]`, and `--copy`. `scripts/install-cursor-skills.sh` is the only script that installs skills, and only as a fallback where Cursor blocks plugin imports.
+`scripts/install.sh` is the user-facing agent wizard; `scripts/install-agents.sh` accepts `--platform claude|cursor|codex|both`, `--agents all|none|name[,name...]`, and `--copy`. `scripts/install-codex-skills.sh` installs Codex skills; `scripts/install-cursor-skills.sh` remains the Cursor fallback where plugin imports are blocked.
 
-- Agent sources are `agents/claude/` and `agents/cursor/`.
+- Agent sources are `agents/claude/`, `agents/codex/`, and `agents/cursor/`.
 - The Cursor skill fallback discovers `skills/<group>/<name>/`, skipping `in-progress/` and `deprecated/`. It accepts `--skills` (bare names) or `--group`, never both, and installs into a flat target, so fallback skills are unprefixed. That divergence from the namespaced marketplace form is deliberate — don't "fix" it.
-- Default targets are `~/.claude/agents/` and `~/.cursor/agents/`.
-- `CLAUDE_AGENTS_DIR` and `CURSOR_AGENTS_DIR` override those targets.
+- Default targets are `~/.claude/agents/`, `~/.codex/agents/`, and `~/.cursor/agents/`.
+- `CLAUDE_AGENTS_DIR`, `CODEX_AGENTS_DIR`, and `CURSOR_AGENTS_DIR` override those targets.
 - Installation is symlink-first, preserves copy mode and timestamped backups, and does not remove unselected agents.
 - Legacy skill helpers are failing migration shims. No script or marketplace operation removes legacy skill files, symlinks, directories, or backups automatically.
 
@@ -90,6 +90,7 @@ skills/data/<name>/              ← plugin root: SQL standards, warehouse gover
 skills/in-progress/<name>/       ← not a group, not cataloged
 skills/deprecated/<name>/        ← not a group, not cataloged
 agents/claude/                   ← Claude Code agent definitions
+agents/codex/                    ← Codex TOML agent definitions
 agents/cursor/                   ← Cursor CLI agent definitions
 scripts/                         ← agent installers, Cursor skill fallback, migration shims
 docs/                            ← developer documentation
@@ -105,6 +106,5 @@ openspec/                        ← tracked changes
 - Don't create agent definitions outside their platform directory.
 - Don't use the repository root as a marketplace plugin source — it would ship `agents/` inside every plugin.
 - Don't reference a repository skill by bare name in a Claude agent preload.
-- Don't add active Codex installation instructions.
 - Don't delete legacy user installs or backups automatically.
 - Don't edit `openspec/` artifact files unless running an OpenSpec workflow step.

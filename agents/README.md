@@ -1,16 +1,18 @@
 # Agents
 
-Complete custom-agent definitions for Claude Code and Cursor CLI live in separate platform directories:
+Complete custom-agent definitions for Claude Code, Codex, and Cursor CLI live in separate platform directories:
 
 ```text
 agents/
 ├── claude/
 │   └── <agent-name>.md
+├── codex/
+│   └── <agent-name>.toml
 └── cursor/
     └── <agent-name>.md
 ```
 
-Every supported agent has one variant in each directory with the same filename and frontmatter `name`. Review both variants together when changing an agent.
+Every supported agent has one variant in each directory with the same basename and `name`. Review all three variants together when changing an agent.
 
 ## Available agents
 
@@ -50,8 +52,9 @@ Cursor CLI has no frontmatter equivalent for Claude's granular tool allowlists, 
 
 ```bash
 ./scripts/install-agents.sh --platform claude --agents all
+./scripts/install-agents.sh --platform codex --agents all
 ./scripts/install-agents.sh --platform cursor --agents all
 ./scripts/install-agents.sh --platform both --agents pathfinder,implementer
 ```
 
-Agents are symlinked into `~/.claude/agents/` or `~/.cursor/agents/` by default; the installer also supports copy mode and target-directory overrides. See [docs/agents.md](../docs/agents.md) for full install and authoring instructions.
+Agents are symlinked into `~/.claude/agents/`, `~/.codex/agents/`, or `~/.cursor/agents/` by default; the installer also supports copy mode and target-directory overrides. See [docs/agents.md](../docs/agents.md) for full install and authoring instructions.
