@@ -3,6 +3,10 @@
 ### Requirement: Independently installable skills
 The marketplace catalogs SHALL expose each domain group under `skills/` as a separate installable plugin whose source is the group directory and whose `skills` array lists every release-ready member of that group.
 
+#### Scenario: User installs one skill
+- **WHEN** a user selects one domain-group plugin from either marketplace
+- **THEN** every skill in that selected group, and only files within its group directory, are installed
+
 #### Scenario: User installs one group
 - **WHEN** a user selects one group plugin from either marketplace
 - **THEN** every skill listed in that entry's `skills` array is installed
@@ -22,7 +26,12 @@ The marketplace catalogs SHALL expose each domain group under `skills/` as a sep
 - **THEN** the Claude Code and Cursor CLI catalogs expose the same group names and the same member set within each group
 
 ### Requirement: Skill plugins exclude custom agents
-Marketplace-installed skill plugins SHALL NOT install or expose custom-agent definitions from the repository, and no catalog entry SHALL use a source that contains `agents/`.
+Claude Code and Cursor CLI marketplace-installed skill plugins SHALL NOT install or expose custom-agent definitions from the repository, and no Claude/Cursor catalog entry SHALL use a source that contains `agents/`.
+
+#### Scenario: Skill with agent dependency is installed
+- **WHEN** a user installs a Claude Code or Cursor CLI group containing a skill that depends on a custom agent
+- **THEN** that marketplace installation contains skills only
+- **AND** its documentation identifies the separate agent-install prerequisite
 
 #### Scenario: Group plugin is installed
 - **WHEN** a user installs any group plugin
@@ -35,6 +44,18 @@ Marketplace-installed skill plugins SHALL NOT install or expose custom-agent def
 - **AND** never to the repository root
 
 ## ADDED Requirements
+
+### Requirement: Codex skills install from the shared source tree
+The repository SHALL provide a symlink-first Codex installer that exposes release-ready skills from the shared `skills/<group>/<name>/` source tree.
+
+#### Scenario: User installs Codex skills
+- **WHEN** a user runs `scripts/install-codex-skills.sh --skills all`
+- **THEN** every release-ready directory containing `SKILL.md` is symlinked into `~/.codex/skills/`
+- **AND** no skill under `skills/in-progress/` or `skills/deprecated/` is available
+
+#### Scenario: Codex selects a group
+- **WHEN** a user runs `scripts/install-codex-skills.sh --group data`
+- **THEN** only the data group's skills are installed into the flat Codex skills target
 
 ### Requirement: Namespaced skill invocation
 Skills installed from a group plugin SHALL invoke as `<group>:<skill-name>`, where the group is the marketplace plugin name and the skill name is the frontmatter `name` in its `SKILL.md`.

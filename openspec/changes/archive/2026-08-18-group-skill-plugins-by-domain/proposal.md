@@ -4,7 +4,7 @@ Claude Code namespaces every plugin-provided skill as `<plugin-name>:<skill-name
 
 The redundancy is cosmetic. The defect it exposes is not. Three Claude agents preload skills by bare name — `skills: [structure-review]` — and a bare name does not resolve to a plugin-provided skill. Claude Code skips an unresolvable preload and logs only to the debug log, so `structure-reviewer`, `code-auditor`, and `implementer` currently run without the skill each one exists to run, and nothing surfaces the failure.
 
-Grouping the eleven skills into three domain plugins gives each skill a prefix that carries information, and forces the broken preload identifiers to be corrected in the same change.
+Grouping the skills into three domain plugins gives each skill a prefix that carries information, and forces the broken preload identifiers to be corrected in the same change. The repository also needs a native Codex distribution path rather than treating Codex as retired: symlink-first installers can expose the shared skills and Codex-native custom-agent definitions without duplicating their sources.
 
 ## What Changes
 
@@ -15,8 +15,10 @@ Grouping the eleven skills into three domain plugins gives each skill a prefix t
 - Keep every skill's directory name and frontmatter `name` unchanged, so the second half of each identifier is stable.
 - Correct the `skills:` preload identifiers in `agents/claude/{code-auditor,implementer,structure-reviewer}.md` to `craft:<skill>`, and the prose in both platform variants that names each skill.
 - Fix `scripts/install-cursor-skills.sh`, whose one-level discovery finds no skills under the grouped layout, and add group-based selection.
+- Add a Codex skill installer that symlinks release-ready skills into `~/.codex/skills/`.
+- Add Codex-native TOML variants of the five custom agents plus `--platform codex` support in the existing agent installer.
 - Record that a skill's group membership is part of its public invocation name, so moving a skill between groups is a breaking rename rather than a tidy-up.
-- Update `README.md`, `docs/authoring.md`, `docs/agents.md`, `agents/README.md`, and `CLAUDE.md` for the grouped layout, the graduation flow, and the namespaced invocation form.
+- Update `README.md`, `docs/authoring.md`, `docs/agents.md`, `agents/README.md`, and `CLAUDE.md` for the grouped layout, the graduation flow, the namespaced invocation form, and Codex support. The README gains one `## Install` section ordered Claude Code, Codex, then Cursor, with installation and update instructions for each.
 
 ## Capabilities
 
@@ -26,16 +28,16 @@ None.
 
 ### Modified Capabilities
 
-- `skill-install`: Distribute skills as three domain-grouped marketplace plugins whose roots are group directories, and repair the Cursor fallback installer for the grouped layout.
+- `skill-install`: Distribute skills as three domain-grouped Claude/Cursor marketplace plugins plus a symlink-first Codex installer, and repair the Cursor fallback installer for the grouped layout.
 - `skill-authoring`: Require every release-ready skill to live under a group directory and be listed in both catalogs' `skills` arrays.
-- `agent-install`: Require agent skill preloads to use plugin-namespaced identifiers.
+- `agent-install`: Require agent skill preloads to use plugin-namespaced identifiers and install Codex-native TOML agents through the existing installer.
 - `repo-scaffold`: Describe the grouped `skills/` layout, the namespaced invocation form, and the group-membership constraint.
 
 ## Impact
 
 - Affected manifests: `.claude-plugin/marketplace.json` and `.cursor-plugin/marketplace.json` drop from eleven entries to three, each gaining a `skills` array.
-- Affected source layout: `skills/<name>/` becomes `skills/<group>/<name>/` for all eleven release-ready skills. `skills/in-progress/` and `skills/deprecated/` are unchanged. `agents/` is unchanged.
-- Affected agents: three Claude agent definitions whose preloads are currently failing silently, plus prose in their Cursor variants.
+- Affected source layout: `skills/<name>/` becomes `skills/<group>/<name>/` for every release-ready skill. `skills/in-progress/` and `skills/deprecated/` are unchanged. `agents/codex/` joins the existing platform-specific agent sources.
+- Affected agents: three Claude agent definitions whose preloads are currently failing silently, prose in their Cursor variants, and five Codex-native definitions.
 - Affected scripts: `scripts/install-cursor-skills.sh` discovery, selection, and help text.
 - Affected documentation: `README.md`, `docs/authoring.md`, `docs/agents.md`, `agents/README.md`, `CLAUDE.md`.
 
@@ -44,5 +46,5 @@ None.
 - Renaming any skill. `/craft:structure-review`, not `/craft:review`.
 - Changing what any skill does. The `architecture-baseline` and `structure-review` content edits requested alongside this work are separate and unaffected.
 - Using the repository root as a plugin source, which would ship `agents/` inside every plugin.
-- Distributing custom agents through plugins.
+- Making a copied Codex mirror of the skills or agents.
 - Deleting anyone's existing per-skill plugin installations automatically.
