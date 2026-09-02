@@ -4,7 +4,7 @@
 
 # data-engineering-skills
 
-A collection of skills and custom agents for [Claude Code](https://claude.ai/code) and Cursor CLI. Skills are installed from Git-backed marketplace catalogs as three domain plugins. Custom agents are installed from this checkout with the repository scripts.
+A collection of skills and custom agents for [Claude Code](https://claude.ai/code), [Codex](https://developers.openai.com/), and Cursor CLI. Claude Code and Cursor install three domain plugins; Codex installs the shared skills directly from this checkout.
 
 ## Skills
 
@@ -36,11 +36,11 @@ Skills ship in three plugins, one per domain. A skill is invoked as `/<group>:<s
 | `sql-data-analysis` | `/data:sql-data-analysis` | Apply SQL standards for analytics, reporting, extraction, and transformation. |
 | `data-governance` | `/data:data-governance` | Query Snowflake's `ACCOUNT_USAGE` schema for masking, classification, access history, roles, and user auditing. |
 
-Each group directory under `skills/` is one plugin. A member's `SKILL.md` and any local `scripts/`, `assets/`, and `references/` are installed together. Repository custom agents are never included in a skill plugin.
+Each group directory under `skills/` is one Claude Code or Cursor plugin. A member's `SKILL.md` and any local `scripts/`, `assets/`, and `references/` are installed together. Codex uses symlinks to these same source directories.
 
 Installing a group installs all of its skills. Per-skill installation is not available; the Cursor fallback below is the only path that installs individual skills.
 
-## Install skills
+## Install
 
 Use this repository URL:
 
@@ -65,6 +65,43 @@ Install the groups you want:
 ```
 
 Skills then appear under `/` with their group prefix — `/craft:structure-review`, `/flow:orchestrate`, `/data:sql-data-analysis`. The prefix is applied by Claude Code and cannot be turned off.
+
+#### Update
+
+Open `/plugin` in Claude Code, refresh the `data-engineering-skills` marketplace, then update each installed group plugin. Marketplace installs are snapshots rather than live symlinks to a checkout.
+
+### Codex
+
+Clone this repository, then run the symlink-first installer:
+
+```bash
+git clone https://github.com/victormacaubas/data-engineering-skills.git
+cd data-engineering-skills
+./scripts/install-codex-skills.sh --skills all
+```
+
+Skills are linked into `~/.codex/skills/` by default and invoke unprefixed. Select individual skills or groups, or use copies where symlinks are unsuitable:
+
+```bash
+./scripts/install-codex-skills.sh --skills sql-data-analysis,data-governance
+./scripts/install-codex-skills.sh --group data
+CODEX_SKILLS_DIR=/custom/codex/skills ./scripts/install-codex-skills.sh --skills all
+./scripts/install-codex-skills.sh --skills all --copy
+```
+
+Install the matching native TOML agents with the same installer used for Claude Code and Cursor CLI:
+
+```bash
+./scripts/install-agents.sh --platform codex --agents all
+./scripts/install-agents.sh --platform codex --agents pathfinder,researcher
+CODEX_AGENTS_DIR=/custom/codex/agents ./scripts/install-agents.sh --platform codex --agents all
+```
+
+Codex agent definitions live at `agents/codex/*.toml` and are linked into `~/.codex/agents/` by default.
+
+#### Update
+
+Symlink installs reflect edits after `git pull`. If installed with `--copy`, rerun the same installer command after pulling. Rerun the installer after adding a new skill.
 
 ### Cursor CLI
 
@@ -104,6 +141,10 @@ CURSOR_SKILLS_DIR=/custom/cursor/skills \
 
 This fallback installs plain Cursor skills, not plugins. Marketplace installation remains the preferred distribution path.
 
+#### Update
+
+Open `/plugin` in Cursor CLI to refresh the marketplace and update installed groups. For fallback symlinks, `git pull` updates the linked skills; rerun `install-cursor-skills.sh` after pulling only when the fallback used `--copy` or when a new skill was added.
+
 ### Skills that need custom agents
 
 Marketplace plugins contain skills only. Install these agents separately before using an agent-dependent skill:
@@ -120,7 +161,7 @@ For example:
 ./scripts/install-agents.sh --platform both --agents implementer,pathfinder,researcher
 ```
 
-## Install custom agents
+### Custom agents for Claude Code, Codex, and Cursor CLI
 
 Clone the repository before running its agent installer:
 
@@ -139,6 +180,7 @@ For non-interactive installs:
 
 ```bash
 ./scripts/install-agents.sh --platform claude --agents all
+./scripts/install-agents.sh --platform codex --agents all
 ./scripts/install-agents.sh --platform cursor --agents pathfinder,researcher
 ./scripts/install-agents.sh --platform both --agents implementer,pathfinder,researcher
 ```
@@ -149,7 +191,7 @@ The default mode creates symlinks. Use `--copy` when links are unsuitable:
 ./scripts/install-agents.sh --platform both --agents all --copy
 ```
 
-Claude Code agents install into `~/.claude/agents/`; Cursor CLI agents install into `~/.cursor/agents/`. Override either target with an environment variable:
+Claude Code agents install into `~/.claude/agents/`; Codex agents install into `~/.codex/agents/`; Cursor CLI agents install into `~/.cursor/agents/`. Override any target with an environment variable:
 
 ```bash
 CLAUDE_AGENTS_DIR=/custom/claude/agents \
@@ -157,21 +199,18 @@ CLAUDE_AGENTS_DIR=/custom/claude/agents \
 
 CURSOR_AGENTS_DIR=/custom/cursor/agents \
   ./scripts/install-agents.sh --platform cursor --agents all
+
+CODEX_AGENTS_DIR=/custom/codex/agents \
+  ./scripts/install-agents.sh --platform codex --agents all
 ```
 
 The installer backs up an existing non-repository target as `<path>.bak.<timestamp>`. It does not remove unselected agents.
-
-## Updating
-
-Skill updates are explicit. Open `/plugin` in the client where the skill is installed, refresh or update the registered marketplace, and update the installed plugin. Marketplace skills do not track this checkout as live symlinks.
-
-Cursor fallback symlinks reflect edits after `git pull`. If fallback skills were installed with `--copy`, rerun `install-cursor-skills.sh` after pulling.
 
 Agent symlinks reflect edits after `git pull`. If agents were installed with `--copy`, rerun the same agent install command after pulling.
 
 ## Uninstalling
 
-Use `/plugin` in Claude Code or Cursor CLI to uninstall and manage marketplace skills.
+Use `/plugin` in Claude Code or Cursor CLI to uninstall and manage marketplace skills. For Codex, remove the confirmed skill path from `~/.codex/skills/`.
 
 For a Cursor fallback installation, remove the confirmed skill path from `~/.cursor/skills/`.
 
@@ -186,9 +225,9 @@ Removing an agent does not uninstall any skill that depends on it.
 
 ## Migrating legacy skill installs
 
-Earlier releases installed skills directly under `~/.claude/skills/`. Codex support has ended, but old Codex installs may still exist under `~/.codex/skills/`. No marketplace command or agent installer removes old files, symlinks, directories, or `.bak.<timestamp>` backups.
+Earlier releases installed skills directly under `~/.claude/skills/` and `~/.codex/skills/`. No marketplace command or agent installer removes old files, symlinks, directories, or `.bak.<timestamp>` backups.
 
-Install and verify the marketplace plugin first. Then inspect any legacy target before deleting it:
+Install and verify the replacement first. Then inspect any legacy target before deleting it:
 
 ```bash
 ls -ld ~/.claude/skills/<skill-name> ~/.codex/skills/<skill-name> 2>/dev/null
@@ -214,8 +253,9 @@ data-engineering-skills/
 │           └── references/
 ├── agents/
 │   ├── claude/<agent-name>.md
+│   ├── codex/<agent-name>.toml
 │   └── cursor/<agent-name>.md
-├── scripts/                         # Agent installers, Cursor skill fallback, migration shims
+├── scripts/                         # Agent installers and Cursor/Codex skill installers
 ├── docs/                            # Authoring guides
 └── openspec/                        # Tracked changes
 ```
@@ -246,8 +286,4 @@ Install the required agent names for the current platform with `scripts/install-
 
 **An installed agent does not appear**
 
-Check `~/.claude/agents/` or `~/.cursor/agents/` and rerun the installer for that platform. If copy mode was used, rerun after every source update.
-
-**The installer reports `[BACKUP]`**
-
-An existing agent target was not a repository-owned symlink. The installer moved it to `<path>.bak.<timestamp>` before installing the selected variant. Review the backup before removing it.
+Check `~/.claude/agents/`, `~/.codex/agents/`, or `~/.cursor/agents/` and rerun the installer for that platform.

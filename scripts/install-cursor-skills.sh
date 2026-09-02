@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 SKILLS_SRC="$REPO_DIR/skills"
 TARGET_DIR="${CURSOR_SKILLS_DIR:-$HOME/.cursor/skills}"
+PLATFORM_LABEL="${SKILLS_PLATFORM_LABEL:-Cursor CLI}"
 
 NON_GROUP_DIRS=("in-progress" "deprecated")
 
@@ -317,7 +318,7 @@ else
   selection_label="$SKILL_SELECTION"
 fi
 
-echo "Installing Cursor CLI skills (team-policy fallback)"
+echo "Installing $PLATFORM_LABEL skills"
 echo "  Source: $SKILLS_SRC/<group>/<name>"
 echo "  Target: $TARGET_DIR (flat, unprefixed)"
 echo "  Mode:   $([ "$COPY_MODE" = true ] && echo copy || echo symlink)"
@@ -359,4 +360,4 @@ for skill_name in "${selected_skills[@]}"; do
 done
 
 echo ""
-echo "$installed Cursor CLI skill(s) installed to $TARGET_DIR"
+echo "$installed $PLATFORM_LABEL skill(s) installed to $TARGET_DIR"
