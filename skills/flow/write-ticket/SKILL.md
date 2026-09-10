@@ -1,6 +1,6 @@
 ---
 name: write-ticket
-description: Write tickets and comments in plain, human-sounding language via the Atlassian (Jira) MCP. Use when the user wants to create a ticket ("file a ticket", "open an issue", "track this as a task") OR respond to an existing ticket ("respond to PROJ-123", "update the ticket", "comment on this", "post a status update"). Also use after finishing work that needs reporting on a ticket. Asks the user which project to use if not specified.
+description: Write tickets and comments in plain, human-sounding language using the Atlassian CLI (`acli`). Use when the user wants to create a ticket ("file a ticket", "open an issue", "track this as a task") OR respond to an existing ticket ("respond to PROJ-123", "update the ticket", "comment on this", "post a status update"). Also use after finishing work that needs reporting on a ticket. Asks the user which project to use if not specified.
 ---
 
 # Write Ticket
@@ -93,7 +93,7 @@ You don't need every section every time. If a section has nothing to say, leave 
 
 ### Show draft and create
 
-Before calling the Atlassian MCP, show the user the draft ticket so they can tweak it. Format it the way it'll appear in Jira. Something like:
+Before running the create command, show the user the draft ticket so they can tweak it. Format it the way it'll appear in Jira. Something like:
 
 > Here's the draft. Say the word and I'll create it, or tell me what to change.
 
@@ -122,7 +122,7 @@ For polish mode, the flow is short: clean up the draft, show it, post on approva
 For draft-from-ticket and session-context modes:
 
 1. **Identify the ticket.** If the user gave a key or URL, grab it. If not, ask which ticket you're responding to.
-2. **Read the ticket.** Use `mcp__atlassian-tech__getJiraIssue` with `responseContentFormat: "markdown"`. Pay attention to the latest comments, not just the description. They show who is asking for what and in what tone. Note any specific question to answer, status request, or stakeholder waiting on something.
+2. **Read the ticket.** Run `acli jira workitem view <KEY> --fields "summary,status,assignee,description,comment,issuelinks" --json`. The default field set omits description and comments, so ask for them explicitly or they come back empty. Pay attention to the latest comments, not just the description. They show who is asking for what and in what tone. Note any specific question to answer, status request, or stakeholder waiting on something.
 3. **Ask the user targeted questions before drafting.** After reading the ticket, identify what the response needs to cover and ask a small number of specific questions to fill in the gaps. Examples:
    - "The ticket asks if the fix is deployed. Is it on prod, staging, or just merged?"
    - "What did you actually change? I can see some commits on this branch but want to make sure I describe it right."
@@ -130,7 +130,7 @@ For draft-from-ticket and session-context modes:
    Use session context to skip questions you can already answer (don't ask "did you merge the PR" if you watched them merge it 5 minutes ago). Keep the list short, usually 1 to 4 questions. If you genuinely don't need to ask anything, say so and move on.
 4. **Draft the response.** Use the user's answers, the session context, and the thread's tone. Don't pad.
 5. **Show the draft.** Format it as it'll appear in Jira. Something like "Here's the draft. Say the word and I'll post it on PROJ-123, or tell me what to change."
-6. **Post on approval.** Use `mcp__atlassian-tech__addCommentToJiraIssue` with `contentFormat: "markdown"`.
+6. **Post on approval.** Write the comment to a temp file and run `acli jira workitem comment create --key <KEY> --body-file /tmp/comment.txt --json`.
 
 Ask before drafting because responses are short. A wrong fact or emphasis in a 3-sentence comment stands out more than it does in a long ticket. Confirming for 20 seconds beats writing something the user has to largely rewrite.
 
@@ -261,41 +261,54 @@ Keep the flags short: a numbered list before the draft, one line each. Don't tur
 
 ---
 
-## Posting to Jira (MCP mechanics)
+## Posting to Jira (acli mechanics)
 
-Once the user approves, use the Atlassian MCP.
+Once the user approves, run these through `acli`.
 
-### Getting the cloudId
+### Site profile
 
-Try the site hostname first (e.g., `your-site.atlassian.net`) as `cloudId`. If it fails, call `mcp__atlassian-tech__getAccessibleAtlassianResources` to list available cloudIds.
+`acli` keeps a single active profile for the whole machine, not one scoped to this conversation. Before the first command of a session, make sure you're on the right site:
+
+```
+acli auth switch --site <your-site>.atlassian.net
+```
+
+Always pass `--site`; a bare `switch` goes interactive and hangs. Check the active profile any time with `acli auth status` (read-only, non-interactive). If a read comes back not-found or unauthorized, check `auth status` before concluding the ticket is missing or your permissions are wrong: another shell or task can flip the profile between two of your own commands, and a wrong site produces the same error as a bad key.
 
 ### Creating a ticket (create mode)
 
-Call `mcp__atlassian-tech__createJiraIssue` with:
-- `cloudId`
-- `projectKey`: the project key the user specified (e.g., `ENG`, `DATA`)
-- `issueTypeName`: `Task`, `Bug`, or `Spike` (confirm the project actually has that type, fall back to `Task` if unsure)
-- `summary`: the one-line summary
-- `description`: the body, formatted as markdown
-- `contentFormat`: `"markdown"`
+Write the description to a temp file, then run:
 
-If the user wants priority, labels, components, or a specific assignee, pass them in `additional_fields`. Don't add them unless asked. Sparse tickets beat cluttered ones.
+```
+acli jira workitem create --project <KEY> --type Task --summary "..." \
+  --description-file /tmp/body.txt --json
+```
 
-Report back the issue key and URL so the user can open it.
+- `--project`: the project key the user specified (e.g., `ENG`, `DATA`)
+- `--type`: `Task`, `Bug`, or `Spike` (confirm the project actually has that type; fall back to `Task` if unsure)
+- `--description-file`: the body as plain text or Atlassian Document Format (ADF); a temp file avoids the shell-quoting and newline mangling that inline `--description` is prone to on anything longer than a line
+
+If the user wants priority, labels, components, or a specific assignee, pass them (`--label`, `--assignee`, etc.). Don't add them unless asked. Sparse tickets beat cluttered ones.
+
+`create` has no `--yes` flag and doesn't prompt for confirmation; it just runs. Report back the issue key from the output, and build the URL as `https://<your-site>.atlassian.net/browse/<KEY>` so the user can open it.
 
 ### Posting a comment (respond mode)
 
-Call `mcp__atlassian-tech__addCommentToJiraIssue` with:
-- `cloudId`
-- `issueIdOrKey`: e.g., `PROJ-123`
-- `commentBody`: the comment text, as markdown
-- `contentFormat`: `"markdown"`
+Write the comment to a temp file, then run:
 
-Report back that it's posted and give the ticket URL (or comment link if the MCP returns one).
+```
+acli jira workitem comment create --key <KEY> --body-file /tmp/comment.txt --json
+```
+
+Report back that it's posted and give the ticket URL.
 
 ### Mentions
 
-If the user wants to mention someone, ask for the person's account ID or use `mcp__atlassian-tech__lookupJiraAccountId` to find it, then format the mention as the MCP expects.
+`acli` has no command to look up someone's account ID by name or email, and a real `@mention` inside a comment needs one (plain `@Name` text renders but pings nobody). Try to resolve it yourself before asking the user:
+
+1. If the person is already the assignee, reporter, or a commenter on a ticket you can see, their account ID is right there in that ticket's `--json` output (`assignee`/`reporter` is a user object with an `accountId` field).
+2. If you know their email but haven't seen them on a ticket yet, a narrow search surfaces it: `acli jira workitem search --jql 'assignee = "person@company.com"' --fields "assignee" --json --limit 1` (swap the JQL field to fit, e.g. `reporter =`, if that matches them better).
+3. If neither resolves it, ask the user for the account ID directly (visible in their own Jira profile URL, or by hovering an existing `@mention` of them) or default to plain-text `@Name` and tell the user it won't trigger a notification.
 
 ---
 
@@ -305,5 +318,5 @@ If the user wants to mention someone, ask for the person's account ID or use `mc
 - **Don't add a "Generated by Claude" footer.** The whole point is that the output should look like the user wrote it.
 - **Don't copy the full ticket back into a comment.** A comment is a response, not a recap. If you need to reference something, quote the relevant line or link a PR.
 - **If the ticket is in another project**, that's fine, the user will say so. Just use the right project key.
-- **If the user asks you to just output the text without posting**, do that. No need to insist on going through the MCP.
+- **If the user asks you to just output the text without posting**, do that. No need to insist on running it through acli.
 - **If you're unsure whether something belongs in a ticket**, lean toward leaving it out. Future readers benefit from less noise.
