@@ -2,7 +2,7 @@
 name: code-auditor
 description: Use to find defects in code in any language — a file, module, PR, or branch diff — security holes, correctness bugs, performance problems, weak error handling. Runs the code-audit skill end-to-end and returns the JSON artifact path plus the headline verdict and score, with findings ranked by severity and anchored to excerpts. Use when asked to review, audit, grade, critique, assess, or gate code for defects, even if the word "review" isn't said. Does not assess whether the change is shaped right or whether project conventions were followed — that is the structure-reviewer agent.
 tools: Read, Write, Bash, Grep, Glob
-model: claude-opus-4-6[1m]
+model: claude-opus-5-5[1m]
 permissionMode: acceptEdits
 effort: high
 skills:
