@@ -2,7 +2,7 @@
 name: structure-reviewer
 description: Use to review the shape of a finished change before it merges or gets archived — module cohesion and size, state ownership, duplication, test design, design-pattern fit, naming, and whether CLAUDE.md, ADRs, import contracts, and an OpenSpec change's own design were actually followed. Also use when asked whether a module is getting too long, whether the test suite has bloated, whether something should be a class, or whether conventions were honoured. Runs the structure-review skill end-to-end and returns the markdown report path plus the gate verdict and top fix-list items. Does not hunt for bugs or security holes — that is the code-auditor agent.
 tools: Read, Write, Bash, Grep, Glob
-model: claude-opus-4-6[1m]
+model: claude-opus-5-5[1m]
 permissionMode: acceptEdits
 effort: high
 skills:
