@@ -13,6 +13,10 @@ The guiding principle: **write code that another engineer can read, test, and re
 
 Read the repo first: `pyproject.toml`, Ruff/Black/mypy settings, supported Python version, package layout, and the dominant local conventions. Explicit, coherent project configuration wins. Use this skill for decisions the repo has not already made. When local code is inconsistent, align with the safest checked-in pattern before introducing a new one.
 
+**Public vs. private.** Treat a function/class as public if code imports it from outside its module, lists it in `__all__`, exposes it via `__init__.py`, or calls it across package boundaries. Private means leading-underscore names, nested helpers, and module-local utilities used only by the module. Apply documentation and typing rigor proportionally: more at public edges, less ceremony inside.
+
+For a third-party API, check the version in the lockfile and that version's docs before writing a call signature, a keyword argument, or an exception type from memory. Library APIs change between releases, and a plausible call from an older version reads exactly like a correct one.
+
 ## Reference files
 
 The deeper material lives in `references/`. Read the file that covers the task; skip the rest to keep them out of context.
@@ -69,8 +73,6 @@ References to durable sources are fine: `# noqa: E501`, `# type: ignore[arg-type
 
 Cross-cutting rationale — the decision that shaped five modules — belongs in the ADR or design doc, not mirrored into each module that implements it. Each module gets the part of the reason that applies to its own code.
 
-**Public vs. private.** Treat a function/class as public if code imports it from outside its module, lists it in `__all__`, exposes it via `__init__.py`, or calls it across package boundaries. Private means leading-underscore names, nested helpers, and module-local utilities used only by the module. Apply documentation and typing rigor proportionally: more at public edges, less ceremony inside.
-
 **Public functions, classes, and methods** need a docstring when any of these hold:
 
 - it has side effects beyond its return value
@@ -125,12 +127,13 @@ Code can satisfy every rule above and still read as though a generator wrote it.
 - **Placeholder naming.** `process_data`, `handle_data`, `_do_work`, `manage_items`, `utils.py`, `helpers.py`, `common.py`. These describe the *shape* of the code, a verb plus a shrug, instead of what it handles: `merge_partitions`, `decrypt_payload`, `key_partition.py`. Ask whether the name narrows anything: `helpers.py` gives a reader nowhere to look, and `process_data` describes every function. Bare nouns like `value`, `result`, `rows`, or `items` are not on this list. They are precise when the type annotation supplies the noun (`result: TableFreshness`, `value: datetime`) or when the code is generic. Judge vagueness against what the signature already says, not against a blocklist.
 - **Uniform rhythm.** Every function the same length, every docstring the same four sections, every branch logged the same way. Problems vary, so code varies: one function needs three lines; the next needs thirty because the domain is genuinely fiddly. Uniformity across a module suggests a template rather than a solved problem.
 - **Decoration.** `# ===== HELPERS =====` banner comments, box-drawing separators, emoji in log lines or docstrings. If a file needs internal signposting to navigate, it's telling you to split it.
+- **Files nobody asked for.** A `README.md` per package, an `examples/` directory, a `conftest.py` with nothing shared, a `constants.py` holding one value, a config option the task didn't need. Each fits the repo's conventions and looks diligent, and each is something a reviewer has to read and a maintainer has to keep. Add a file when the change needs it; if you think one would help, say so instead of writing it.
 
 None of this calls for fewer comments, shorter functions, or less structure in the abstract. Every line should exist because *this* problem needs it. When you finish a function, ask, "would I defend each of these lines to a reviewer?" A line you would defend with "it seemed thorough" is a candidate for deletion.
 
 ## Typing & Data Structures
 
-Type-hint every public function and method because callers read signatures to understand the contract, and the checker catches real bugs. Private helpers benefit from hints too (IDE support, better error messages), but rigid completeness there is a matter of taste, not a rule. Aim for `mypy --strict` to pass on core modules. You do not have to run it, but write code as if you did.
+Type-hint every public function and method (public as defined in *How to apply these standards*) because callers read signatures to understand the contract, and the checker catches real bugs. Private helpers benefit from hints too (IDE support, better error messages), but rigid completeness there is a matter of taste, not a rule. Aim for `mypy --strict` to pass on core modules. When the project configures mypy, run it on what you changed before calling the change done; when it doesn't, write code as if it did.
 
 - **Dataclasses over dicts** for internal structured values: config, coordinates, domain objects. Dicts are fine for external data (API payloads, JSON from Secrets Manager), but the moment you pass a dict around internally you lose autocomplete and catch typos only at runtime.
 - `@dataclass(frozen=True)` when the value shouldn't mutate after construction. Config is a classic case.
@@ -192,7 +195,7 @@ Group files by domain, not by type. `loaders.py`, `validators.py`, `transforms.p
 
 **Breaking circular imports.** If module A needs a type from module B for hints only, use `from __future__ import annotations` + `if TYPE_CHECKING: from b import BType`. The import is only evaluated by type checkers, not at runtime.
 
-**`__init__.py` is a package marker, not a home for code.** Keep it empty (0 bytes) or limited to a short `__all__` re-export list. Never put classes, functions, dataclasses, or business logic in `__init__.py`. Put every logical unit in a named module (`runner.py`, `status.py`, `config.py`) so readers can find code by scanning directory file names. If a package contains only one module, that module still gets a descriptive name rather than living in `__init__.py`. When code lives in `__init__.py`, `from package import thing` does not show readers *where* inside the package `thing` is defined, so they have to open the file and scroll. Named modules make the codebase navigable without grep.
+**`__init__.py` is a package marker, not a home for code.** Keep it empty (0 bytes) or limited to a short `__all__` re-export list. Never put classes, functions, dataclasses, or business logic in `__init__.py`; put every logical unit in a named module (`runner.py`, `status.py`, `config.py`), even when the package holds only one. Code in `__init__.py` hides where `from package import thing` is actually defined.
 
 ## Design Principles
 
@@ -274,7 +277,6 @@ Introduce patterns when the work needs them.
 - **Pipeline / Chain** — compose transformations as a sequence of discrete steps; each step takes input and returns output. Natural for ETL.
 - **Decorator (functional)** — wrap functions with cross-cutting concerns (retries, caching, timing) via `@functools.wraps`.
 - **Observer** — emit events (progress, quality-gate hits, shutdown signals) to pluggable listeners rather than coupling core logic to logging/alerting/metrics. Useful when multiple subsystems need to react to the same event.
-- **Singleton** — exactly one instance across the process.
 
 ## Logging
 

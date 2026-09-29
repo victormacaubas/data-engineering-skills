@@ -93,7 +93,7 @@ Dispatch has a fixed overhead: writing the brief, waiting, and reading the retur
 
 ### Which worker
 
-- **`pathfinder`**: code, local docs, Confluence, Jira, Snowflake. Read-only by tool allowlist. Returns direct answers, per-source findings, coverage, confidence, assumptions, open questions.
+- **`pathfinder`**: code, local docs, Confluence, Jira, Snowflake. Read-only by instruction, not by tools: its `Bash` and Snowflake query tools can write, so don't brief it toward anything that mutates. Returns direct answers, per-source findings, coverage, confidence, assumptions, open questions.
 - **`researcher`**: anything on the web: library behavior, API shapes, version differences, announcements, comparisons.
 
 Use parallel dispatch when questions are independent: a code question and a ticket question, or two unrelated directories. Two agents reading overlapping material waste one of them; see `references/briefing.md` on owning the shared-context split.

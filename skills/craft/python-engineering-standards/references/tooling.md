@@ -4,6 +4,8 @@ A baseline `pyproject.toml` toolchain for projects that do not have one yet. Rea
 
 The stack uses **uv** for environments and dependencies, **Ruff** for linting and formatting, **mypy** for type checking, **pytest** for tests, and **pre-commit** for fast checks before every commit. One config file keeps the tools fast and non-overlapping.
 
+**Don't copy version numbers from this page.** Take the Python version from the project's `requires-python`, and pin tool and hook versions to their current release when you write the config (`uv add` resolves the current release for tools; `pre-commit autoupdate` pins hook revs). A version copied from a reference file is stale on the day it lands.
+
 ## uv
 
 Use uv for environment and dependency management. It replaces pip, venv, and pip-tools with one tool and produces a lockfile by default.
@@ -26,7 +28,8 @@ Ruff is both the linter and the formatter. Do not add Black or isort alongside i
 ```toml
 [tool.ruff]
 line-length = 88
-target-version = "py312"    # set to the project's minimum supported version
+# target-version omitted: Ruff infers it from `project.requires-python`,
+# so the minimum supported version lives in one place.
 
 [tool.ruff.lint]
 select = [
@@ -46,11 +49,12 @@ This selection mechanically enforces several root-standard rules: import groupin
 
 ## mypy
 
-The root standard says to write code as if `mypy --strict` passes. This config makes that literal:
+The root standard aims for `mypy --strict` on core modules and runs it when the project configures it. This config makes that literal:
 
 ```toml
 [tool.mypy]
-python_version = "3.12"
+# python_version omitted: mypy checks against the interpreter it runs
+# under, which uv selects from `requires-python`.
 strict = true
 warn_unreachable = true
 ```
@@ -121,15 +125,15 @@ Run fast checks on every commit; leave slow checks (mypy, the full test suite) t
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0    # pin; update deliberately
+    rev: <current release>   # filled in by `pre-commit autoupdate`
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+    rev: <current release>
     hooks:
       - id: detect-secrets
 ```
 
-`detect-secrets` guards against committing a credential. See `references/security.md` for why even one leak matters. Install with `uv run pre-commit install` so the hooks run.
+`detect-secrets` guards against committing a credential. See `references/security.md` for why even one leak matters. Run `uv run pre-commit autoupdate` once to pin each `rev` to its current release, then `uv run pre-commit install` so the hooks run. After that, update the pins deliberately, and check the hook ids against each repo's current `.pre-commit-hooks.yaml`, since hook repos rename them occasionally.
