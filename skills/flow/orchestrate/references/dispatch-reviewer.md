@@ -1,8 +1,7 @@
 # Dispatching a reviewer — briefing playbook
 
-This playbook is orchestrator-side. `structure-reviewer` carries its own scoping rules, method, and
-output template; don't restate them. What follows is what you supply and the value only you can
-add.
+`structure-reviewer` carries its own scoping rules, method, and output template; don't restate
+them.
 
 ## Fast path: the user asked directly
 
@@ -66,8 +65,3 @@ The reviewer can read the tree and declarations, but not this session. You alone
 Scope the review to the prior report's fix list plus the diff since it. Pass the prior report's path
 explicitly. The reviewer re-runs each finding's original measurement instead of trusting the
 handoff, and it needs the report to know those measurements. Use slug `re-review`.
-
-## Cross-reference
-
-`../SKILL.md` owns plan-source resolution, plan externalization, the pre-flight gate, the drift
-check, and the closing gate's entry condition and signal test.

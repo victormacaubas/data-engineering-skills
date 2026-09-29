@@ -73,7 +73,7 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 
 ## Dispatch loop
 
-**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract; send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook, so you can pull it in fresh after a mid-loop compaction. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
+**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract; send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
 
 - **Bound every slice** with explicit task numbers ("tasks 3–7"), never "implement the plan."
 - **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs; that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
@@ -86,15 +86,29 @@ Before the batch, write one line per worker naming it and its scope. Nothing mor
 
 The returns wake you one at a time. **On a partial return, the whole turn is recording, not reasoning:** note that the worker is back (`pathfinder (auth) back — 2 of 3`), tick tasks that worker actually verified, log a `blocking: true` to resolve later. Then stop. No summary of the finding, no conclusion drawn from it, no revised plan, no answer to the user's question.
 
-Hold because reasoning on return 1 of 3 is usually *wasted*, not merely early. Return 2 reverses a premise and voids the paragraph built on it; return 3 does it again. You pay for three drafts, the user reads two wrong ones, and the correct synthesis was available for the price of one. The batch is a barrier: the next substantive thing you say comes after the last worker is back.
+The batch is a barrier: reasoning on return 1 of 3 is usually voided by return 2, so the next substantive thing you say comes after the last worker is back.
 
 One return justifies breaking the barrier: one that makes the rest of the batch moot, whether a `blocking: true` you cannot resolve or a finding that invalidates the other assignments. Say that in one line and stop the remaining work rather than synthesizing around it.
+
+Wait on the task notification for each return. Never poll, sleep-and-check, or start a `Monitor`; a waiter adds cost without value.
+
+### Keep the loop moving
+
+Run straight through the bounded scope. When a batch is fully back and its tasks are ticked, and the scope still has open tasks that nothing blocks, put the status note in the same message as the next dispatch. A message with no tool call ends your turn, and the build stops there until the user asks you to continue.
+
+Three endings leave owed work undone. Don't use them:
+
+- A summary of the finished slices that closes by announcing the next dispatch ("next I'll send tasks 8–10") without sending it.
+- An offer to continue unless the user would prefer otherwise.
+- A list of decisions for the user when, by your own account, none of them blocks the next slice. Put your recommendation next to each one and keep dispatching whatever doesn't depend on the answer.
+
+Ending a turn while workers in the batch are still running is waiting, not stopping; that is what a partial-return turn does. Otherwise, stop only when nothing can move without the user: a `blocking: true` you can't resolve from the code or the plan, a pre-flight item that needs their decision, or every task in scope ticked, which moves you to *Closing the build*. Before ending any turn, re-read the tracking artifact: open tasks in scope with no stated blocker mean the turn isn't over. This does not override asking before risky or destructive actions.
 
 ## Closing the build
 
 The build is finished once you complete the last slice's after-return work: read the handoff, resolve `blocking: true` items, run handed-off commands, and tick tasks. Ask one question: should someone review this change's *shape* before it goes further?
 
-Offer a review when the signals below apply. This skill runs on most builds, including one-line fixes. A prompt that is usually noise trains users to dismiss it, including when it matters. Default to silence.
+Offer a review only when the signals below apply; a prompt that is usually noise trains users to dismiss it. Default to silence.
 
 ### Signals worth offering on
 
@@ -112,7 +126,7 @@ A single-slice change to existing files, with no new module or shape note in the
 
 Ask once in one line, then accept the answer. Do not argue, raise it again later in the same build, or turn a decline into a smaller version of the same question. If the user says no, the build is done.
 
-When the user agrees, or asks for a review directly, **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path. It sits outside this file because the gate fires at the end of a build, when a compaction is most likely to have lost the detail.
+When the user agrees, or asks for a review directly, **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path.
 
 ## Guardrails
 
@@ -121,5 +135,7 @@ When the user agrees, or asks for a review directly, **read `references/dispatch
 - **Hand back on blocking questions.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf.
 - **Dispatch a batch in one message.** All workers for one step, one message, one line of preamble naming each scope. Dispatch-comment-dispatch staggers the returns and invites narration between them.
 - **Don't reason on a partial return.** Record it and stop. Synthesis happens once, after the last worker in the batch is back.
+- **Don't build a waiter.** No `Monitor`, no polling loop. Notifications only.
+- **Don't stop with owed work.** Open tasks in scope and no blocker means dispatch the next slice, not a summary that announces it.
 - **Never hand the `implementer` an unknown.** It will not research or verify. See *Pre-flight → Close the unknowns*.
 - **Don't re-read what you already hold.** Re-establish context only when your understanding is stale. Re-reading your own artifacts uses the context this skill protects.

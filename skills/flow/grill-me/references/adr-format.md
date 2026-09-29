@@ -2,16 +2,6 @@
 
 An Architectural Decision Record captures one decision: what was decided and why. Record the choice and its reasoning, not a filled-in template.
 
-## When an ADR is warranted
-
-Offer one only when all three hold. This repeats `SKILL.md` because the bar matters more than the format:
-
-1. **Hard to reverse:** the cost of changing your mind later is meaningful.
-2. **Surprising without context:** a future reader will wonder "why this way?"
-3. **The product of a real trade-off:** genuine alternatives existed and one was chosen for specific reasons.
-
-Qualifying examples include architectural shape ("the write model is event-sourced"), technology with lock-in (database, message bus, auth provider), boundary decisions ("Customer data is owned by the Customer context; others reference by ID"), deliberate deviations from the obvious path ("manual SQL instead of an ORM because X"), and constraints invisible in the code ("responses must be under 200ms per the partner contract").
-
 ## Template
 
 Keep it short. One paragraph is often enough.

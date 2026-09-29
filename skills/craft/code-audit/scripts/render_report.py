@@ -179,6 +179,16 @@ def render(artifact: dict[str, Any]) -> str:
             lines.append(f"- {coverage['notes']}")
         lines.append("")
 
+    notes = artifact.get("notes") or []
+    if isinstance(notes, str):
+        notes = [notes]
+    if notes:
+        lines.append("## Notes & limitations")
+        lines.append("")
+        for note in notes:
+            lines.append(f"- {note}")
+        lines.append("")
+
     verification = artifact.get("verification") or []
     if verification:
         lines.append("## Verification run")

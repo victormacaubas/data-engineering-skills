@@ -1,6 +1,6 @@
 # Archetypes
 
-Concrete directory shapes to start from, and the layer table that turns one into a contract. Read this during Decision 1.
+Concrete directory shapes to start from, and the layer table that turns one into a contract.
 
 These are starting points, not schemas to satisfy. The tree matters much less than the dependency direction it encodes — two projects with different directories and the same one-way flow are architecturally the same; two with identical directories and a cycle between them are not.
 
