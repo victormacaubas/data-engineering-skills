@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Use to research a topic on the web and return structured findings with sources. Lightweight mid-session lookups — spawn for quick questions about syntax, libraries, APIs, announcements, or technology comparisons. Does not write files.
-model: claude-sonnet-5
+model: claude-sonnet-5-5
 tools: WebFetch, mcp__web-search__web_search
 effort: high
 ---

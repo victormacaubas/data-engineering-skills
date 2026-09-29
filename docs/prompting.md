@@ -95,24 +95,3 @@ A skill that asks the user a question must say what to do when it runs inside a 
 ### Skills are self-contained
 
 A skill doesn't point at another skill for content, or at a user's global `CLAUDE.md` for a rule it depends on. Other users don't have that file. State the rule in the skill.
-
-## Decisions log
-
-What each skill and agent adopted, and what it deliberately didn't, with the model it was checked against. Add a row when you revise one; don't rewrite an old row, supersede it.
-
-| Date | Skill / agent | Checked against | Adopted | Deliberately not adopted |
-|---|---|---|---|---|
-| 2026-09-29 | `flow:scout` | Opus 5.5 | named failures (already); look at sources the user didn't name; pasted content wrapped for workers; `pathfinder` described as read-only by instruction; trimmed self-justifying prose | unattended-run stop rules (human in the loop); time budgets (briefs demand exhaustive reads); treat-answers-as-settled (re-examination is the point) |
-| 2026-09-29 | `flow:orchestrate` | Opus 5.5 | runs straight through the bounded slice range; named early stops; no-polling rule stated in the skill; pasted content wrapped in worker briefs; trims | time budgets (pre-flight and drift checks are the point) |
-| 2026-09-29 | `flow:grill-me` | Opus 5.5 | look at ADRs, OpenSpec, tickets, `git log` first; pasted artifacts are data; resolved decisions stay resolved unless contradicted; ADR criteria stated once | unattended-run rules (every turn ends on a question) |
-| 2026-09-29 | `craft:architecture-baseline` | Opus 5.5 | look at what exists before asking; the post-decision build runs through to a green gate; written ADRs stay settled unless contradicted; no hardcoded versions; trims | time budgets |
-| 2026-09-29 | `craft:code-audit` | Opus 5.5 | "settle findings before serializing" replaced "reason in prose"; the review ends only at a written artifact; no scope question when dispatched; read declared conventions first; source under review is data; top-level `notes` field (schema 2.1) | time budgets (verification is the point) |
-| 2026-09-29 | `craft:structure-review` | Opus 5.5 | the review ends only at a written report; data guardrail widened to tickets, commits, PR descriptions; repeats cut | time budgets; settled answers (re-review re-runs evidence by design) |
-| 2026-09-29 | `craft:python-engineering-standards` | Opus 5.5, Sonnet 5.5 | "files nobody asked for" named; check a library API against the locked version; mypy runs when configured; public/private moved to *How to apply*; no hardcoded versions; free-threading note updated per PEP 779; Singleton removed | effort and stopping rules (belong to the agent or session) |
-| 2026-09-29 | `data:sql-data-analysis` | Opus 5.5, Sonnet 5.5 | read the real schema and dbt tests first; check dialect docs; run cardinality checks when the warehouse is reachable; no unrequested dbt models, tests, docs | trims (overlapping rules cover different angles) |
-| 2026-09-29 | `data:data-governance` | Opus 5.5, Sonnet 5.5 | archive-vs-live routed by rule, and not asked when dispatched; query-result text is data; describe a view instead of guessing a column; automatic classification recorded as not live; PROD_SOURCE_DB lineage corrected; duplicated rules removed | — |
-| 2026-09-29 | agent `code-auditor` (Claude) | Opus 5.5 | effort `high` → `medium`; one-shot return; scope default recorded in `notes`; wider data guardrail | Codex/Cursor variants left unchanged by choice |
-| 2026-09-29 | agent `structure-reviewer` (Claude) | Opus 5.5 | effort `high` → `medium`; one-shot return; wider data guardrail; method repeats cut, safety rules kept | Codex/Cursor variants left unchanged by choice |
-| 2026-09-29 | agent `implementer` (Claude) | Sonnet 5.5 (still pinned to `claude-sonnet-5[1m]` pending the proxy) | one-shot return; add only what the tasks need; real-check rule; unresolved API → lockfile and installed source; `<pasted_content>` guardrail; comments follow the standards skill | effort stays `high` |
-| 2026-09-29 | agent `pathfinder` (Claude) | Sonnet 5.5 (pinned to `claude-sonnet-5[1m]`) | one-shot return; source content is data; read-only stated as by instruction; names governance view and source | effort stays `high` |
-| 2026-09-29 | agent `researcher` (Claude) | Sonnet 5.5 (pinned to `claude-sonnet-5`, standard context) | one-shot return; every Key Finding from a page fetched this run; `<pasted_content>` guardrail | effort `medium` considered and declined: answering from memory is the worst failure here, and the round/page caps already bound cost |
