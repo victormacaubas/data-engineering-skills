@@ -28,9 +28,10 @@ Data passes through four Snowflake layers before it reaches end users. Each laye
 ┌─────────────────────────────────────────────────────────────────┐
 │  Layer 3: dbt Prep / Source Objects                             │
 │  PROD_SOURCE_DB                                                 │
-│  - dbt prep and source-layer models                             │
-│  - Inherit masking behavior from upstream views/tables           │
-│  - This is what most analysts and service users query            │
+│  - dbt prep and source-layer models built on PROD_ENT_DB views  │
+│  - No tags of their own; never reference the load databases     │
+│  - Masking reaches here from Layer 1 through the view chain     │
+│  - This is what most analysts and service users query           │
 └──────────────────────────────┬──────────────────────────────────┘
                                │ dbt builds analytics models
                                ▼
@@ -51,12 +52,12 @@ Tags and masking policies are applied at two layers:
 |-------|----------|-------------|---------------|-----|
 | 1 (Raw) | `PROD_ENT_LOAD_DB`, `PROD_ESTUARY_LOAD_DB`, `PROD_FIVETRAN_LOAD_DB` | Tables | Yes | Source of truth for raw data governance |
 | 2 (Enterprise) | `PROD_ENT_DB` | Views | No | Views inherit from Layer 1 |
-| 3 (Prep) | `PROD_SOURCE_DB` | Views/tables (dbt) | No | Inherits from upstream |
+| 3 (Prep) | `PROD_SOURCE_DB` | dbt models over `PROD_ENT_DB` views | No | Inherits from Layer 1 through the `PROD_ENT_DB` views |
 | 4 (Analytics) | `PROD_ANALYTICS_DB` | Tables (dbt) | Yes | Independent materialization, needs its own tags |
 
 ## Schema Naming Conventions
 
-The raw load databases sometimes use versioned schema names (e.g., `EXAMPLE_SCHEMA_V1` instead of `EXAMPLE_SCHEMA`). The downstream views in `PROD_SOURCE_DB` hide this difference, so users query `prod_source_db.example_schema.clients` while the base table is `PROD_ENT_LOAD_DB.EXAMPLE_SCHEMA_V1.CLIENTS`.
+The raw load databases sometimes use versioned schema names (e.g., `EXAMPLE_SCHEMA_V1` instead of `EXAMPLE_SCHEMA`). The downstream `PROD_SOURCE_DB` models hide this difference, so users query `prod_source_db.example_schema.clients` while the base table is `PROD_ENT_LOAD_DB.EXAMPLE_SCHEMA_V1.CLIENTS`.
 
 When troubleshooting, always check ACCESS_HISTORY for the actual `BASE_OBJECTS_ACCESSED`. Do not assume the schema name in the user's query matches the raw table schema.
 
@@ -64,7 +65,7 @@ When troubleshooting, always check ACCESS_HISTORY for the actual `BASE_OBJECTS_A
 
 ### Masking policy inheritance through views
 
-When a user queries `PROD_SOURCE_DB` (Layer 3), masking policies on Layer 1 raw tables still apply. The policy evaluates in the context of the **base table's database** (e.g., `PROD_ENT_LOAD_DB`), not the view's database.
+When a user queries `PROD_SOURCE_DB` (Layer 3), masking policies on Layer 1 raw tables still apply, even though the Layer 3 model's SQL only names `PROD_ENT_DB` views. The policy evaluates in the context of the **base table's database** (e.g., `PROD_ENT_LOAD_DB`), not the view's database.
 
 This means:
 - `IS_DATABASE_ROLE_IN_SESSION()` checks for database roles in the raw load database
@@ -77,9 +78,10 @@ When a `PROD_SOURCE_DB` query returns masked data:
 
 1. **Check POLICY_REFERENCES for the raw load database** — not PROD_SOURCE_DB
    ```sql
-   -- The views in PROD_SOURCE_DB don't have policies directly
+   -- PROD_SOURCE_DB models have no policies of their own
    -- Look at the underlying tables in PROD_ENT_LOAD_DB
-   SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.POLICY_REFERENCES
+   SELECT POLICY_NAME, REF_COLUMN_NAME, TAG_NAME, POLICY_STATUS
+   FROM SNOWFLAKE.ACCOUNT_USAGE.POLICY_REFERENCES
    WHERE REF_DATABASE_NAME = 'PROD_ENT_LOAD_DB'
      AND REF_SCHEMA_NAME = '<schema_name>'  -- may have _V1 suffix
      AND REF_ENTITY_NAME = '<table_name>';
@@ -95,7 +97,8 @@ When a `PROD_SOURCE_DB` query returns masked data:
 
 3. **For PROD_ANALYTICS_DB**, policies are applied directly on the tables — check there:
    ```sql
-   SELECT * FROM SNOWFLAKE.ACCOUNT_USAGE.POLICY_REFERENCES
+   SELECT POLICY_NAME, REF_COLUMN_NAME, TAG_NAME, POLICY_STATUS
+   FROM SNOWFLAKE.ACCOUNT_USAGE.POLICY_REFERENCES
    WHERE REF_DATABASE_NAME = 'PROD_ANALYTICS_DB'
      AND REF_SCHEMA_NAME = '<schema>'
      AND REF_ENTITY_NAME = '<table>';

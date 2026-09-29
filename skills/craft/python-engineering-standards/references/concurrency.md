@@ -54,7 +54,7 @@ Decision shortcut:
 - CPU-bound: `ProcessPoolExecutor`.
 - Mixed CPU + I/O at scale: a process pool of asyncio workers, or a thread pool feeding a process pool. This is advanced; do not start here.
 
-Free-threaded CPython (PEP 703, available as an experimental build in 3.13) will change the calculus for CPU-bound threading after it stabilizes. Plan for the GIL for now.
+Free-threaded CPython (PEP 703) was experimental in 3.13 and became an officially supported but optional build in 3.14 (PEP 779); it is not the default. Plan for the GIL unless the project explicitly targets the free-threaded build, and check that every C-extension dependency supports it before relying on threads for CPU-bound work.
 
 ## 3. The GIL, briefly and accurately
 

@@ -18,11 +18,15 @@ Before writing SQL, identify the query contract. Ask only when you cannot infer 
 - Confirm whether output is exploratory, production reporting, dbt/model code, dashboard SQL, or an ad hoc extract.
 - Prefer deterministic results: specify ordering when using `limit`, ranking, deduplication, or "latest" logic.
 
+Check the real shape before assuming it. When a warehouse connection is available, describe the tables you'll use; in a dbt project, read the model's `schema.yml` and sources, including their `unique` and `not_null` tests. A `unique` test on a join key settles the cardinality question in *Correctness Rules*; a column name written from memory is where most first drafts go wrong.
+
 ## Output Standard
 
 Always produce SQL that can be pasted into the target environment with minimal editing.
 
 - Use the active SQL dialect when known; otherwise write portable ANSI-style SQL and note dialect assumptions.
+- For a function or syntax you're not sure the target warehouse supports in its current form (`qualify`, `approx_*`, JSON and semi-structured functions), check that warehouse's docs rather than memory. Dialects add, rename, and deprecate functions.
+- For dbt model code, write the model the request asked for. Don't add models, tests, or `schema.yml` docs it didn't ask for; mention the ones that would help.
 - Avoid `select *` except during short-lived exploration; list production columns explicitly.
 - Use lowercase keywords: `select`, `from`, `where`, `join`, `group by`.
 - Use leading commas for column lists; they make diffs cleaner and columns easier to comment out.
@@ -68,7 +72,7 @@ order by customer_revenue.gross_revenue desc
 
 Guard against silent errors. Be explicit about grain, joins, time, and nulls.
 
-- Validate join cardinality before trusting metrics: one-to-one, many-to-one, one-to-many, or many-to-many.
+- Validate join cardinality before trusting metrics: one-to-one, many-to-one, one-to-many, or many-to-many. When you can query the warehouse, run the check (duplicate count on the join key, or row counts before and after the join) and report the number. A dry run or `explain` proves the query parses, not that its grain is right.
 - Pre-aggregate one-to-many tables before joining to a fact table when the join would duplicate measures.
 - Use `count(distinct ...)` deliberately; know whether duplicates are data errors or legitimate repeated events.
 - Use `where` for row filters before aggregation and `having` for aggregate filters after grouping.
@@ -147,6 +151,6 @@ When answering SQL requests:
 2. Provide the query first for implementation tasks.
 3. Explain the grain, key joins, and metric logic after the query when useful.
 4. Call out performance or cost considerations that matter for the target warehouse.
-5. Suggest validation queries for high-risk metrics or joins.
+5. For high-risk metrics or joins, run the validation queries when you can query the warehouse and report what they returned; suggest them only when you can't run them.
 
 For reviews, report findings in severity order with file or line references when available. Include corrected SQL snippets only for the risky part unless a full rewrite is requested.

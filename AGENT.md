@@ -8,6 +8,15 @@ Codex skills install into `~/.codex/skills/` through `scripts/install-codex-skil
 
 ## How to work here
 
+### Model-specific prompting
+
+Applies to skills and agents alike. `docs/prompting.md` holds the general principles; this is how to get the part that changes with each model.
+
+- **Know which model runs it, then read that model's current guide before writing.** For an existing agent, read `model:` in each platform variant. For an existing skill, find what loads it: the main session, plus any agent that preloads it.
+- **For a new agent or skill, there's nothing to read yet.** Propose the model and effort following the repo's pattern (Sonnet for bounded workers, Opus for judgment and review) with a one-line reason; for a skill, ask what will load it. Confirm with the user before writing.
+- **Check the guide for that exact model version, not the latest one.** Anthropic models: [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices), which links each model's page. OpenAI models: [Model guidance](https://developers.openai.com/api/docs/guides/latest-model), selecting the pinned version in its switcher.
+- **Where the model's guide and `docs/prompting.md` disagree, the model's guide wins.** Record what you adopted and declined in the *Decisions log* in `docs/prompting.md`.
+
 ### Skill authoring
 
 **For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
@@ -22,7 +31,7 @@ Codex skills install into `~/.codex/skills/` through `scripts/install-codex-skil
 - Graduating, renaming, or removing a skill requires matching changes to both catalogs' `skills` arrays and the group's `README.md`. Validate JSON, catalog parity, array/directory agreement, and cross-group name uniqueness.
 - **A skill's group is part of its public name.** Moving one between groups is a breaking rename: it changes the invocation identifier and silently breaks every agent preload and downstream `CLAUDE.md` naming it. Regrouping needs its own OpenSpec change.
 - Marketplace updates are explicit client operations, not live symlink updates.
-- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`, and `/flow:scout` on `pathfinder`/`researcher`.
+- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`, and `/flow:scout` on `pathfinder`/`researcher`.
 - See `docs/authoring.md` for a step-by-step guide.
 
 ### Agent authoring

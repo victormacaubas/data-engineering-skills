@@ -8,7 +8,7 @@ Distributed as the `flow` marketplace plugin. Members invoke as `/flow:<skill-na
 |---|---|
 | `scout` | Explores an undecided problem through delegated research. Requires the separately installed `pathfinder` and `researcher` agents. |
 | `grill-me` | Pressure-tests a change idea, plan, spec, or ADR before implementation. |
-| `orchestrate` | Drives workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, and `researcher` agents. |
+| `orchestrate` | Drives workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, `researcher`, and `structure-reviewer` agents. |
 | `write-ticket` | Writes Jira tickets and comments in plain language using the Atlassian CLI (`acli`). |
 | `stash` | Parks raw content in an Obsidian vault inbox for later processing. |
 | `atlassian-cli` | Command reference for the Atlassian `acli` CLI: Jira reads and writes, Confluence reads, and the single-profile auth model. |

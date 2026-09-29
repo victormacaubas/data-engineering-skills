@@ -1,8 +1,8 @@
 # Enforcement
 
-Turning the decisions into configuration that fails the build. Read this during Decision 7.
+Turning the decisions into configuration that fails the build. Every rule from Decisions 1 through 6 ends up either in a tool's config or in a test.
 
-The organizing idea: every rule from Decisions 1 through 6 should end up either in a tool's config or in a test. A rule that lives only in `CLAUDE.md` gets followed until the first time it's inconvenient, and nobody finds out.
+**Don't copy version numbers from an example.** Take the Python version from the project's `requires-python`, and pin tool and hook versions to their current release when you write the config (`uv add` resolves the current release for tools; `pre-commit autoupdate` pins hook revs). A version copied from a reference file is stale on the day it lands.
 
 The stack is **uv** for environments, **Ruff** for lint and format, **mypy** for types, **pytest** for tests, and **import-linter** for the layer map. One config file, one gate command, no overlap between tools. If the repo already has coherent tooling config, that config wins — this page is for the case where there is none yet.
 
@@ -26,7 +26,8 @@ Linter and formatter in one — don't add Black or isort alongside it.
 ```toml
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+# target-version omitted: Ruff infers it from `project.requires-python`,
+# so the Python version lives in one place.
 
 [tool.ruff.lint]
 select = [
@@ -56,7 +57,8 @@ Add `S` (bandit) for security-sensitive code. Suppress per line with `# noqa: <r
 
 ```toml
 [tool.mypy]
-python_version = "3.12"
+# python_version omitted: mypy checks against the interpreter it runs
+# under, which uv selects from `requires-python`.
 strict = true
 warn_unreachable = true
 ```
@@ -205,15 +207,15 @@ Fast checks also run on commit, with the slow ones left to CI:
 # .pre-commit-config.yaml
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.0
+    rev: <current release>   # filled in by `pre-commit autoupdate`
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
+    rev: <current release>
     hooks:
       - id: detect-secrets
 ```
 
-`detect-secrets` is cheap insurance: a credential committed once is in the history permanently, and rotating it is the only real remedy. Install the hooks so they actually fire — `uv run pre-commit install` — and pin the `rev` values, updating them deliberately.
+`detect-secrets` is cheap insurance: a credential committed once is in the history permanently, and rotating it is the only real remedy. Run `uv run pre-commit autoupdate` once to pin each `rev` to its current release, then `uv run pre-commit install` so the hooks actually fire. After that, update the pins deliberately. Check the hook ids against the repo's current `.pre-commit-hooks.yaml` while you're there, since hook repos rename them occasionally.

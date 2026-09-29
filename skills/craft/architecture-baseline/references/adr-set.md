@@ -1,8 +1,6 @@
 # The ADR Set
 
-Format and stubs for the decisions this baseline produces. Read this while running the conversation, not after — an ADR written during the discussion captures the alternatives while they're still live, and the alternatives are the part that makes it useful later.
-
-An ADR reconstructed at the end records *what* was decided and loses *what else was on the table*. Six months on, the reader's question is almost never "what did we choose" — the code answers that. It's "did they consider X, and why not." A reconstruction can't answer that honestly, because by then X has been forgotten.
+Format and stubs for the decisions this baseline produces. Write each ADR during the conversation, not after. Six months on, the reader's question is rarely "what did we choose" — the code answers that — but "did they consider X, and why not." Only an ADR written while X was still on the table can answer it; once the code exists, an ADR tends to become a summary of what's there.
 
 ## Format
 
@@ -101,8 +99,6 @@ Record deliberate exceptions too: if mypy is strict everywhere except one packag
 
 Record also that the gate was run and came back green against the declarations the baseline wrote. An untested contract is a claim, and this is the ADR where the difference is visible.
 
-## Two habits that keep the set useful
+## One ADR per decision
 
-**Write the ADR before the code, not after.** The point of writing during the conversation is that you're recording a decision rather than describing an implementation. Once the code exists, the ADR tends to become a summary of what's there — which the code already communicates, and better.
-
-**One ADR per decision, no bundling.** A single "architecture" ADR can't be superseded in pieces. When one of seven decisions changes in a year, you want to supersede that one and leave the other six standing, with the history intact for each.
+**No bundling.** A single "architecture" ADR can't be superseded in pieces. When one of seven decisions changes in a year, you want to supersede that one and leave the other six standing, with the history intact for each.
