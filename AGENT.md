@@ -8,6 +8,15 @@ Codex skills install into `~/.codex/skills/` through `scripts/install-codex-skil
 
 ## How to work here
 
+### Model-specific prompting
+
+Applies to skills and agents alike. `docs/prompting.md` holds the general principles; this is how to get the part that changes with each model.
+
+- **Know which model runs it, then read that model's current guide before writing.** For an existing agent, read `model:` in each platform variant. For an existing skill, find what loads it: the main session, plus any agent that preloads it.
+- **For a new agent or skill, there's nothing to read yet.** Propose the model and effort following the repo's pattern (Sonnet for bounded workers, Opus for judgment and review) with a one-line reason; for a skill, ask what will load it. Confirm with the user before writing.
+- **Check the guide for that exact model version, not the latest one.** Anthropic models: [Prompting best practices](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices), which links each model's page. OpenAI models: [Model guidance](https://developers.openai.com/api/docs/guides/latest-model), selecting the pinned version in its switcher.
+- **Where the model's guide and `docs/prompting.md` disagree, the model's guide wins.** Record what you adopted and declined in the *Decisions log* in `docs/prompting.md`.
+
 ### Skill authoring
 
 **For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
