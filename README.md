@@ -66,9 +66,25 @@ Install the groups you want:
 
 Skills then appear under `/` with their group prefix — `/craft:structure-review`, `/flow:orchestrate`, `/data:sql-data-analysis`. The prefix is applied by Claude Code and cannot be turned off.
 
+#### Mods
+
+Mods are Claude Code plugins that hook into a session and draw their own interface. Each mod installs on its own, independently of the skill groups:
+
+| Mod | Description |
+|-----|-------------|
+| `snowflake-query-panel` | Shows the SQL that the main session and its subagents run through the `snowflake-raw` MCP server in a pane, grouped by agent. Requires the `snowflake-raw` MCP server. |
+
+Install one the same way as a group:
+
+```text
+/plugin install snowflake-query-panel@data-engineering-skills
+```
+
+Mods are available for Claude Code only. Cursor CLI and Codex have no equivalent, and their catalogs and installers do not list mods. The mod API is early access and may change between Claude Code releases. See [docs/mods.md](docs/mods.md).
+
 #### Update
 
-Open `/plugin` in Claude Code, refresh the `data-engineering-skills` marketplace, then update each installed group plugin. Marketplace installs are snapshots rather than live symlinks to a checkout.
+Open `/plugin` in Claude Code, refresh the `data-engineering-skills` marketplace, then update each installed group and mod plugin. Marketplace installs are snapshots rather than live symlinks to a checkout.
 
 ### Codex
 
@@ -241,7 +257,7 @@ Remove only a path you have confirmed is an obsolete repository-owned link or an
 
 ```text
 data-engineering-skills/
-├── .claude-plugin/marketplace.json  # Claude Code skill catalog
+├── .claude-plugin/marketplace.json  # Claude Code catalog: skill groups and mods
 ├── .cursor-plugin/marketplace.json  # Cursor CLI skill catalog
 ├── skills/
 │   └── <group>/                     # craft | flow | data — one plugin each
@@ -251,6 +267,11 @@ data-engineering-skills/
 │           ├── scripts/
 │           ├── assets/
 │           └── references/
+├── mods/
+│   └── <mod-name>/                  # Claude Code only, one plugin each
+│       ├── .claude-plugin/plugin.json
+│       ├── hooks/
+│       └── types/
 ├── agents/
 │   ├── claude/<agent-name>.md
 │   ├── codex/<agent-name>.toml
@@ -260,7 +281,7 @@ data-engineering-skills/
 └── openspec/                        # Tracked changes
 ```
 
-See [docs/authoring.md](docs/authoring.md) to create or graduate a skill and [docs/agents.md](docs/agents.md) to author platform-specific agents.
+See [docs/authoring.md](docs/authoring.md) to create or graduate a skill, [docs/mods.md](docs/mods.md) to author a Claude Code mod, and [docs/agents.md](docs/agents.md) to author platform-specific agents.
 
 ## Troubleshooting
 
