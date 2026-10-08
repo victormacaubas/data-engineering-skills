@@ -1,6 +1,5 @@
 {
   "name": "snowflake-query-panel",
-  "version": "0.1.0",
   "description": "Shows the SQL that the main session and its subagents run through the snowflake-raw MCP server in a pane, with each query's agent, status, and outcome.",
   "author": {
     "name": "Victor Macaubas"
