@@ -2,7 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { QueryRow } from '../types'
-import { fallbackAgentLabel, formatCount, groupByAgent, oneLine, rowLabel, summaryLine, truncate } from './format'
+import { fallbackAgentLabel, formatCount, groupByAgent, oneLine, rowParts, summaryLine, truncate } from './format'
 import { firstLine, outcomeOf } from './outcome'
 import type { Outcome } from './outcome'
 
@@ -137,7 +137,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    const { Box, Button, Text } = $.ui.resolve(e)
+    const { Box, Button, Code, Text } = $.ui.resolve(e)
     const list = await read($, rows)
     const labels = await read($, agentLabels)
     const openIds = await read($, expanded)
@@ -146,27 +146,44 @@ export const register: Register = on => {
     return (
       <Box flexDirection="column">
         <Text dimColor>{truncate(summaryLine(list), width)}</Text>
-        {groupByAgent(list).map(group => (
-          <Box flexDirection="column">
+        {groupByAgent(list).map((group, index) => (
+          <Box flexDirection="column" marginTop={index > 0 ? 1 : 0}>
             <Text bold>
               {labels[group.agentKey] ?? fallbackAgentLabel(group.agentKey)} · {formatCount(group.rows.length, 'query', 'queries')}
             </Text>
-            {group.rows.map(row => (
-              <Box flexDirection="column" paddingLeft={ROW_INDENT}>
-                <Button
-                  key={`row:${row.id}`}
-                  plain
-                  label={rowLabel(row, width - ROW_INDENT, openIds.includes(row.id))}
-                  onPress={() => update($, expanded, ids => toggle(ids, row.id))}
-                />
-                {row.status === 'failed' && (
-                  <Text color="error" wrap="wrap">
-                    {openIds.includes(row.id) ? row.error : truncate(oneLine(row.error ?? ''), width - ROW_INDENT)}
-                  </Text>
-                )}
-                {openIds.includes(row.id) && <Text wrap="wrap">{row.sql}</Text>}
-              </Box>
-            ))}
+            {group.rows.map(row => {
+              const isOpen = openIds.includes(row.id)
+              const { label, status } = rowParts(row, width - ROW_INDENT, isOpen)
+
+              return (
+                <Box flexDirection="column" paddingLeft={ROW_INDENT}>
+                  <Box flexDirection="row" justifyContent="space-between">
+                    <Button
+                      key={`row:${row.id}`}
+                      plain
+                      label={label}
+                      onPress={() => update($, expanded, ids => toggle(ids, row.id))}
+                    />
+                    <Box flexDirection="row">
+                      {status.map(piece => (
+                        <Text {...piece.style}>{piece.text}</Text>
+                      ))}
+                    </Box>
+                  </Box>
+                  {row.status === 'failed' && (
+                    <Text color="error" wrap="wrap">
+                      {isOpen ? row.error : truncate(oneLine(row.error ?? ''), width - ROW_INDENT)}
+                    </Text>
+                  )}
+                  {isOpen && (
+                    <Box flexDirection="column" borderStyle="round" borderColor="subtle">
+                      <Code source={row.sql} language="sql" wrap="wrap" />
+                      {row.queryId !== undefined && <Text dimColor>query id {row.queryId}</Text>}
+                    </Box>
+                  )}
+                </Box>
+              )
+            })}
           </Box>
         ))}
       </Box>
