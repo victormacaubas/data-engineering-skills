@@ -5,7 +5,7 @@ description: Deep reference for querying Snowflake's SNOWFLAKE.ACCOUNT_USAGE sch
 
 # Snowflake ACCOUNT_USAGE Governance Skill
 
-You have access to the Snowflake MCP tool (`mcp__snowflake__run_snowflake_query`). This skill shows you which views to query and how to write effective governance queries against `SNOWFLAKE.ACCOUNT_USAGE`.
+You have access to the Snowflake MCP tool (`mcp__snowflake-raw__sql_exec_tool`, which takes one SQL statement in its `sql` parameter). This skill shows you which views to query and how to write effective governance queries against `SNOWFLAKE.ACCOUNT_USAGE`.
 
 ## How to Use This Skill
 
@@ -471,6 +471,6 @@ Consult these references for complete column schemas:
 
 Read these when you need exact column names/types for a specific view, when the user asks about a column you're unsure about, or when troubleshooting access behavior across database layers.
 
-The column references are snapshots of Snowflake's documentation, and Snowflake adds and changes columns. If a column you need isn't listed, or a query fails on a column name, describe the view (`describe_object`, or `DESCRIBE VIEW SNOWFLAKE.ACCOUNT_USAGE.<view>`) rather than guessing a name.
+The column references are snapshots of Snowflake's documentation, and Snowflake adds and changes columns. If a column you need isn't listed, or a query fails on a column name, describe the view (`DESCRIBE VIEW SNOWFLAKE.ACCOUNT_USAGE.<view>`) rather than guessing a name.
 
 **Infrastructure:** Terraform is the source of truth for governance objects (tags, masking policies, tag associations, database roles). Do not recommend DDL changes directly.
