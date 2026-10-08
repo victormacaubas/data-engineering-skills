@@ -32,21 +32,41 @@ export function outcomeParts(row: QueryRow): string[] {
 }
 
 const GLYPHS = { running: '◌', succeeded: '✓', failed: '✗' } as const
+const GLYPH_COLORS = { running: 'warning', succeeded: 'success', failed: 'error' } as const
 const SEPARATOR = ' · '
+const ARROW_WIDTH = 2
+const GAP_WIDTH = 1
 
-// Snowflake query ids share a time-based prefix, so the row carries the whole
-// id; the SQL hint after it is what tells rows apart at a glance.
-export function rowLabel(row: QueryRow, width: number, isOpen = false): string {
-  const head = [
-    `${isOpen ? '▾' : '▸'} ${GLYPHS[row.status]} ${outcomeParts(row).join(SEPARATOR)}`.trimEnd(),
-    ...(row.queryId === undefined ? [] : [row.queryId]),
-  ].join(SEPARATOR)
-  const room = width - head.length - SEPARATOR.length
-  if (room < MIN_SQL_CHARS) {
-    return truncate(head, width)
+export type StatusStyle = { color?: 'success' | 'error' | 'warning'; dimColor?: true; bold?: true }
+export type StatusPiece = { text: string; style: StatusStyle }
+
+export function statusPieces(row: QueryRow): StatusPiece[] {
+  const glyph: StatusPiece = {
+    text: GLYPHS[row.status],
+    style: row.status === 'failed' ? { color: GLYPH_COLORS.failed, bold: true } : { color: GLYPH_COLORS[row.status] },
+  }
+  const detail = outcomeParts(row).join(SEPARATOR)
+
+  return detail === '' ? [glyph] : [glyph, { text: ` ${detail}`, style: { dimColor: true } }]
+}
+
+export const statusWidth = (pieces: StatusPiece[]): number =>
+  pieces.reduce((total, piece) => total + piece.text.length, 0)
+
+export function sqlLabel(sql: string, room: number, isOpen = false): string {
+  if (room < 1) {
+    return ''
   }
 
-  return `${head}${SEPARATOR}${truncate(oneLine(row.sql), room)}`
+  return truncate(`${isOpen ? '▾' : '▸'} ${oneLine(sql)}`, room)
+}
+
+export function rowParts(row: QueryRow, width: number, isOpen = false): { label: string; status: StatusPiece[] } {
+  const full = statusPieces(row)
+  const fits = width - statusWidth(full) - GAP_WIDTH - ARROW_WIDTH >= MIN_SQL_CHARS
+  const status = fits ? full : full.slice(0, 1)
+
+  return { label: sqlLabel(row.sql, width - statusWidth(status) - GAP_WIDTH, isOpen), status }
 }
 
 export function summaryLine(rows: QueryRow[]): string {

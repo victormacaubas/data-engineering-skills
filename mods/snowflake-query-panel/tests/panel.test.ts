@@ -102,7 +102,40 @@ type Mounted = Awaited<ReturnType<ReturnType<typeof harness>['mount']>>
 
 const labels = async (ui: Mounted) =>
   (await ui.findAll({ type: 'Button' })).map(button => String(button.props.label))
-const texts = async (ui: Mounted) => (await ui.findAll({ type: 'Text' })).map(text => text.text)
+const isStatusPiece = (text: string): boolean => /^( |[✓✗◌]$)/.test(text)
+const texts = async (ui: Mounted) =>
+  (await ui.findAll({ type: 'Text' })).map(text => text.text).filter(text => !isStatusPiece(text))
+const sqlShown = async (ui: Mounted) =>
+  (await ui.findAll({ type: 'Code' })).map(code => String(code.props.source))
+
+type Piece = { text: string; props: Record<string, unknown> }
+type ShownRow = { label: string; pieces: Piece[]; status: string; detail: string }
+type Described = { type: string; props: Record<string, unknown>; children?: Described[] }
+
+const ROW_INDENT = 2
+
+// A row is the space-between Box: the Button, then a Box holding the status pieces.
+const shownRows = async (ui: Mounted): Promise<ShownRow[]> =>
+  (await ui.findAll({ type: 'Box' }))
+    .filter(box => box.props.justifyContent === 'space-between')
+    .map(box => {
+      const [button, status] = box.children as Described[]
+      const pieces = (status!.children ?? []).map(piece => ({
+        text: String(piece.children?.[0]),
+        props: piece.props,
+      }))
+
+      return {
+        label: String(button!.props.label),
+        pieces,
+        status: pieces[0]?.text ?? '',
+        detail: pieces[1]?.text ?? '',
+      }
+    })
+const rowFor = async (ui: Mounted, sql: string) =>
+  (await shownRows(ui)).find(row => row.label.slice(2) === sql)!
+const frames = async (ui: Mounted) =>
+  (await ui.findAll({ type: 'Box' })).filter(box => box.props.borderStyle !== undefined)
 
 describe('outcome parsing', () => {
   const payload = { query_id: 'q-1', result_set: { resultSetMetaData: { numRows: 7 } } }
@@ -135,19 +168,29 @@ describe('outcome parsing', () => {
   })
 })
 
-test('a success row shows duration, row count, full query id and a one-line SQL hint', async ($, on) => {
+test('a success row leads with a one-line SQL hint and carries a colored status on the right', async ($, on) => {
   const h = harness($, on)
   const { call } = await h.begin('select\n  *\nfrom orders')
   await h.begin('select pending')
   const ui = await h.mount()
-  expect(await labels(ui)).toContain('▸ ◌ running · select pending')
+  const pending = await rowFor(ui, 'select pending')
+  expect(pending.pieces).toEqual([
+    { text: '◌', props: { color: 'warning' } },
+    { text: ' running', props: { dimColor: true } },
+  ])
 
   await h.clock.advance(250)
   await h.finish('select\n  *\nfrom orders', rowsAnswer(12))
   const answer = await call
 
   expect(answer).toEqual(rowsAnswer(12))
-  expect(await labels(ui)).toContain('▸ ✓ 250ms · 12 rows · c0ffee00-aaaa-bbbb-cccc-000000000001 · select * from orders')
+  const done = await rowFor(ui, 'select * from orders')
+  expect(done.label).toBe('▸ select * from orders')
+  expect(done.pieces).toEqual([
+    { text: '✓', props: { color: 'success' } },
+    { text: ' 250ms · 12 rows', props: { dimColor: true } },
+  ])
+  expect((await labels(ui)).join('\n')).not.toContain('c0ffee00')
 })
 
 test('an error result marks its row failed with the first line of the error', async ($, on) => {
@@ -161,7 +204,11 @@ test('an error result marks its row failed with the first line of the error', as
   await h.finish('select bad', errored)
 
   expect(await call).toEqual(errored)
-  expect(await labels(ui)).toContain('▸ ✗ 0ms · select bad')
+  const failed = await rowFor(ui, 'select bad')
+  expect(failed.pieces).toEqual([
+    { text: '✗', props: { color: 'error', bold: true } },
+    { text: ' 0ms', props: { dimColor: true } },
+  ])
   expect(await texts(ui)).toContain('SQL compilation error: bad')
   expect(await texts(ui)).not.toContain('position 7')
 })
@@ -176,7 +223,10 @@ test('an unparseable result is still a success without count or id', async ($, o
   await h.finish('select 1', { result: 'garbled <<>>' })
 
   expect(await call).toEqual({ result: 'garbled <<>>' })
-  expect(await labels(ui)).toContain('▸ ✓ 0ms · select 1')
+  expect((await rowFor(ui, 'select 1')).pieces).toEqual([
+    { text: '✓', props: { color: 'success' } },
+    { text: ' 0ms', props: { dimColor: true } },
+  ])
 })
 
 test('a deny from below marks the row failed and is returned as received', async ($, on) => {
@@ -189,7 +239,9 @@ test('a deny from below marks the row failed and is returned as received', async
   await h.finish('drop table t', { deny: 'blocked by policy' })
 
   expect(await call).toEqual({ deny: 'blocked by policy' })
-  expect(await labels(ui)).toContain('▸ ✗ 0ms · drop table t')
+  const denied = await rowFor(ui, 'drop table t')
+  expect(denied.status).toBe('✗')
+  expect(denied.pieces[0]!.props).toEqual({ color: 'error', bold: true })
   expect(await texts(ui)).toContain('blocked by policy')
 })
 
@@ -260,11 +312,15 @@ describe('concurrency', () => {
       expect(await spec.run.call).toEqual(rowsAnswer(spec.rows, `query-${spec.sql}0000`))
     }
 
-    const shown = await labels(ui)
+    const shown = await shownRows(ui)
     expect(shown).toHaveLength(6)
     for (const spec of calls) {
-      expect(shown.filter(label => label.includes(`${spec.rows} row`) && label.endsWith(` ${spec.sql}`))).toHaveLength(1)
+      const mine = shown.filter(row => row.label === `▸ ${spec.sql}`)
+      expect(mine).toHaveLength(1)
+      expect(mine[0]!.status).toBe('✓')
+      expect(mine[0]!.detail).toContain(`${spec.rows} row`)
     }
+    expect((await rowFor(ui, 'still running')).status).toBe('◌')
   })
 
   test('the eleventh query evicts the first and the evicted row ignores its late completion', async ($, on) => {
@@ -275,17 +331,17 @@ describe('concurrency', () => {
     }
     const ui = await h.mount()
 
-    const before = await labels(ui)
+    const before = await shownRows(ui)
     expect(before).toHaveLength(10)
-    expect(before.some(label => label.endsWith(' q0'))).toBe(false)
-    expect(before.some(label => label.endsWith(' q10'))).toBe(true)
+    expect(before.some(row => row.label === '▸ q0')).toBe(false)
+    expect(before.some(row => row.label === '▸ q10')).toBe(true)
 
     await h.finish('q0', rowsAnswer(999))
 
     expect(await first.call).toEqual(rowsAnswer(999))
-    const after = await labels(ui)
+    const after = await shownRows(ui)
     expect(after).toEqual(before)
-    expect(after.some(label => label.includes('999'))).toBe(false)
+    expect(after.some(row => row.detail.includes('999'))).toBe(false)
   })
 })
 
@@ -321,7 +377,9 @@ describe('pane lifecycle', () => {
     expect(await call).toEqual(rowsAnswer(1))
     expect(h.logs.some(line => line.startsWith('debug: snowflake-query-panel: recording failed'))).toBe(true)
     expect(await texts(ui)).toContain('agent zzzzzz · 1 query')
-    expect(await labels(ui)).toContain('▸ ✓ 0ms · 1 row · c0ffee00-aaaa-bbbb-cccc-000000000001 · select 1')
+    const recorded = await rowFor(ui, 'select 1')
+    expect(recorded.status).toBe('✓')
+    expect(recorded.detail).toBe(' 0ms · 1 row')
   })
 
   test('the slash command opens the pane and sends nothing to the model', async ($, on) => {
@@ -379,20 +437,80 @@ describe('views', () => {
     await h.begin('m-new')
     const ui = await h.mount()
 
-    const headers = (await ui.findAll({ type: 'Text' })).map(text => text.text)
+    const headers = await texts(ui)
     expect(headers).toEqual(['Snowflake · 3 queries · 3 running', 'main · 2 queries', 'pathfinder · alpha · 1 query'])
     expect((await labels(ui)).map(label => label.split(' ').pop())).toEqual(['m-new', 'm-old', 'a-old'])
   })
 
-  test('SQL is cut to the pane width on one line', async ($, on) => {
+  test('SQL is cut to the room left of the status, on one line', async ($, on) => {
     const h = harness($, on)
     await h.begin(`select ${'column_name, '.repeat(20)} from t`)
     const ui = await h.mount(40)
 
-    const [label] = await labels(ui)
-    expect(label!.length).toBeLessThanOrEqual(38)
-    expect(label).toEndWith('…')
-    expect(label).not.toContain('\n')
+    const [row] = await shownRows(ui)
+    expect(row!.label).toEndWith('…')
+    expect(row!.label).not.toContain('\n')
+    expect(row!.label.length + '◌ running'.length + 1).toBeLessThanOrEqual(40 - ROW_INDENT)
+  })
+
+  test('a long status drops to its glyph rather than squeezing the SQL out', async ($, on) => {
+    const h = harness($, on)
+    const sql = `select ${'column_name, '.repeat(20)} from t`
+    const { call } = await h.begin(sql)
+    await h.begin('select pending')
+    await h.clock.advance(12345)
+    await h.finish(sql, rowsAnswer(1234567))
+    await call
+
+    const used = (shown: ShownRow) =>
+      shown.label.length + shown.pieces.reduce((total, piece) => total + piece.text.length, 0) + 1
+    const finished = async (columns: number) => {
+      const ui = await h.mount(columns)
+      const shown = (await shownRows(ui)).find(row => row.status === '✓')!
+      await ui.unmount()
+
+      return shown
+    }
+
+    expect((await finished(100)).pieces).toHaveLength(2)
+    for (const columns of [30, 12, 6]) {
+      const shown = await finished(columns)
+      expect(shown.pieces).toHaveLength(1)
+      expect(used(shown)).toBeLessThanOrEqual(columns - ROW_INDENT)
+    }
+  })
+
+  test('the second and later agent groups are separated by a margin', async ($, on) => {
+    const h = harness($, on, { agents: [agent('aaaaaa111', 'pathfinder', 'alpha'), agent('bbbbbb222', 'pathfinder', 'beta')] })
+    await h.begin('select 1', 'aaaaaa111')
+    await h.begin('select 2', 'bbbbbb222')
+    await h.begin('select 3')
+    const ui = await h.mount()
+
+    const groups = (await ui.findAll({ type: 'Box' })).filter(box => box.props.marginTop !== undefined)
+    expect(groups.map(box => box.props.marginTop)).toEqual([0, 1, 1])
+  })
+
+  test('a failed row keeps one truncated error line below it, and the whole error when expanded', async ($, on) => {
+    const h = harness($, on)
+    const message = `compilation failed ${'x'.repeat(150)}`
+    const { call } = await h.begin('select bad')
+    await h.begin('select pending')
+    const ui = await h.mount(40)
+    await h.finish('select bad', { isError: true, result: undefined, text: message })
+    await call
+
+    const errorLine = async () =>
+      (await ui.findAll({ type: 'Text' })).find(text => text.props.color === 'error' && text.text.length > 1)!.text
+    const collapsed = await errorLine()
+    expect(collapsed.length).toBeLessThanOrEqual(40 - ROW_INDENT)
+    expect(collapsed).toEndWith('…')
+    expect(await frames(ui)).toHaveLength(0)
+
+    const key = (await ui.find({ type: 'Button', text: 'select bad' }))!.key!
+    await ui.press({ key })
+    expect(await errorLine()).toBe(message)
+    expect((await frames(ui)).length).toBe(1)
   })
 })
 
@@ -406,24 +524,36 @@ describe('expanding a row', () => {
     const buttons = await ui.findAll({ type: 'Button' })
     const key = buttons.find(button => String(button.props.label).includes('order_id'))!.key!
 
-    expect(await texts(ui)).not.toContain(sql)
+    expect(await sqlShown(ui)).not.toContain(sql)
+    expect(await frames(ui)).toHaveLength(0)
 
     await ui.press({ key })
-    expect(await texts(ui)).toContain(sql)
+    expect(await sqlShown(ui)).toContain(sql)
+    expect(await frames(ui)).toHaveLength(1)
+    expect((await texts(ui)).some(text => text.includes('query id'))).toBe(false)
 
     await ui.press({ key })
-    expect(await texts(ui)).not.toContain(sql)
+    expect(await sqlShown(ui)).not.toContain(sql)
+    expect(await frames(ui)).toHaveLength(0)
 
-    await h.finish(sql, rowsAnswer(2, 'c0ffee00-1111-2222-3333-444444444444'))
+    const queryId = 'c0ffee00-1111-2222-3333-444444444444'
+    await h.finish(sql, rowsAnswer(2, queryId))
     await call
     const finished = (await labels(ui)).find(label => label.includes('order_id'))!
-    expect(finished).toStartWith('▸ ✓')
-    expect(finished).toContain('c0ffee00-1111-2222-3333-444444444444')
+    expect(finished).toStartWith('▸ select order_id')
+    expect((await labels(ui)).join('\n')).not.toContain(queryId)
+    expect((await texts(ui)).some(text => text.includes('query id'))).toBe(false)
 
     await ui.press({ key })
-    expect((await labels(ui)).find(label => label.includes('order_id'))).toStartWith('▾ ✓')
-    expect(await texts(ui)).toContain(sql)
-    expect((await texts(ui)).some(text => text.includes('query id'))).toBe(false)
+    expect((await labels(ui)).find(label => label.includes('order_id'))).toStartWith('▾ select order_id')
+    expect(await sqlShown(ui)).toContain(sql)
+
+    const [frame] = await frames(ui)
+    expect(frame!.props).toMatchObject({ flexDirection: 'column', borderStyle: 'round', borderColor: 'subtle' })
+    expect((frame!.children as Described[]).map(child => child.type)).toEqual(['Code', 'Text'])
+    const idLine = await ui.find({ type: 'Text', text: queryId })
+    expect(idLine!.text).toBe(`query id ${queryId}`)
+    expect(idLine!.props).toEqual({ dimColor: true })
   })
 
   test('a past query still expands once nothing is running', async ($, on) => {
@@ -436,6 +566,6 @@ describe('expanding a row', () => {
     const [button] = await ui.findAll({ type: 'Button' })
 
     await ui.press({ key: button!.key! })
-    expect(await texts(ui)).toContain(sql)
+    expect(await sqlShown(ui)).toContain(sql)
   })
 })
