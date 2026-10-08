@@ -54,7 +54,7 @@ Claude Code and Cursor CLI marketplace-installed skill plugins SHALL NOT install
 
 #### Scenario: Repository root is not a plugin source
 - **WHEN** a catalog entry is validated
-- **THEN** its source resolves to a group directory under `skills/`
+- **THEN** its source resolves to a group directory under `skills/`, or, in the Claude Code catalog only, to a mod directory under `mods/`
 - **AND** never to the repository root
 
 ### Requirement: Marketplace-managed skill updates
