@@ -26,7 +26,7 @@ mods/my-mod/
 
 | File | Contents |
 |------|----------|
-| `.claude-plugin/plugin.json` | `name` (equal to the directory), `version`, `description`, and `"types": "./types/index.d.ts"` when the mod keeps state. |
+| `.claude-plugin/plugin.json` | `name` (equal to the directory), `description`, and `"types": "./types/index.d.ts"` when the mod keeps state. Omit `version`: an explicit one pins the install cache, so `/plugin` reports "already at the latest version" and skips new commits. Without it the commit SHA is the version. |
 | `hooks/hooks.json` | Names one hooks module: `{ "modules": ["./register.tsx"] }`. |
 | `hooks/register.tsx` | Exports `register`, typed `Register` from `'claude-code'`. It registers the mod's hooks. |
 | `types/index.d.ts` | Declares each `$.state` value the mod reads or writes under `interface PluginState`, keyed by the plugin name. This is the state contract. |
