@@ -1,6 +1,6 @@
 ## What this repo is
 
-A collection of skills and custom agents for Claude Code, Codex, and Cursor CLI. Skills are distributed as three domain plugins — `craft`, `flow`, and `data` — through Git-backed Claude/Cursor catalogs; Codex skills install from this checkout through a symlink-first script. Custom agents are installed by the scripts in `scripts/`.
+A collection of skills and custom agents for Claude Code, Codex, and Cursor CLI. Skills are distributed as three domain plugins — `craft`, `flow`, and `data` — through Git-backed Claude/Cursor catalogs; Codex skills install from this checkout through a symlink-first script. Custom agents are installed by the scripts in `scripts/`. Claude Code mods, which hook into a session and draw their own interface, live under `mods/<name>/` and are cataloged one plugin each in the Claude Code catalog only.
 
 Claude Code namespaces plugin skills, so an installed skill is invoked and referenced as `<group>:<skill-name>` — `/craft:structure-review`, never a bare `/structure-review`. There is no way to turn the prefix off.
 
@@ -45,6 +45,14 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 - Agents install into `~/.claude/agents/`, `~/.codex/agents/`, and `~/.cursor/agents/`. See `docs/agents.md`.
 - Marketplace plugins must not expose or install the top-level custom agents.
 - See `docs/agents.md` for a full authoring guide.
+
+### Mod authoring
+
+- Each mod is its own plugin at `mods/<name>/`, with one `hooks.json` naming one hooks module. The plugin `name` equals the directory and must not collide with a skill group or another mod.
+- Mods are Claude Code only. List them in `.claude-plugin/marketplace.json` with `"source": "./mods/<name>"` and no `skills` array; never in `.cursor-plugin/marketplace.json`.
+- Catalog parity between Claude and Cursor covers skill groups only. A mod entry is not a parity failure.
+- Run `claude plugin validate`, `claude plugin test`, and `tsc -p` on a mod, and re-run them after a Claude Code update; the mod API is early access.
+- See `docs/mods.md` for the layout, checks, and install steps.
 
 ### Preserving user changes
 
@@ -91,13 +99,14 @@ Don't make these changes without creating an OpenSpec change first, unless the u
 ## Directory layout
 
 ```
-.claude-plugin/marketplace.json  ← Claude Code catalog: craft, flow, data
+.claude-plugin/marketplace.json  ← Claude Code catalog: craft, flow, data, plus one entry per mod
 .cursor-plugin/marketplace.json  ← Cursor CLI catalog: same three groups
 skills/craft/<name>/             ← plugin root: architecture, standards, reviews
 skills/flow/<name>/              ← plugin root: explore, plan, delegate, ticket
 skills/data/<name>/              ← plugin root: SQL standards, warehouse governance
 skills/in-progress/<name>/       ← not a group, not cataloged
 skills/deprecated/<name>/        ← not a group, not cataloged
+mods/<name>/                     ← plugin root: Claude Code mod, Claude catalog only
 agents/claude/                   ← Claude Code agent definitions
 agents/codex/                    ← Codex TOML agent definitions
 agents/cursor/                   ← Cursor CLI agent definitions

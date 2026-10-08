@@ -40,6 +40,12 @@
       ],
       "description": "The warehouse surface: canonical SQL standards for trustworthy analytics, and Snowflake ACCOUNT_USAGE auditing for masking, row access, classification, tags, grants, logins, and query history. Invoke as /data:<skill-name>.",
       "strict": false
+    },
+    {
+      "name": "snowflake-query-panel",
+      "source": "./mods/snowflake-query-panel",
+      "description": "Claude Code only. Shows the SQL that the main session and its subagents run through the snowflake-raw MCP server in a pane, grouped by agent. Requires the snowflake-raw MCP server.",
+      "strict": false
     }
   ]
 }
