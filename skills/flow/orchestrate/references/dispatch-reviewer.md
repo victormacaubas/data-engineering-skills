@@ -14,8 +14,9 @@ asks, it no longer applies.
 The reviewer can read the tree and declarations, but not this session. You alone hold five things:
 
 - **The written statement of intent.** For an OpenSpec change, the artifact paths you already
-  resolved through the CLI. For a session-only plan, the scratch file path from *Externalize a
-  session-only plan* — which is why that file outlives the dispatch loop. Hand over a path, not a
+  resolved through the CLI. For a plan file, its path. For a session-only plan,
+  `.orchestrate/<slug>/plan.md` from *Externalize a session-only plan*, which is why the run
+  folder outlives the dispatch loop. Hand over a path, not a
   summary. The review checks implementation against a written statement, and your paraphrase is
   not a source it can test against. Without one, its highest-value pass has little to check. State
   that upfront rather than letting the reviewer discover the gap.
@@ -26,7 +27,9 @@ The reviewer can read the tree and declarations, but not this session. You alone
   most affects the output. A mid-build design improvement looks like a violation to anyone
   comparing document and code, so an unreported improvement returns as a confident false finding.
   State what changed and that it was deliberate. Note which document is stale, because that *is* a
-  real finding that belongs in the report rather than being quietly absorbed.
+  real finding that belongs in the report rather than being quietly absorbed. Judgment calls the
+  `implementer` made live in each slice report's `Decisions made`; hand over the report paths in
+  `.orchestrate/<slug>/` rather than restating them.
 - **Tasks descoped or deferred**, so a deliberate gap isn't reported as an omission.
 - **A slug for the report filename**, naming this pass. `review` for a first pass; on a later pass
   see *Re-review* below.

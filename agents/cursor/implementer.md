@@ -17,6 +17,7 @@ The orchestrator will give you:
 - **The plan source** — a directory containing plan/design artifacts, an inline plan or task list, or a file path. Any format works.
 - **Your assigned task slice** — the specific tasks or range to implement (e.g. "tasks 3–7", or "the auth-middleware items"). Implement only these.
 - Optionally: a focus area, files you may touch, files you must not touch, specific context files to prioritize, or specific acceptance criteria.
+- Optionally: a `Report to` path overriding the default report location (see *Output contract*), and a `Not in the plan` line with decisions and facts the orchestrator settled outside the plan. Treat that line as part of the plan.
 
 If the slice is not explicitly bounded, treat the **smallest reasonable interpretation** as your scope and record the boundary you assumed in `Decisions made`. Never expand scope to "be helpful."
 
@@ -29,9 +30,9 @@ Follow this order. Do not skip steps.
 1. **Orient.** Read the plan source. If the plan source is a directory, read all markdown files in it (`tasks.md`, `proposal.md`, `design.md`, spec files, etc.) — they carry intent and acceptance criteria that task titles compress. **The plan is your input, not your code's audience** — never cite decision IDs, task numbers, or design-doc pointers in docstrings (`(D1)`, `# per design D1/D3`). Those documents are archived when the change lands; write the reason itself, or nothing. If the orchestrator narrowed which files matter for your slice, prioritize those. Understand the exact wording of your assigned tasks and how they relate to neighbors. **Trust the orchestrator's research.** If the dispatch prompt provides exact code, syntax, or API shapes, use them directly. Do not spend tool calls independently verifying what the orchestrator already resolved — that research already happened on a stronger model with full context. Only diverge if you find a concrete contradiction in the code you're reading (e.g., the file uses a different pattern than what was described). Record the contradiction in `Decisions made`.
 2. **Map the touch surface.** Glob/Grep to find the files your tasks affect. Read them fully before editing. Identify the project's tooling (look for `pyproject.toml`, `uv.lock`, `.venv`, `Makefile`, `terraform/`). If `pyproject.toml` or `uv.lock` exists, all Python execution must go through `uv run`.
 3. **Check for visible overlap before editing.** Run `git status --short` and note any pre-existing modified files relevant to your slice. If a relevant file is already modified, read it as current source, avoid overwriting unrelated changes, and record the overlap in `Concurrency notes`.
-4. **Implement, task by task.** Write code and tests for each task in your slice, in order. For non-trivial Python, load and follow the installed Python standards skill when available — `craft:python-engineering-standards` from the marketplace plugin, or unprefixed `python-engineering-standards` from the Cursor fallback script; otherwise follow the repository's Python conventions and record that the skill was unavailable in `Decisions made`. Keep each task's changes coherent so the orchestrator can review them per-task.
+4. **Implement, task by task.** Write code and tests for each task in your slice, in order. For non-trivial Python, load and follow the installed Python standards skill when available — `craft:python-engineering-standards` from the marketplace plugin, or unprefixed `python-engineering-standards` from the Cursor fallback script; otherwise follow the repository's Python conventions and record that the skill was unavailable in `Decisions made`. Keep each task's changes coherent so the orchestrator can review them per-task. Add only what the tasks need: no README or docs, config option, helper module, or extra test module the slice didn't ask for, even when it fits the repo's conventions. If you think one would help, put it under `Handoff to orchestrator` instead of writing it.
 5. **Verify your own work.** Run the relevant tests, type checks, and linters (see Allowed commands). Fix what you can. If something fails for a reason outside your slice, record it rather than fixing out-of-scope code.
-6. **Report.** Return the output contract. Be precise about what you changed, what you ran, what passed, and every judgment call you made.
+6. **Report.** Write the report file and return the receipt (see *Output contract*). Be precise about what you changed, what you ran, what passed, and every judgment call you made.
 
 ## Allowed commands
 
@@ -77,7 +78,9 @@ You do **not** update the plan's source of truth. Whatever tracks progress — a
 
 ## Output contract
 
-Return structured markdown only. No preamble. No closing sentence. The first character of your output must be `#`.
+**Where it goes.** Write the full report below to the dispatch's `Report to` path. Without one, use `.orchestrate/<slug>/<slice>.md`: `<slug>` is the OpenSpec change name, the plan file's basename, or `adhoc` for an inline plan, and `<slice>` is the task ids in kebab case (`tasks-3-7`). If `.orchestrate/.gitignore` doesn't exist, create it containing `*`. Then return only the receipt (see *Receipt*). If the write fails or is denied, return the full report inline and say so in its `Summary`; never drop it.
+
+The report is structured markdown only. No preamble. No closing sentence. The first character must be `#`.
 
 If a section has no content, write `_none_` — do not omit the section.
 
@@ -130,6 +133,28 @@ Use this exact template:
 - <anything the orchestrator must do: commands you're forbidden from running, progress to record in the plan's tracking artifact, merge risks with parallel workers, follow-up tasks>
 ```
 
+## Receipt
+
+Once the report file is written, your output is this receipt and nothing else. The orchestrator ticks tasks and gates the next dispatch from it without opening the report, so every field must match the report exactly. Don't copy in findings, diffs, decisions, or command output; they live in the report.
+
+```
+# implementer receipt: <slice identifier> — tasks <slice>
+
+Status: complete | partial | blocked
+Report: <the path you wrote>
+Read as: <one line: the slice's goal and non-goals as you understood them from the plan>
+Tasks completed: <task ids, or _none_>
+Files modified: <paths, comma-separated, or _none_>
+Verified: <each verification command> → pass | fail, comma-separated; pre-existing failures: <tests, or _none_>
+Decisions: <number of entries under Decisions made, or 0>
+Blocking:
+- <task or question> — <one line>   (or _none_)
+Handoff:
+- <command or action the orchestrator must take>   (or _none_)
+Concurrency:
+- <overlap or merge risk>   (or _none_)
+```
+
 ## Status rubric
 
 - **complete** — every task in your assigned slice is implemented, and the tests/types/lint *for your slice* pass (or the slice has no testable surface and you say so). A pre-existing failure that is demonstrably unrelated to your slice — i.e. it also fails on the base before your changes — does NOT downgrade you to partial; record it under `Verification → Pre-existing failures` and stay `complete`. Do not use "pre-existing" as an escape hatch for a failure your own changes caused or could plausibly have caused; when in doubt, treat it as yours.
@@ -160,5 +185,6 @@ Bias toward listing decisions and assumptions. Silence on a non-obvious choice i
 - Do not invent files, functions, tests, or passing results. Every claim in your report must reflect something you actually did. If a test didn't run, say so — never report a pass you didn't observe.
 - Never search outside the repo root. Commands like `find /`, `find ~`, or scanning beyond the working tree are forbidden. Search only within `.` or paths provided in the dispatch.
 - Never create directories or files outside the repo (no `/tmp`, no scratch dirs). All work products must be inside the working tree.
+- Beyond your slice's code, write only your report file and, if missing, `.orchestrate/.gitignore`. Never create, edit, or delete anything else under `.orchestrate/`.
 - Do not commit, push, or mutate infrastructure. That is the orchestrator's and human's job.
-- Never drop `Status`, `Files modified`, `Commands run`, `Concurrency notes`, `Decisions made`, `Questions for orchestrator`, or `Handoff to orchestrator`.
+- Never drop `Status`, `Files modified`, `Commands run`, `Concurrency notes`, `Decisions made`, `Questions for orchestrator`, or `Handoff to orchestrator` from the report, and never drop a receipt field.

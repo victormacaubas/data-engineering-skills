@@ -29,15 +29,25 @@ Then read only material you do not already hold reliably. **Re-read when:**
 
 Test whether your understanding of the plan is *stale*, not whether this skill just fired.
 
+## The run folder
+
+Everything this skill writes lives in `.orchestrate/<slug>/` at the repo root. `<slug>` is the OpenSpec change name, the plan file's basename, or a short kebab-case name for a session-only plan. It holds a session-only `plan.md` (next section) and one `implementer` report per slice.
+
+Before the first dispatch, make sure `.orchestrate/.gitignore` exists containing `*`; create it if not. The `implementer` also creates it when missing. The folder then stays out of `git status`, out of a worker's overlap check, and out of a reviewer's diff, without editing the repo's own `.gitignore`.
+
+Keep the folder until *Closing the build* resolves. A re-dispatch for a partial slice and the closing review both read from it.
+
 ## Externalize a session-only plan before dispatch
 
-A fresh-context worker cannot read the session. Write the full plan to a scratch file outside the working tree (e.g. `/tmp/orchestrate/<change-slug>-plan.md`): task slices, acceptance criteria, and any in-conversation decisions the worker needs. Pass the **explicit absolute path** in the dispatch prompt. The worker's guardrails allow it to read paths provided in the dispatch.
+**Only for plan source 3.** An OpenSpec change or a plan file already is the written plan. Never copy it into a scratch file, and never create one to hold decisions taken in conversation; *Pre-flight → Record what you settled* says where those go.
 
-Clean up the scratch file only once *Closing the build* has resolved, not when the dispatch loop ends. Two later steps still need it: a re-dispatch for partial results or a follow-up slice, and the closing gate, which gives its path to a reviewer as the only written statement of the change's intended result. Deleting it early removes the source from both.
+A fresh-context worker cannot read the session. Write the full plan to `.orchestrate/<slug>/plan.md`: tasks, acceptance criteria, and the decisions the worker needs. Pass its path in the dispatch.
+
+It is the only written statement of the change's intended result, so the closing review is handed its path too. That is why it lives as long as the run folder, not just the dispatch loop.
 
 ## Pre-flight
 
-Make three checks in one pass over the slice before you dispatch. Scope each to something the `implementer` genuinely cannot do or know; do not perform checks when you already have the answer.
+Make three checks in one pass over the scope before you dispatch, then record what they settled. Scope each to something the `implementer` genuinely cannot do or know; do not perform checks when you already have the answer.
 
 ### Provision what the worker can't
 
@@ -71,12 +81,41 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 
 `references/dispatch-readers.md` defines the briefing contract for both workers and the fast path for one bounded question. Reading is the inexpensive half of orchestration. Dispatch freely here: an unknown that reaches the `implementer` returns as a guess or `blocking: true`, and either costs a full round trip.
 
+### Record what you settled
+
+Pre-flight and conversation settle things the plan source doesn't say. Route each one by what it changes:
+
+- **It changes intent** (scope, behavior, a design choice) → edit it into the plan source before dispatch: the change's design or tasks artifact, the plan file, or `plan.md`. The worker reads the plan whole, and the closing review checks the code against it. A decision held anywhere else reads as a violation to both.
+- **Only the dispatch needs it** (a resolved API shape, a data fact, the file split between parallel slices) → the brief's `Not in the plan` line.
+
+Nothing else gets a file.
+
+## Slice the scope
+
+Do the dispatch thinking once, here, for the whole bounded scope, then dispatch from the result. **Read `references/dispatch-implementer.md` now**: its contract defines what a brief carries.
+
+- **Cut slices along task groups.** Merge two groups when a task's check needs the other group's output.
+- **Mark dependencies.** A slice that edits a file another slice edits, or needs its output, is blocked by it. Slices with disjoint files go in the same batch, each with the other's paths as `Must not touch`.
+- **Write every brief now.** A brief carries only what the plan source lacks, so for a well-specified OpenSpec change it is about three lines. Dispatching then needs no fresh deliberation.
+
+### Show progress in the harness task list
+
+Mirror the slices into the harness's built-in task list (`TaskCreate`/`TaskUpdate` in Claude Code, `update_plan` in Codex, the todo tool in Cursor) so the user sees live progress. It is a view of the tracking artifact, never a second record.
+
+- **Create the list in one message:** one entry per slice (`Slice A: capture and state (tasks 2.1–2.4)`), plus one per open pre-flight item or step only you can run (a live end-to-end check, a final `openspec validate`). Then add the blocked-by links where the tool supports them.
+- **One entry per slice, not per task.** Per-task ticks stay in the tracking artifact.
+- **`in_progress`** in the message that dispatches the slice.
+- **`completed`** in the same message that ticks the slice's tasks in the tracking artifact, never on a worker's report alone. A `partial` or `blocked` slice stays open, retitled with its blocker (`Slice B … — blocked: 3.2 command name`).
+- **Keep it in step** when the scope changes mid-build (a re-slice, a review fix list): update the entries rather than letting the list drift from the artifact.
+
+Workers have no task tools, so the list stays single-writer like the artifact it mirrors.
+
 ## Dispatch loop
 
-**Read `references/dispatch-implementer.md` at dispatch time.** It opens with a fill-in dispatch contract; send that as the prompt rather than composing a briefing from scratch, so a slice never ships missing its verification bar or its non-goals. The rest is how to fill each slot and the after-return playbook. `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
+Send each slice's brief from *Slice the scope* as the dispatch prompt. `references/dispatch-implementer.md` also holds the after-return playbook; `references/dispatch-readers.md` covers briefing a read-only worker (`pathfinder`, `researcher`) when the build hits a gap. Two invariants gate everything:
 
 - **Bound every slice** with explicit task numbers ("tasks 3–7"), never "implement the plan."
-- **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs; that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's handoff, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
+- **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs; that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's receipt, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
 
 ### Dispatch as one batch, synthesize once
 
@@ -84,7 +123,7 @@ When a step needs several workers on independent assignments, emit **all** of th
 
 Before the batch, write one line per worker naming it and its scope. Nothing more. No hypotheses, no expected findings, no reasoning about what the code probably does. Anything you assert before the evidence lands is something you may have to retract in front of the user.
 
-The returns wake you one at a time. **On a partial return, the whole turn is recording, not reasoning:** note that the worker is back (`pathfinder (auth) back — 2 of 3`), tick tasks that worker actually verified, log a `blocking: true` to resolve later. Then stop. No summary of the finding, no conclusion drawn from it, no revised plan, no answer to the user's question.
+The returns wake you one at a time. **On a partial return, the whole turn is recording, not reasoning:** note that the worker is back (`pathfinder (auth) back — 2 of 3`), tick tasks that worker actually verified and update its task-list entry, log a `blocking: true` to resolve later. Then stop. No summary of the finding, no conclusion drawn from it, no revised plan, no answer to the user's question.
 
 The batch is a barrier: reasoning on return 1 of 3 is usually voided by return 2, so the next substantive thing you say comes after the last worker is back.
 
@@ -102,11 +141,11 @@ Three endings leave owed work undone. Don't use them:
 - An offer to continue unless the user would prefer otherwise.
 - A list of decisions for the user when, by your own account, none of them blocks the next slice. Put your recommendation next to each one and keep dispatching whatever doesn't depend on the answer.
 
-Ending a turn while workers in the batch are still running is waiting, not stopping; that is what a partial-return turn does. Otherwise, stop only when nothing can move without the user: a `blocking: true` you can't resolve from the code or the plan, a pre-flight item that needs their decision, or every task in scope ticked, which moves you to *Closing the build*. Before ending any turn, re-read the tracking artifact: open tasks in scope with no stated blocker mean the turn isn't over. This does not override asking before risky or destructive actions.
+Ending a turn while workers in the batch are still running is waiting, not stopping; that is what a partial-return turn does. Otherwise, stop only when nothing can move without the user: a `blocking: true` you can't resolve from the code or the plan, a pre-flight item that needs their decision, or every task in scope ticked, which moves you to *Closing the build*. Before ending any turn, re-read the tracking artifact: open tasks in scope with no stated blocker mean the turn isn't over. The task list shows the same thing at a glance: an open entry with no blocker in its title is owed work. This does not override asking before risky or destructive actions.
 
 ## Closing the build
 
-The build is finished once you complete the last slice's after-return work: read the handoff, resolve `blocking: true` items, run handed-off commands, and tick tasks. Ask one question: should someone review this change's *shape* before it goes further?
+The build is finished once you complete the last slice's after-return work: read the receipt, resolve `blocking: true` items, run handed-off commands, and tick tasks. Ask one question: should someone review this change's *shape* before it goes further?
 
 Offer a review only when the signals below apply; a prompt that is usually noise trains users to dismiss it. Default to silence.
 
@@ -128,6 +167,12 @@ Ask once in one line, then accept the answer. Do not argue, raise it again later
 
 When the user agrees, or asks for a review directly, **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path.
 
+### Clean up the run folder
+
+Once the review question has resolved (answered, or never raised) and every task in scope is ticked, ask once in one line: "Remove `.orchestrate/<slug>/`?" On yes, run `<skill-dir>/scripts/cleanup.sh <slug>` from the repo root. On no, leave it.
+
+Never ask while the build is stopped on a blocker; a later session resumes from those reports. Review reports in `.structure-review/` are not part of the run folder and outlive the build on purpose. The script never touches them.
+
 ## Guardrails
 
 - **Never `git commit` / `git push` unless the user asks.** If on the default branch, branch first.
@@ -138,4 +183,5 @@ When the user agrees, or asks for a review directly, **read `references/dispatch
 - **Don't build a waiter.** No `Monitor`, no polling loop. Notifications only.
 - **Don't stop with owed work.** Open tasks in scope and no blocker means dispatch the next slice, not a summary that announces it.
 - **Never hand the `implementer` an unknown.** It will not research or verify. See *Pre-flight → Close the unknowns*.
+- **Don't externalize a plan that's already on disk.** Only a session-only plan gets `plan.md`. Settled decisions go into the plan source or the brief.
 - **Don't re-read what you already hold.** Re-establish context only when your understanding is stale. Re-reading your own artifacts uses the context this skill protects.
