@@ -2,7 +2,16 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { QueryRow } from '../types'
-import { fallbackAgentLabel, formatCount, groupByAgent, oneLine, rowParts, summaryLine, truncate } from './format'
+import {
+  fallbackAgentLabel,
+  formatCount,
+  groupByAgent,
+  oneLine,
+  queryHistoryUrl,
+  rowParts,
+  summaryLine,
+  truncate,
+} from './format'
 import { firstLine, outcomeOf } from './outcome'
 import type { Outcome } from './outcome'
 
@@ -137,7 +146,7 @@ export const register: Register = on => {
   }).catch(($, e, next) => next(e))
 
   on('ui.render', { component: 'Pane', requestId: PANE_ID }, async ($, e) => {
-    const { Box, Button, Code, Text } = $.ui.resolve(e)
+    const { Box, Button, Code, Link, Text } = $.ui.resolve(e)
     const list = await read($, rows)
     const labels = await read($, agentLabels)
     const openIds = await read($, expanded)
@@ -178,7 +187,11 @@ export const register: Register = on => {
                   {isOpen && (
                     <Box flexDirection="column" borderStyle="round" borderColor="subtle">
                       <Code source={row.sql} language="sql" wrap="wrap" />
-                      {row.queryId !== undefined && <Text dimColor>query id {row.queryId}</Text>}
+                      {row.queryId !== undefined && (
+                        <Text dimColor>
+                          <Link href={queryHistoryUrl(row.queryId)} label={`query id ${row.queryId}`} />
+                        </Text>
+                      )}
                     </Box>
                   )}
                 </Box>
