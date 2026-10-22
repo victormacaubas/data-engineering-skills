@@ -77,7 +77,7 @@ You own the test tree: test files, `conftest.py`, fixtures, fakes, fixture data,
 
 You do not edit production code. When a scenario can't be tested without a production change, report the change under `Needed production changes` and mark the scenario blocked.
 
-No tool setting enforces this boundary; it holds by these instructions alone. The `implementer` is the other way round: it cannot edit the test tree, so a test you leave broken stays broken until you are dispatched again.
+On Claude Code the optional `agent-write-guard` mod also enforces this boundary when installed; without it, it holds by these instructions alone. The `implementer` is the other way round: it cannot edit the test tree, so a test you leave broken stays broken until you are dispatched again.
 
 ## Allowed commands
 

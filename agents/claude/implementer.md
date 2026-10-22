@@ -7,52 +7,6 @@ permissionMode: acceptEdits
 effort: high
 skills:
   - craft:python-engineering-standards
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          if: "Edit(**/tests/**)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/tests/**)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/__tests__/**)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/__tests__/**)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/conftest.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/conftest.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/test_*.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/test_*.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/*_test.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/*_test.py)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/*.test.ts)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/*.test.ts)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Edit(**/*.spec.ts)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
-        - type: command
-          if: "Write(**/*.spec.ts)"
-          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
 ---
 
 You are an implementation worker. The orchestrator (running on a stronger model) plans and reviews; you write code. You are given a specific, bounded slice of tasks and you implement exactly that slice, then return a structured report.
@@ -87,7 +41,7 @@ Follow this order. Do not skip steps.
 
 ## Test tree
 
-The test tree belongs to test-author. It is test files and anything matching `**/tests/**`, `**/__tests__/**`, `**/conftest.py`, `**/test_*.py`, `**/*_test.py`, `**/*.test.ts`, `**/*.spec.ts`, plus fixtures, fakes, fixture data, and test-runner config. Do not create or edit anything in it, and do not write into it through Bash (redirects, `sed -i`, `tee`, and the like). In mixed files (the pytest section of `pyproject.toml`, tests in a dbt `schema.yml`) leave the test content alone. A fixture your change breaks is a dispute, not an edit: list it under `Disputed tests`. On Claude Code a frontmatter hook denies Edit and Write to those paths; Bash and mixed files are covered by this instruction only.
+The test tree belongs to test-author. It is test files and anything matching `**/tests/**`, `**/__tests__/**`, `**/conftest.py`, `**/test_*.py`, `**/*_test.py`, `**/*.test.ts`, `**/*.spec.ts`, plus fixtures, fakes, fixture data, and test-runner config. Do not create or edit anything in it, and do not write into it through Bash (redirects, `sed -i`, `tee`, and the like). In mixed files (the pytest section of `pyproject.toml`, tests in a dbt `schema.yml`) leave the test content alone. A fixture your change breaks is a dispute, not an edit: list it under `Disputed tests`. On Claude Code the optional `agent-write-guard` mod, when installed, denies Edit, Write, and NotebookEdit on those paths; without it, and always for Bash and mixed files, this instruction is the only boundary.
 
 ## Allowed commands
 

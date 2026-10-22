@@ -32,7 +32,7 @@ Must not touch: mods/
 ```
 
 The selectors come from the `test-author` report's task-to-selector map. The implementer cannot
-create or edit tests (a hook blocks it on Claude Code), so a slice whose checks need a test that
+create or edit tests (the optional `agent-write-guard` mod blocks it on Claude Code), so a slice whose checks need a test that
 doesn't exist yet is a pre-flight miss; send it through `test-author`, not into the brief.
 
 A plan in a plain `.md` file usually needs `Verification bar` and sometimes `Non-goals`. Supply only

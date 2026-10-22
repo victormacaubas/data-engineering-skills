@@ -1,0 +1,7 @@
+{
+  "name": "agent-write-guard",
+  "description": "Denies implementer file edits on the test tree and test-author file edits on production code, so each agent stays on its side of the test boundary.",
+  "author": {
+    "name": "Victor Macaubas"
+  }
+}

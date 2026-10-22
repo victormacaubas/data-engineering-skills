@@ -46,6 +46,12 @@
       "source": "./mods/snowflake-query-panel",
       "description": "Claude Code only. Shows the SQL that the main session and its subagents run through the snowflake-raw MCP server in a pane, grouped by agent. Requires the snowflake-raw MCP server.",
       "strict": false
+    },
+    {
+      "name": "agent-write-guard",
+      "source": "./mods/agent-write-guard",
+      "description": "Claude Code only. Optional. Denies the implementer agent file edits on the test tree and the test-author agent file edits on production code. Without it, both agents are bounded by their instructions only.",
+      "strict": false
     }
   ]
 }

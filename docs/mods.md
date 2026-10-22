@@ -58,7 +58,7 @@ tsc -p mods/my-mod
 
 - `claude plugin validate` checks `plugin.json`, `hooks.json`, and that the named module exists. It must report no errors.
 - `claude plugin test` runs the mod's `*.test.ts` files.
-- `tsc -p` type-checks the mod, but only after the engine has loaded it once: loading lays the API types in `<mod>/.claude-plugin/types/` along with a tsconfig that the mod extends. Load the mod (for example with `claude --plugin-dir`) before the first `tsc` run.
+- `tsc -p` type-checks the mod, but only after the engine has loaded it once: loading lays the API types in `<mod>/.claude-plugin/types/` along with a tsconfig that the mod extends. Load the mod in an interactive session (`claude --plugin-dir mods/my-mod`) before the first `tsc` run; a print-mode run (`claude -p`) does not write the types.
 
 Re-run all three after a Claude Code update. A release that changes the mod API shows up here first.
 
@@ -110,3 +110,18 @@ Shows the SQL that the main session and its subagents run through the `snowflake
 - It groups the last 10 queries by agent. A row expands to show the full SQL.
 - A summary line sits above the rows. Finished queries stay listed, so you can expand past SQL after everything is done.
 - State is session-only. The mod adds no tokens to the model's context and runs no Snowflake queries of its own.
+
+### `agent-write-guard`
+
+Holds the write boundary between the `implementer` and `test-author` agents on Claude Code. It is optional: without it, both agents are bounded by their instructions only, as on Codex and Cursor CLI.
+
+- It denies `implementer` `Edit`, `Write`, and `NotebookEdit` calls on the test tree: `**/tests/**`, `**/__tests__/**`, `**/conftest.py`, `**/test_*.py`, `**/*_test.py`, `**/*.test.ts`, `**/*.spec.ts`.
+- It denies `test-author` the same tools outside the test tree, except `.orchestrate/**` and test-runner config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`, `jest.config.*`, `vitest.config.*`, `playwright.config.*`).
+- Each denial gives the model a reason pointing at `Disputed tests` or `Needed production changes`.
+- It applies only to subagents of those two types. The main session, including one started with `--agent implementer`, and every other agent are untouched, as are paths outside the session's working directory.
+- It does not cover `Bash`. Shell writes stay bounded by the agents' instructions.
+- When it cannot tell which agent made a call, it lets the call through and writes the reason to the debug log.
+- It sees every `Edit`, `Write`, and `NotebookEdit` call in the session, not only those two agents' calls, because a mod hook cannot be scoped to a subagent; it filters inside the hook. A main-session call passes at once, and a subagent call costs one in-process agent-list lookup and a handful of path regexes. It makes no model call and spends no tokens beyond a denial's reason text.
+- It runs in every session and project where it is installed, since plugins install per user. Sessions that never dispatch the two agents only pass calls through.
+- It caches nothing, so every guarded call repeats the agent lookup. A cache would need declared session state, and the lookup is cheap.
+- A mod API change in a Claude Code update makes the hook fail open: calls go through unguarded, and nothing reports it. Re-run the checks in *Validate and test* after each update.
