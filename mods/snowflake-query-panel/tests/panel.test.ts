@@ -551,9 +551,11 @@ describe('expanding a row', () => {
     const [frame] = await frames(ui)
     expect(frame!.props).toMatchObject({ flexDirection: 'column', borderStyle: 'round', borderColor: 'subtle' })
     expect((frame!.children as Described[]).map(child => child.type)).toEqual(['Code', 'Text'])
-    const idLine = await ui.find({ type: 'Text', text: queryId })
-    expect(idLine!.text).toBe(`query id ${queryId}`)
-    expect(idLine!.props).toEqual({ dimColor: true })
+    const idLink = await ui.find({ type: 'Link' })
+    expect(idLink!.props).toEqual({
+      href: `https://justworks-main.snowflakecomputing.com/console#/monitoring/queries/detail?queryId=${queryId}`,
+      label: `query id ${queryId}`,
+    })
   })
 
   test('a past query still expands once nothing is running', async ($, on) => {

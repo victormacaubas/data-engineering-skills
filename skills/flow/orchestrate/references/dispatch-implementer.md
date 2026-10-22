@@ -16,6 +16,7 @@ Report to: .orchestrate/<slug>/<slice>.md              always
 Must not touch: <paths>                                parallel batches only
 Not in the plan: <decisions and resolved facts>        when any exist
 Verification bar: <exact command> must pass            when the tasks carry no checks of their own
+Run for verification: <selector commands for these tasks>   when test-author ran
 Goal / Non-goals / Edge cases: <one line each>         when the plan doesn't state them
 Report as blocking: <ADR decisions the slice touches>  when any exist
 ```
@@ -29,6 +30,10 @@ Slice: tasks 4.1–4.4 of openspec/changes/add-mods-group-snowflake-panel/
 Report to: .orchestrate/add-mods-group-snowflake-panel/slice-c.md
 Must not touch: mods/
 ```
+
+The selectors come from the `test-author` report's task-to-selector map. The implementer cannot
+create or edit tests (the optional `agent-write-guard` mod blocks it on Claude Code), so a slice whose checks need a test that
+doesn't exist yet is a pre-flight miss; send it through `test-author`, not into the brief.
 
 A plan in a plain `.md` file usually needs `Verification bar` and sometimes `Non-goals`. Supply only
 the ones it lacks.
@@ -90,6 +95,9 @@ are follow-ups; they don't gate the next dispatch.
 **Spot-check the status against the receipt's `Verified` line and the diff.** A `complete` that
 notes a pre-existing failure is fine.
 A `complete` that glosses over a failure the diff plausibly caused is not.
+
+**Route disputed tests before ticking.** A `Disputed tests` field other than `_none_` goes to
+`../SKILL.md` → *Rule on disputed tests*. Those tasks stay open until their selectors pass.
 
 **Then tick the tasks** the receipt lists as completed, and in the same message update the slice's
 task-list entry. You are the single writer of both.

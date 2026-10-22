@@ -182,3 +182,11 @@ Two rules follow, and both are easy to get wrong because neither fails loudly:
 Cursor CLI has no `skills` frontmatter field, so its variants name the skill in prose instead and try both forms — the namespaced one for a marketplace install, the bare one for a skill installed by `scripts/install-cursor-skills.sh`, which writes a flat, unprefixed target.
 
 Current preloads: `implementer` → `craft:python-engineering-standards`, `code-auditor` → `craft:code-audit`, `structure-reviewer` → `craft:structure-review`.
+
+### Restricting an agent's writes
+
+The boundary between `implementer` and `test-author` is enforced on Claude Code by the optional `agent-write-guard` mod (see [mods.md](mods.md#agent-write-guard)), not by agent frontmatter. Without the mod, and on Codex and Cursor CLI, both agents' instructions are the only boundary.
+
+Frontmatter `hooks` with `if` rules were tried and dropped. An `if` field holds one permission rule, a rule matches only its own tool (`Edit(...)` does not stop a `Write`), and brace patterns such as `**/*.{test,spec}.ts` match nothing (Claude Code 2.1.308). Seven paths took fourteen handlers, and "everything except test files" could not be expressed at all.
+
+The mod identifies agents by type name. Renaming `implementer` or `test-author` needs a matching change to the agent names in `mods/agent-write-guard/hooks/rules.ts`; without it the guard silently stops applying to the renamed agent.

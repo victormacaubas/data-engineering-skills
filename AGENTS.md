@@ -22,6 +22,7 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 **For any new or significantly modified skill, use the `skill-creator` skill and enter plan mode first.** Don't write SKILL.md from scratch or overhaul one without a plan the user has approved.
 
 - Skills are self-contained. A skill and its `references/` carry everything needed to follow it, and should never point at another skill for content — including a sibling in the same group.
+- Agent frontmatter is self-contained. An agent's `description` (in every variant, including the Codex TOML `description`) describes that agent's own role and never names another agent.
 - **Don't over-explain in a skill body.** No meta-commentary on what the skill does, why it exists, or what it will carry you through; whoever is reading it already loaded it. Write the instruction and the trap it avoids, not a case for following it.
 - Each release-ready skill is a kebab-case directory at `skills/<group>/<name>/`, where `<group>` is `craft`, `flow`, or `data`. Skill names must be unique across all three groups.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
@@ -31,7 +32,7 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 - Graduating, renaming, or removing a skill requires matching changes to both catalogs' `skills` arrays and the group's `README.md`. Validate JSON, catalog parity, array/directory agreement, and cross-group name uniqueness.
 - **A skill's group is part of its public name.** Moving one between groups is a breaking rename: it changes the invocation identifier and silently breaks every agent preload and downstream `CLAUDE.md` naming it. Regrouping needs its own OpenSpec change.
 - Marketplace updates are explicit client operations, not live symlink updates.
-- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`, and `/flow:scout` on `pathfinder`/`researcher`.
+- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`/`test-author`, and `/flow:scout` on `pathfinder`/`researcher`.
 - See `docs/authoring.md` for a step-by-step guide.
 
 ### Agent authoring

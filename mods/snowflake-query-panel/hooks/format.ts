@@ -6,6 +6,11 @@ const MIN_SQL_CHARS = 12
 
 const SHORT_AGENT_ID_CHARS = 6
 
+export const SNOWFLAKE_HOST = 'justworks-main.snowflakecomputing.com'
+
+export const queryHistoryUrl = (queryId: string): string =>
+  `https://${SNOWFLAKE_HOST}/console#/monitoring/queries/detail?queryId=${encodeURIComponent(queryId)}`
+
 export const fallbackAgentLabel = (agentKey: string): string =>
   `agent ${agentKey.slice(0, SHORT_AGENT_ID_CHARS)}`
 

@@ -175,7 +175,7 @@ Every repository custom agent SHALL have a same-name Codex-native TOML definitio
 
 #### Scenario: User installs Codex agents
 - **WHEN** a user runs `scripts/install-agents.sh --platform codex --agents all`
-- **THEN** Codex receives `code-auditor`, `implementer`, `pathfinder`, `researcher`, and `structure-reviewer` under `~/.codex/agents/`
+- **THEN** Codex receives `code-auditor`, `implementer`, `pathfinder`, `researcher`, `structure-reviewer`, and `test-author` under `~/.codex/agents/`
 - **AND** each agent preserves the corresponding Claude/Cursor role and safety intent using Codex-native controls
 
 #### Scenario: Agent source is changed
