@@ -182,3 +182,31 @@ Two rules follow, and both are easy to get wrong because neither fails loudly:
 Cursor CLI has no `skills` frontmatter field, so its variants name the skill in prose instead and try both forms — the namespaced one for a marketplace install, the bare one for a skill installed by `scripts/install-cursor-skills.sh`, which writes a flat, unprefixed target.
 
 Current preloads: `implementer` → `craft:python-engineering-standards`, `code-auditor` → `craft:code-audit`, `structure-reviewer` → `craft:structure-review`.
+
+### Restricting an agent's writes with hooks
+
+Claude Code agents accept a `hooks` frontmatter field. `implementer` uses it to deny writes to the test tree, which belongs to `test-author`. Codex and Cursor CLI have no path-scoped equivalent, so those variants state the rule in their instructions only.
+
+```yaml
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          if: "Edit(**/tests/**)"
+          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
+        - type: command
+          if: "Write(**/tests/**)"
+          command: "echo 'Test files belong to test-author. If this test looks wrong, list it under Disputed tests.' >&2; exit 2"
+```
+
+Behavior verified on Claude Code 2.1.308. The documentation gives no minimum version for `if`, so none is stated here.
+
+- **Scope.** Frontmatter hooks run only while that subagent is active, so the main session and other agents are unaffected. They are ignored for plugin-provided subagents. Agents installed into `~/.claude/agents/` skip the workspace-trust check that gates project-level agent hooks.
+- **`if` takes one permission rule per handler.** It accepts no list. A rule matches only its own tool's calls, so `Edit(**/*.test.ts)` does not stop a `Write` to `src/foo.test.ts`. Give every path an `Edit(...)` handler and a `Write(...)` handler.
+- **Patterns match relative to the working directory.** Use a `**/` prefix to match at any depth.
+- **Exit code 2 denies the call** and shows stderr to the model, which is how the reason reaches it. Any other non-zero exit is non-blocking.
+- **A hook command that is missing fails open.** A command that exits with a code other than 2, such as 127 for a command not found, does not block the call. Keep the command self-contained, as in the example, rather than depending on a script or tool that may be absent.
+- **Bash is not covered.** The hook sees `Edit` and `Write` only; a write through Bash is covered by the agent's instructions.
+
+Like a skill preload, a hook change is verified by running the agent and attempting a blocked write. A clean launch proves nothing, because a handler that never matches also launches cleanly. Attempt a write to a protected path and to an unprotected one, for each tool the hook covers.

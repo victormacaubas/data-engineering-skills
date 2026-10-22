@@ -1,11 +1,11 @@
 ---
 name: orchestrate
-description: Have workers build a bounded plan instead of coding inline in the main session: use `implementer` to write code and `pathfinder` or `researcher` to close gaps that would otherwise require guesses. Use when a plan is ready to build - "implement the plan", "apply the OpenSpec change <name>", "dispatch the implementer", "orchestrate this", "build tasks 3–7", or right after a plan-mode plan is approved and you want a worker to build it. Use it mid-build when a slice needs an unknown resolved - a syntax or API shape, a convention outside the plan, a fact about the data - or when the plan may have drifted from the code. Not for trivial single-file edits.
+description: Have workers build a bounded plan instead of coding inline in the main session: use `test-author` to write the tests first, `implementer` to write code and `pathfinder` or `researcher` to close gaps that would otherwise require guesses. Use when a plan is ready to build - "implement the plan", "apply the OpenSpec change <name>", "dispatch the implementer", "orchestrate this", "build tasks 3–7", or right after a plan-mode plan is approved and you want a worker to build it. Use it mid-build when a slice needs an unknown resolved - a syntax or API shape, a convention outside the plan, a fact about the data - or when the plan may have drifted from the code. Not for trivial single-file edits.
 ---
 
 # Orchestrate
 
-The main session plans, reviews, and ticks tasks; workers handle bounded work in fresh context windows. The `implementer` writes code. `pathfinder` and `researcher` close gaps in the build. Send deterministic edits and bulk reading to workers to keep the orchestrator's context free for judgment.
+The main session plans, reviews, and ticks tasks; workers handle bounded work in fresh context windows. The `test-author` writes a scope's tests before any code exists; the `implementer` writes the code that makes them pass. `pathfinder` and `researcher` close gaps in the build. Send deterministic edits and bulk reading to workers to keep the orchestrator's context free for judgment.
 
 Dispatch runs in both directions, but task tracking is one-way: the main session is **always the single writer of task tracking**.
 
@@ -31,7 +31,7 @@ Test whether your understanding of the plan is *stale*, not whether this skill j
 
 ## The run folder
 
-Everything this skill writes lives in `.orchestrate/<slug>/` at the repo root. `<slug>` is the OpenSpec change name, the plan file's basename, or a short kebab-case name for a session-only plan. It holds a session-only `plan.md` (next section) and one `implementer` report per slice.
+Everything this skill writes lives in `.orchestrate/<slug>/` at the repo root. `<slug>` is the OpenSpec change name, the plan file's basename, or a short kebab-case name for a session-only plan. It holds a session-only `plan.md` (next section), the `test-author` report(s), and one `implementer` report per slice.
 
 Before the first dispatch, make sure `.orchestrate/.gitignore` exists containing `*`; create it if not. The `implementer` also creates it when missing. The folder then stays out of `git status`, out of a worker's overlap check, and out of a reviewer's diff, without editing the repo's own `.gitignore`.
 
@@ -47,7 +47,7 @@ It is the only written statement of the change's intended result, so the closing
 
 ## Pre-flight
 
-Make three checks in one pass over the scope before you dispatch, then record what they settled. Scope each to something the `implementer` genuinely cannot do or know; do not perform checks when you already have the answer.
+Make four checks in one pass over the scope before you dispatch, then record what they settled. Scope each to something the `implementer` genuinely cannot do or know; do not perform checks when you already have the answer.
 
 ### Provision what the worker can't
 
@@ -81,6 +81,14 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 
 `references/dispatch-readers.md` defines the briefing contract for both workers and the fast path for one bounded question. Reading is the inexpensive half of orchestration. Dispatch freely here: an unknown that reaches the `implementer` returns as a guess or `blocking: true`, and either costs a full round trip.
 
+### Ready the scenarios
+
+Collect the scope's testable scenarios: the spec's scenarios, the plan's acceptance criteria, and every "Verify with a test that ..." clause, keyed to its task id. Those clauses are `test-author` input; the `implementer` cannot write tests, so a clause left in its brief is a check it can't satisfy.
+
+For each scenario, confirm the plan names the public seam it goes through (command, hook, entry point, tool name) and that no value a test would assert on is still a placeholder, such as `/<command>`. `test-author` reports these as blocked rather than guess, so one left open costs a round trip. Settling a seam or a name changes intent, so it goes into the plan source (*Record what you settled*, below).
+
+Skip `test-author` when the scope has no scenario a test could cover (docs-only, config-only work). Implementers then verify as they do without it.
+
 ### Record what you settled
 
 Pre-flight and conversation settle things the plan source doesn't say. Route each one by what it changes:
@@ -90,9 +98,17 @@ Pre-flight and conversation settle things the plan source doesn't say. Route eac
 
 Nothing else gets a file.
 
+## Write the tests first
+
+**Read `references/dispatch-test-author.md` now**: it holds the brief and the after-return playbook.
+
+Dispatch `test-author` once for the whole scope, with expected outcome `fail`: no code exists yet, so a test that passes is vacuous or covers behavior already there, and the run tells you which tests to look at. For a large change, split by capability into one batch, each worker owning disjoint test files. One pass, not one per slice: per-slice test writing recreates the per-slice loop this split removes, and lets each slice's tests drift toward its own implementation.
+
+Add one harness task-list entry for it. Completing `test-author` ticks no tasks; a task is ticked when its implementer slice passes the task's selectors.
+
 ## Slice the scope
 
-Do the dispatch thinking once, here, for the whole bounded scope, then dispatch from the result. **Read `references/dispatch-implementer.md` now**: its contract defines what a brief carries.
+Do the dispatch thinking once, here, for the whole bounded scope, then dispatch from the result. **Read `references/dispatch-implementer.md` now**: its contract defines what a brief carries. When `test-author` ran, each brief also carries its tasks' selectors from the `test-author` report.
 
 - **Cut slices along task groups.** Merge two groups when a task's check needs the other group's output.
 - **Mark dependencies.** A slice that edits a file another slice edits, or needs its output, is blocked by it. Slices with disjoint files go in the same batch, each with the other's paths as `Must not touch`.
@@ -116,6 +132,15 @@ Send each slice's brief from *Slice the scope* as the dispatch prompt. `referenc
 
 - **Bound every slice** with explicit task numbers ("tasks 3–7"), never "implement the plan."
 - **You are the single writer of task tracking.** The worker never touches `tasks.md`, checklists, or plan/spec docs; that's what keeps parallel workers from colliding on the tracking artifact. Tick tasks only after reading the worker's receipt, resolving `blocking: true` items, running handed-off commands, and spot-checking the reported status; the playbook has the full sequence.
+
+### Rule on disputed tests
+
+A receipt with `Disputed tests` entries is a ruling for you, not the implementer. Decide each from the scenario and the design, not from which side is easier to change.
+
+- **The test is wrong** → re-dispatch `test-author` with the entries and your ruling.
+- **The code is wrong** → send it back to the `implementer` with the ruling under `Not in the plan`.
+
+Fix tests through `test-author`, never inline: the split exists so that whoever makes the code pass never decides what the test asserts. Batch the rulings for one round of dispatches, and keep a disputed task open until its selector passes.
 
 ### Dispatch as one batch, synthesize once
 
@@ -182,6 +207,7 @@ Never ask while the build is stopped on a blocker; a later session resumes from 
 - **Don't reason on a partial return.** Record it and stop. Synthesis happens once, after the last worker in the batch is back.
 - **Don't build a waiter.** No `Monitor`, no polling loop. Notifications only.
 - **Don't stop with owed work.** Open tasks in scope and no blocker means dispatch the next slice, not a summary that announces it.
+- **Tests come from `test-author`.** Never brief the `implementer` to write or fix a test; it cannot, and a test it adjusted to pass proves nothing.
 - **Never hand the `implementer` an unknown.** It will not research or verify. See *Pre-flight → Close the unknowns*.
 - **Don't externalize a plan that's already on disk.** Only a session-only plan gets `plan.md`. Settled decisions go into the plan source or the brief.
 - **Don't re-read what you already hold.** Re-establish context only when your understanding is stale. Re-reading your own artifacts uses the context this skill protects.

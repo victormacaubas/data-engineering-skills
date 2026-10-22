@@ -31,7 +31,7 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 - Graduating, renaming, or removing a skill requires matching changes to both catalogs' `skills` arrays and the group's `README.md`. Validate JSON, catalog parity, array/directory agreement, and cross-group name uniqueness.
 - **A skill's group is part of its public name.** Moving one between groups is a breaking rename: it changes the invocation identifier and silently breaks every agent preload and downstream `CLAUDE.md` naming it. Regrouping needs its own OpenSpec change.
 - Marketplace updates are explicit client operations, not live symlink updates.
-- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`, and `/flow:scout` on `pathfinder`/`researcher`.
+- If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`/`test-author`, and `/flow:scout` on `pathfinder`/`researcher`.
 - See `docs/authoring.md` for a step-by-step guide.
 
 ### Agent authoring
