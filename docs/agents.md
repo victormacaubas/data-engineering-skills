@@ -23,7 +23,7 @@ Both variants require `name` and `description`. Use only fields supported and in
 
 | Concern | Claude Code variant | Codex variant | Cursor CLI variant |
 |---------|---------------------|---------------|--------------------|
-| Model | Claude Code model identifier or alias | `model` and `model_reasoning_effort` | Cursor CLI-supported model identifier |
+| Model | Claude Code model identifier or alias | `model`, `model_reasoning_effort`, and `model_context_window` | Cursor CLI-supported model identifier |
 | Read-only behavior | Claude tool allowlist or denied tools, backed by prompt guardrails | `sandbox_mode` plus prompt guardrails | `readonly: true`, backed by prompt guardrails |
 | Tool controls | `tools` and other Claude-supported permission fields | Prompt guidance or Codex sandbox/MCP controls | Do not copy Claude-only tool allowlists as if Cursor enforced them |
 | Skill preload | `skills`, namespaced as `<group>:<skill-name>` | Prompt guidance only; Codex has no preload equivalent | No equivalent field; name the skill in prose, trying the namespaced form then the bare one |
