@@ -43,6 +43,8 @@ Extra decisions will surface during the conversation. The test for whether one d
 
 Every ADR gets a row in the index in `docs/ARCHITECTURE.md`, the ones that surface mid-change included. An ADR missing from the index is one a reviewer has no way to know exists.
 
+Every rule an ADR produces also gets an entry in `docs/rules.yaml` whose `source` is that ADR. The ADR holds the reasoning and the alternatives; the registry holds the one-sentence rule and the check behind it. Neither restates the other.
+
 ### 0001. Layer map and dependency direction
 
 The table from Decision 1: which packages exist, what each owns, what each may import.
@@ -56,6 +58,8 @@ Consequences worth stating: what becomes awkward. Every layering has something i
 The libraries this project depends on, each paired with the package that owns it, and the notable things deliberately excluded.
 
 Record the exclusions with their reasons — that's the half nobody writes and the half that pays off. "No ORM, because the queries are simple and hand-written SQL stays legible" prevents the question being re-litigated by someone who assumes it was never considered. An absent dependency with no recorded reason reads as an oversight.
+
+List dev tooling separately from runtime dependencies, and keep the two lists consistent with each other and with the lockfile: an ADR that adopts a tool another ADR rejects leaves a reader no way to tell which one won. The registry's YAML parser is dev tooling.
 
 Record also that the set is closed: additions are decisions, not implementation details. This is the ADR that gives a delegated implementer grounds to stop and hand back a task that needs a new library, rather than picking one.
 
@@ -97,7 +101,7 @@ The substance here isn't the tool list — it's the commitment that architectura
 
 Record deliberate exceptions too: if mypy is strict everywhere except one package, that exception belongs here with its reason and, ideally, the condition under which it goes away.
 
-Record also that the gate was run and came back green against the declarations the baseline wrote. An untested contract is a claim, and this is the ADR where the difference is visible.
+Record also that the gate was run and came back green against the declarations the baseline wrote, and that each contract was made to fail once on a deliberate violation before it was trusted. An untested contract is a claim, and this is the ADR where the difference is visible. Name each contract by the exact string in its `name` field; the registry's `enforced_by` entries match against that string.
 
 ## One ADR per decision
 

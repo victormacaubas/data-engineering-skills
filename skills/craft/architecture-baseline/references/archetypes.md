@@ -86,7 +86,7 @@ package_name/
 └── errors.py            # Public exceptions — also part of your contract.
 ```
 
-For a library the layer table is less interesting than the public/private line, because that line *is* the architecture. Decide explicitly which modules callers may import and state it in `CLAUDE.md`. Everything else is free to change.
+For a library the layer table is less interesting than the public/private line, because that line *is* the architecture. Decide explicitly which modules callers may import and state it as a rule in `docs/rules.yaml`. Everything else is free to change.
 
 ## Why dependencies flow one way
 
@@ -103,7 +103,7 @@ Two consequences worth stating in the ADR:
 
 ## The layer table
 
-Whichever tree you pick, the artifact that leaves Decision 1 is a table. Write it in `CLAUDE.md` and encode it in `references/enforcement.md`'s contracts.
+Whichever tree you pick, the artifact that leaves Decision 1 is a table. Write it in `AGENTS.md` and encode it in `references/enforcement.md`'s contracts.
 
 | Package | May import | Owns |
 |---|---|---|

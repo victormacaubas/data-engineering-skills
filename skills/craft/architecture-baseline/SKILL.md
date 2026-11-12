@@ -1,6 +1,6 @@
 ---
 name: architecture-baseline
-description: Turn a design doc into a project's architectural constraints before any feature work — layer map, runtime dependencies and libraries, identity model, injected seams, error taxonomy, machine-enforced import contracts, testing conventions, a quality gate that checks all of it, and a reviewer-facing `docs/ARCHITECTURE.md` indexing the ADRs. Use this whenever starting a new codebase, scaffolding a repo, or adding the first module to an empty project, whenever someone hands over a design doc or technical proposal to build from, and whenever someone says "set up the project", "what structure should this have", "what libraries should we use", or "let's get this started". This decides and declares; it does not build the product. Run it before the first feature change, not after. It declares a graph rather than repairing one, so it is not the tool for a project that already has substantial code.
+description: Turn a design doc into a project's architectural constraints before any feature work — layer map, runtime dependencies, identity model, injected seams, error taxonomy, machine-enforced import contracts, testing conventions, a quality gate that checks all of it, an `AGENTS.md`, a `docs/rules.yaml` registry of the architectural rules, and a reviewer-facing `docs/ARCHITECTURE.md`. Use this whenever starting a new codebase, scaffolding a repo, or adding the first module to an empty project, whenever someone hands over a design doc to build from, and whenever someone says "set up the project", "what structure should this have", "what libraries should we use", or "let's get this started". It decides and declares; it does not build the product. On a repo that already has code, use it to retrofit the agent-facing rules, such as gathering the architectural rules into one registry, migrating `CLAUDE.md` to `AGENTS.md`, or finding which rules anything enforces. Retrofit reports gaps; it does not repair code.
 ---
 
 # Architecture Baseline
@@ -23,7 +23,8 @@ The practical line: declarations are types, Protocols, exception classes, contra
 By the end the repo contains:
 
 - **ADRs** for each decision below, written during the conversation rather than reconstructed later
-- **The layer table** in `CLAUDE.md`, plus import contracts that enforce it
+- **The layer table** in `AGENTS.md`, plus import contracts that enforce it. `AGENTS.md` is the one instruction file Claude Code, Codex, and Cursor all load, so the baseline writes it and no `CLAUDE.md`
+- **`docs/rules.yaml`**: the architectural rules, one entry each, naming the check that enforces it or saying that only review does, plus a test that fails when one of those references stops resolving
 - **A closed dependency set** — what the project depends on, and what was deliberately excluded
 - **`errors.py`** with the taxonomy and the translation rule
 - **Protocols** for each injected seam
@@ -50,9 +51,9 @@ If the person says "you pick," pick, state the reasoning in one line, and flag i
 
 ### Start from what exists
 
-Before asking for anything, look: `docs/`, the README, any `CLAUDE.md`, `pyproject.toml` or other tooling config, `docs/adr/`, and `git log`. The look does two jobs.
+Before asking for anything, look: `docs/`, the README, any agent instruction file (`AGENTS.md`, `CLAUDE.md`, `CLAUDE.local.md`, `.claude/CLAUDE.md`, `AGENT.md`, `.cursor/rules/`), `pyproject.toml` or other tooling config, `docs/adr/`, and `git log`. The look does two jobs.
 
-- **It checks the precondition.** This skill declares a graph rather than repairing one. If the repo already has substantial code, say so and stop: recovering a baseline mid-project means measuring the real graph first and ratcheting toward the intended one, which is a different job. Coherent tooling config that already exists wins over the defaults in `references/enforcement.md`.
+- **It picks the mode.** This skill declares a graph rather than repairing one, so a repo that already has substantial code doesn't get the seven decisions: recovering a baseline mid-project means measuring the real graph first and ratcheting toward the intended one, which is a different job. What an existing repo can get is the agent-facing half: its architectural rules gathered into `docs/rules.yaml` with what checks each one, and an `AGENTS.md`. Say which mode applies. For an existing repo, offer the retrofit and follow `references/retrofit.md` in place of the rest of this file. Coherent tooling config that already exists wins over the defaults in `references/enforcement.md`.
 - **It may find the design doc**, in `docs/` or linked from the README or a ticket.
 
 If it didn't, ask for the design doc before Decision 1. A design doc usually settles the archetype, sketches the stack, and names the entities, so Decisions 1 through 3 arrive part-drafted and your job on those is to confirm rather than elicit.
@@ -159,7 +160,7 @@ At the entrypoint, map domain errors to exit codes in one place — a decorator 
 
 **Ask:** What may a test assert against, and where does shared test data come from?
 
-Nothing here creates test files. It sets the rules the first change will follow, and records them in the testing ADR and `CLAUDE.md`. Three things get settled: the floor every test meets, where shared test infrastructure lives, and what a test is allowed to reach for.
+Nothing here creates test files. It sets the rules the first change will follow, and records them in the testing ADR and `AGENTS.md`. Three things get settled: the floor every test meets, where shared test infrastructure lives, and what a test is allowed to reach for.
 
 **The floor.** `pytest`. No network in unit tests, enforced mechanically rather than by habit — `pytest-socket` does it in one line of config. Time enters through a seam or through a parameter with a default, so a test passes a fixed value instead of freezing the clock globally. Tests are named for what they assert: `test_upsert_replaces_row_with_same_key`, not `test_upsert_2`, because the name is what a reader sees when it fails in CI.
 
@@ -180,9 +181,9 @@ tests/
 - **One fake per seam**, in `tests/fakes.py`, written in the same commit as its Protocol (Decision 4). Tests inject rather than patch: `CoreRunner(runner=FakeCommandRunner())` breaks only when the contract changes, which is exactly when a test should break.
 - **Tests assert against behavior through the public surface.** No positional access into structured results, because `row[2]` is a dependency on column order and reordering columns should never break a test. No importing underscore-prefixed helpers; if a test needs one, either it's actually public or the test is aimed at the wrong level. No patching anything that has a seam — reaching for a patch is the signal that Decision 4 missed one.
 
-And one norm, which goes in `CLAUDE.md` verbatim because it's the one thing here that can't be checked mechanically: **if a change that preserves behavior breaks a test, the test was wrong.** That reframes a refactor breaking tests from an expected cost into a finding, and it's what stops the suite from ossifying the implementation.
+And one norm, which goes in `AGENTS.md` verbatim because it's the one thing here that can't be checked mechanically: **if a change that preserves behavior breaks a test, the test was wrong.** That reframes a refactor breaking tests from an expected cost into a finding, and it's what stops the suite from ossifying the implementation.
 
-Last, the standing list of cases a new test module should consider. These are the ones that get skipped and then found in production, and several of them come straight out of Decision 3. Put it in `CLAUDE.md`:
+Last, the standing list of cases a new test module should consider. These are the ones that get skipped and then found in production, and several of them come straight out of Decision 3. Put it in `AGENTS.md`:
 
 empty input · a single element · duplicate keys · the natural key colliding across scopes · re-running the same input twice · a partial failure mid-batch · retry exhaustion · a missing config key · the zero-results path of every read
 
@@ -204,13 +205,15 @@ What lands:
 
 The ADR records what the config file can't show: the commitment that architectural rules are enforced mechanically rather than by review, and any deliberate exceptions with their reason (see `references/adr-set.md` → 0007).
 
-Then put the gate command in `CLAUDE.md`, because that's what makes it reachable by everyone working in the repo, human or otherwise.
+Then put the gate command in `AGENTS.md`, because that's what makes it reachable by everyone working in the repo, human or otherwise.
 
 ### Run it before you stop
 
 **Until the contracts have run against a real import graph, they are unverified assertions.** Package names might be wrong, the layer order might be backwards, a forbidden contract might be scoped to the wrong module. Shipping config that has never been executed means the first change spends its opening hour debugging it instead of building.
 
-The declarations from Decisions 3, 4, and 5 are real files: the domain types, the Protocols, the exception classes. Put them where the layer map says they go, create each package the contract names with an `__init__.py`, and run the gate. Create only those packages — an empty one still checks, a missing one fails the run (`references/enforcement.md` has the mechanics), and a directory that exists only to make a tree look complete is over-scaffolding.
+The declarations from Decisions 3, 4, and 5 are real files: the domain types, the Protocols, the exception classes. Put them where the layer map says they go, create each package the contract names with an `__init__.py`, and run the gate. Create only those packages — an empty one still checks, a missing one fails the run (`references/enforcement.md` has the mechanics), and a directory that exists only to make a tree look complete is over-scaffolding. The gate also runs `tests/unit/test_rules_registry.py` from `references/rules-registry.md`, so a registry entry naming a check that doesn't exist fails it too.
+
+**Then make each contract fail once.** Green from a contract that has never seen a violation proves nothing: a `layers` line written with `:` where `|` was meant reports KEPT while the siblings import each other freely. For each contract, add one import it should forbid, run `lint-imports`, confirm it reports BROKEN, and revert. ADR 0007 records that each one was seen to fail.
 
 Once the seven decisions are settled, writing the artifacts and running the gate is one stretch of work. A message with no tool call ends your turn, and the baseline stops there. So don't end a turn between artifacts with a summary that announces the next one, or pause to report that the ADRs are done. When the gate fails on a config mistake — a wrong package path, a mis-scoped contract, a missing `__init__.py` — fix it and re-run. Stop only when the gate is green, or when a failure means a decision has to change (the layer order is wrong, two packages both need to own a technology); that goes back to the person you're working with.
 
@@ -222,22 +225,34 @@ The baseline is done when it comes back green. Not "should pass" — green.
 
 **ADRs** capture each decision and its reasoning. Read `references/adr-set.md` for the format and the seven stubs, and write each one during the conversation, while the alternatives are still live. Creating `docs/adr/` here also gives a decision that surfaces mid-change an obvious place to go.
 
-**`CLAUDE.md` holds rules and conventions, not inventory.** Apply one test to every line before it goes in: **does this tell someone how to decide, or what is currently true?** A rule stays true as the code changes. An inventory goes stale at the first refactor and is then worse than absent, because it still reads as authoritative and gets followed after it stops being correct.
+**`docs/rules.yaml` carries the architecture; `AGENTS.md` carries everything else an agent needs.** The registry is the structural rules in a form an agent can follow without opening every ADR: one sentence each, the check behind it, and the ADR it came from when the reasoning needs one. A rule belongs there only if it constrains structure: where code lives, what may depend on what, what crosses a boundary and in what form, what identifies a record, and how the rules themselves are enforced (the gate is one command, CI runs that command). How to write code inside a module, how to write a test, and how to run a change are conventions, and they go in `AGENTS.md`. Each statement lives in one of the two, never both: a rule written twice is two versions to reconcile, and the copy nobody checks is the one that drifts.
 
-Include:
+Both hold rules and conventions, not inventory. Apply one test to every line before it goes in either: **does this tell someone how to decide, or what is currently true?** A rule stays true as the code changes. An inventory goes stale at the first refactor and is then worse than absent, because it still reads as authoritative and gets followed after it stops being correct.
 
-- the layer table, and the rule that a package owning a technology owns its types
-- the dependency set, what was excluded, and that additions are ADRs rather than implementation details
-- the seam list, and where the composition root is
+`docs/rules.yaml` holds the structural rules from Decisions 1 through 5 and 7. Read `references/rules-registry.md` for the format, the scope test, and the test that keeps the references honest. Among them:
+
+- the layer direction, and which siblings are independent
+- a package owning a technology owns its types
+- the dependency set is closed, and additions are ADRs rather than implementation details. The set and its exclusions stay in ADR 0002, which the rule names as its source
+- seams are injected, injection is required rather than defaulted, and only the composition root constructs concrete implementations
+- packages translate foreign exceptions at their boundary, code under a taxonomy raises no bare builtins, and exit codes are mapped in one place
+- the identity rules: the grain, the natural key, what a re-run produces
+- the gate is one command, and CI runs that command rather than a list of its own
+
+`AGENTS.md` holds:
+
+- what this project is, in two lines, with links to `docs/ARCHITECTURE.md` and `docs/adr/`
+- the pointer to the registry: read `docs/rules.yaml` before the first edit, and treat the rules marked `enforced_by: review` as the ones a change has to check by hand, because no tool will
+- the layer table. Registry rules refer to it; it's structure, not a single rule
 - the gate command, as the definition of done
 - the review bar: a change is not done when the gate passes, only when its structure has also been reviewed against the declarations above, and a review asking for changes blocks the archive. The gate proves the code runs; nothing in it proves the code is shaped the way this project decided. Ask what performs that review here and name it, the same way you named the coding standards.
-- the testing norms from Decision 6, with the litmus test verbatim
+- the testing norms from Decision 6, with the litmus test verbatim, and the new-test case list
 - naming and vocabulary conventions
 - **the docstring rule** (below): the format, enforced in the gate, and the part the gate can't check.
-- **the coding standards this project inherits.** Ask which ones apply and name them explicitly. A line in `CLAUDE.md` is always loaded, while an unnamed standard gets picked up only when a task happens to be phrased to trigger it. Name the ones that govern a whole class of work (the language standard, a SQL standard if the repo has that surface), not everything available on the machine; the second kind is inventory.
+- **the coding standards this project inherits.** Ask which ones apply and name them explicitly. A line in `AGENTS.md` is always loaded, while an unnamed standard gets picked up only when a task happens to be phrased to trigger it. Name the ones that govern a whole class of work (the language standard, a SQL standard if the repo has that surface), not everything available on the machine; the second kind is inventory.
 - **that changes are vertical slices.** One path through the layers at a time, not one layer at a time, so the wiring is exercised from the first change onward.
 
-Leave out anything that describes what currently exists:
+Leave out of both anything that describes what currently exists:
 
 - **a directory tree.** The most tempting one, because it looks like the layer map. It isn't: the table says which packages may import which and stays true through every refactor that respects it, while a tree says which files exist today and is wrong the first time one is added.
 - a module-by-module listing of what each file contains
@@ -246,7 +261,7 @@ Leave out anything that describes what currently exists:
 
 ### `docs/ARCHITECTURE.md`
 
-One page, written for a reviewer — someone who arrives at a finished change without having been in this conversation and has to judge whether it fits. That is a different question from "how do I write code here," which `CLAUDE.md` already answers, so this document doesn't repeat it: no import rules, no testing norms, no gate command. It carries the shape of the system and a map into the ADRs.
+One page, written for a reviewer — someone who arrives at a finished change without having been in this conversation and has to judge whether it fits. That is a different question from "how do I write code here," which `AGENTS.md` and `docs/rules.yaml` already answer, so this document doesn't repeat it: no import rules, no testing norms, no gate command. It carries the shape of the system and a map into the ADRs.
 
 Six sections, in this order, each a few lines:
 
@@ -272,7 +287,7 @@ The base exception, and which package translates what.
 The ADR index.
 ```
 
-Shape is descriptive — the flow, not the rule. That `store` sits below `core` and owns the SQL is orientation; the "may import" table that makes it enforceable stays in `CLAUDE.md`, and a second copy here just gives a reviewer two versions to reconcile.
+Shape is descriptive — the flow, not the rule. That `store` sits below `core` and owns the SQL is orientation; the "may import" table that makes it enforceable stays in `AGENTS.md`, and a second copy here just gives a reviewer two versions to reconcile.
 
 The index is the part a reviewer actually uses:
 
@@ -283,7 +298,9 @@ The index is the part a reviewer actually uses:
 
 Three lines each at most, written so a reviewer can tell **whether to open it**. "Architecture decisions" fails that; naming the surface the ADR governs passes, because someone reviewing a change under `store/` can then see at a glance which two ADRs constrain it. Every ADR gets a row, including the ones that surface later.
 
-The staleness test is not `CLAUDE.md`'s here, since this document is descriptive by design. Ask instead: **would this line change if a decision changed, or if a file was added?** The first belongs. The second is inventory — no directory trees, no module listings, no counts.
+Link `docs/rules.yaml` from the top of the page, so a reviewer checking a change against the rules goes straight to the list and sees which ones no tool checks.
+
+The staleness test is not the one `AGENTS.md` uses here, since this document is descriptive by design. Ask instead: **would this line change if a decision changed, or if a file was added?** The first belongs. The second is inventory — no directory trees, no module listings, no counts.
 
 ### Docstrings
 
@@ -314,7 +331,7 @@ class Clock(Protocol):
 
 The second earns its place because the UTC requirement and what breaks without it are not in the signature, and a caller who gets it wrong finds out in production.
 
-The format goes in the gate. The rest goes in `CLAUDE.md`, because no linter can tell a contract from a story.
+The format goes in the gate. The rest goes in `AGENTS.md`, because no linter can tell a contract from a story.
 
 ---
 
@@ -322,7 +339,7 @@ The format goes in the gate. The rest goes in `CLAUDE.md`, because no linter can
 
 The baseline ends when the gate is green and the decisions are written down. Building the product goes through the project's normal propose-and-implement process rather than continuing here: `/opsx:propose` for the first change if the project uses OpenSpec, plan mode otherwise.
 
-**The repo is the handoff.** The contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the rules are in `CLAUDE.md`, the reasoning is in the ADRs. Don't restate any of it at the end; a second copy of something already checkable is the exact failure these seven decisions exist to avoid. `docs/ARCHITECTURE.md` is the one addition, aimed at the reviewer rather than the builder: what this system is in a page, and which ADR bears on the change in front of them.
+**The repo is the handoff.** The contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the architectural rules are in `docs/rules.yaml` with the check behind each one, the conventions are in `AGENTS.md`, which points every agent at the registry, and the reasoning is in the ADRs. Don't restate any of it at the end; a second copy of something already checkable is the exact failure these seven decisions exist to avoid. `docs/ARCHITECTURE.md` is the one addition, aimed at the reviewer rather than the builder: what this system is in a page, and which ADR bears on the change in front of them.
 
 ---
 
@@ -333,7 +350,11 @@ The baseline ends when the gate is green and the decisions are written down. Bui
 - **Rules nobody runs.** A constraint that isn't in the gate is a suggestion, and suggestions lose to whatever pattern is nearest. If you can't make a rule executable, say so in the ADR rather than pretending.
 - **Building instead of deciding.** The baseline writes declarations, config, and prose. The moment you're writing a function body with real logic in it, you've crossed into the first change — stop, and put it in the proposal instead.
 - **Docstrings that retell the ADRs.** This baseline is mostly a writing exercise, and the voice carries into the files it creates: a Protocol whose docstring argues for the seam, an `errors.py` narrating the translation rule. The declaration states its contract; the ADR holds the reasoning.
-- **An `ARCHITECTURE.md` that restates `CLAUDE.md`.** Orientation and the ADR index, nothing else.
+- **An `ARCHITECTURE.md` that restates `AGENTS.md` or the registry.** Orientation and the ADR index, nothing else.
+- **A registry that collects conventions.** Logging style, test naming, CLI flag habits, and workflow cadence are real rules, but they aren't architecture, and a registry of sixty entries is one an agent skims. If an entry says how to write code rather than where it goes or what it may touch, it belongs in `AGENTS.md`.
+- **A rule in both files.** A rule in both places is a rule with two versions. Each statement lives in one of them.
+- **A registry entry naming a check that doesn't exist.** `enforced_by: importlinter:Middle layers are independent` with no such contract reads as enforced and isn't. The registry test exists to fail on exactly this, so it runs in the gate.
+- **A `review` rule a tool could check.** Before marking a rule `review`, ask whether a forbidden contract, a banned-api entry, or a pytest flag would catch it. If one would, write that check and name it.
 - **Stopping at the ADRs.** The documents are the cheapest part and the least effective. If the session ends with seven ADRs and no import contracts, nothing has actually changed.
 - **Stopping to report mid-stretch.** A summary that announces the next artifact instead of writing it, once the decisions are settled.
 - **Stopping at a gate that was never run.** Config that has never been executed is a claim about the architecture, not a check on it.

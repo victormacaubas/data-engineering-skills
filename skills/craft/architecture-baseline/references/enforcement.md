@@ -11,9 +11,11 @@ The stack is **uv** for environments, **Ruff** for lint and format, **mypy** for
 ```bash
 uv init my-project
 uv add <runtime deps>
-uv add --dev pytest ruff mypy import-linter pre-commit
+uv add --dev pytest ruff mypy import-linter pre-commit pyyaml types-PyYAML
 uv run pytest
 ```
+
+`pyyaml` and its stubs are there for the registry test in `references/rules-registry.md`. They are dev-only; the runtime set stays what Decision 2 closed.
 
 Commit `uv.lock`. The lockfile is what makes the environment reproducible across machines and CI.
 
@@ -40,9 +42,19 @@ select = [
     "C4",       # comprehensions
     "SIM",      # simplify
     "TID",      # tidy-imports
+    "D",        # pydocstyle — the docstring format, per the convention below
     "RUF",
 ]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]               # test names carry the intent; docstrings there are noise
+"**/__init__.py" = ["D104"]      # baseline packages start as empty __init__.py files
 ```
+
+The convention turns off the D rules Google style disagrees with and leaves the rest on, including D100 (module docstring), D105 (magic methods), and D107 (`__init__`). The `__init__.py` ignore matters at baseline time: D104 fires on an empty `__init__.py`, and every package the layer contract names starts as one, so without it the gate fails on files that have nothing to document yet.
 
 `TID` is worth calling out: `flake8-tidy-imports` can ban specific modules or attributes from being imported at all, which overlaps with import-linter's forbidden contracts and is useful for narrower rules that aren't about layering:
 
@@ -117,6 +129,19 @@ layers = [
 `include_external_packages` is not optional once any forbidden contract names a module outside the root package, which covers every one of the examples below. Without it the run fails before checking anything: `The top level configuration must have include_external_packages=True when there are external forbidden modules.` Set it once, at the top.
 
 An empty package resolves fine. A layer holding nothing but `__init__.py` is analyzed and kept, which is what makes it possible to run the gate at baseline time before any behavior exists. What the contract can't tolerate is a layer with no directory at all — that fails with `Missing layer 'mypackage.render': module mypackage.render does not exist.` So every package named here needs to exist on disk with an `__init__.py`, even when it has no declarations to hold yet. That's the mechanical reason Decision 7 tells you to create them before running the gate.
+
+Siblings that sit at the same level go on one line. The separator decides whether they may know about each other:
+
+```toml
+layers = [
+    "mypackage.cli",
+    "mypackage.core",
+    "mypackage.ingest | mypackage.store | mypackage.render",   # independent: no imports between them
+    "mypackage.models : mypackage.utils",                     # same level, may import each other
+]
+```
+
+`|` makes the siblings independent: none may import another, on top of the one-way rule. `:` only places them at the same level and applies no check between them. Getting this backwards fails silently in the dangerous direction: written with `:`, a layer whose siblings were meant to stay separate reports KEPT while they import each other freely. Use `|` unless the siblings genuinely need each other, and comment the choice in the config, because nothing in the output shows which one was meant.
 
 Packages not listed are unconstrained, which is a useful escape hatch while a package's position is still unsettled — but an unlisted package is an undecided one, so keep the list short by finishing the decision rather than by omitting things.
 
@@ -195,7 +220,9 @@ check:
 
 Order matters a little: the fast, cheap checks run first so a formatting mistake fails in two seconds rather than after the test suite.
 
-Put `make check` in `CLAUDE.md` as the definition of done. That single line is what makes the gate reachable by anyone working in the repo, and it's what turns "the tests pass" into a statement about the architecture as well as the behavior.
+The registry test from `references/rules-registry.md` runs inside the `pytest` step, so it needs no line of its own.
+
+Put `make check` in `AGENTS.md` as the definition of done. That single line is what makes the gate reachable by anyone working in the repo, and it's what turns "the tests pass" into a statement about the architecture as well as the behavior.
 
 ## CI
 
