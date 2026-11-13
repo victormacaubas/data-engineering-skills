@@ -43,7 +43,7 @@ Extra decisions will surface during the conversation. The test for whether one d
 
 Every ADR gets a row in the index in `docs/ARCHITECTURE.md`, the ones that surface mid-change included. An ADR missing from the index is one a reviewer has no way to know exists.
 
-Every rule an ADR produces also gets an entry in `docs/rules.yaml` whose `source` is that ADR. The ADR holds the reasoning and the alternatives; the registry holds the one-sentence rule and the check behind it. Neither restates the other.
+Every rule an ADR produces gets one home. If a tool can check it, the home is that check, with a comment naming the ADR. If no tool can, it's an entry in `docs/rules.yaml` whose `source` is the ADR. The ADR holds the reasoning and the alternatives; the check or the entry holds the rule. Neither restates the other.
 
 ### 0001. Layer map and dependency direction
 
@@ -101,7 +101,7 @@ The substance here isn't the tool list — it's the commitment that architectura
 
 Record deliberate exceptions too: if mypy is strict everywhere except one package, that exception belongs here with its reason and, ideally, the condition under which it goes away.
 
-Record also that the gate was run and came back green against the declarations the baseline wrote, and that each contract was made to fail once on a deliberate violation before it was trusted. An untested contract is a claim, and this is the ADR where the difference is visible. Name each contract by the exact string in its `name` field; the registry's `enforced_by` entries match against that string.
+Record also that the gate was run and came back green against the declarations the baseline wrote, and that each contract was made to fail once on a deliberate violation before it was trusted. An untested contract is a claim, and this is the ADR where the difference is visible.
 
 ## One ADR per decision
 

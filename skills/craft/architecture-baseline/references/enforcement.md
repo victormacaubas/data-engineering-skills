@@ -115,6 +115,7 @@ Expresses the one-way flow. List packages top to bottom — each may import anyt
 root_package = "mypackage"
 include_external_packages = true
 
+# docs/adr/0001-layer-map.md
 [[tool.importlinter.contracts]]
 name = "Layered architecture"
 type = "layers"
@@ -125,6 +126,8 @@ layers = [
     "mypackage.models",
 ]
 ```
+
+Put the comment naming the ADR above every contract. A rule a tool checks lives only in its check, not in `docs/rules.yaml`, so the comment is the one link from the rule back to its reasoning.
 
 `include_external_packages` is not optional once any forbidden contract names a module outside the root package, which covers every one of the examples below. Without it the run fails before checking anything: `The top level configuration must have include_external_packages=True when there are external forbidden modules.` Set it once, at the top.
 
@@ -150,6 +153,7 @@ Packages not listed are unconstrained, which is a useful escape hatch while a pa
 Expresses "this package owns this technology." The literal encoding of Decision 1's rule that driver types don't escape their adapter.
 
 ```toml
+# docs/adr/0002-runtime-stack-and-dependencies.md
 [[tool.importlinter.contracts]]
 name = "Only store touches the database driver"
 type = "forbidden"
