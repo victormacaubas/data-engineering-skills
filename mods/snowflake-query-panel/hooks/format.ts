@@ -6,10 +6,14 @@ const MIN_SQL_CHARS = 12
 
 const SHORT_AGENT_ID_CHARS = 6
 
-export const SNOWFLAKE_HOST = 'justworks-main.snowflakecomputing.com'
+export const SNOWFLAKE_HOST = 'app.snowflake.com'
+
+// Snowsight org/account path. The `#/monitoring/queries/detail?queryId=` route redirects to the
+// home page, so query links use the compute query-history route instead.
+export const SNOWSIGHT_ACCOUNT_PATH = 'justworks/main'
 
 export const queryHistoryUrl = (queryId: string): string =>
-  `https://${SNOWFLAKE_HOST}/console#/monitoring/queries/detail?queryId=${encodeURIComponent(queryId)}`
+  `https://${SNOWFLAKE_HOST}/${SNOWSIGHT_ACCOUNT_PATH}/#/compute/history/queries/${encodeURIComponent(queryId)}/detail`
 
 export const fallbackAgentLabel = (agentKey: string): string =>
   `agent ${agentKey.slice(0, SHORT_AGENT_ID_CHARS)}`

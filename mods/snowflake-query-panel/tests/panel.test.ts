@@ -553,7 +553,7 @@ describe('expanding a row', () => {
     expect((frame!.children as Described[]).map(child => child.type)).toEqual(['Code', 'Text'])
     const idLink = await ui.find({ type: 'Link' })
     expect(idLink!.props).toEqual({
-      href: `https://justworks-main.snowflakecomputing.com/console#/monitoring/queries/detail?queryId=${queryId}`,
+      href: `https://app.snowflake.com/justworks/main/#/compute/history/queries/${queryId}/detail`,
       label: `query id ${queryId}`,
     })
   })

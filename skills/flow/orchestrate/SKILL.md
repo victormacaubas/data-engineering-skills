@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: Have workers build a bounded plan instead of coding inline in the main session: use `test-author` to write the tests first, `implementer` to write code and `pathfinder` or `researcher` to close gaps that would otherwise require guesses. Use when a plan is ready to build - "implement the plan", "apply the OpenSpec change <name>", "dispatch the implementer", "orchestrate this", "build tasks 3–7", or right after a plan-mode plan is approved and you want a worker to build it. Use it mid-build when a slice needs an unknown resolved - a syntax or API shape, a convention outside the plan, a fact about the data - or when the plan may have drifted from the code. Not for trivial single-file edits.
+description: Have workers build a bounded plan instead of coding inline in the main session. Use `test-author` to write the tests first, `implementer` to write code and `pathfinder` or `researcher` to close gaps that would otherwise require guesses. Use when a plan is ready to build - "implement the plan", "apply the OpenSpec change <name>", "dispatch the implementer", "orchestrate this", "build tasks 3–7", or right after a plan-mode plan is approved and you want a worker to build it. Use it mid-build when a slice needs an unknown resolved - a syntax or API shape, a convention outside the plan, a fact about the data - or when the plan may have drifted from the code. Not for trivial single-file edits.
 ---
 
 # Orchestrate
