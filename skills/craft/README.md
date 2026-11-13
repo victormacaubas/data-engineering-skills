@@ -6,7 +6,7 @@ Distributed as the `craft` marketplace plugin. Members invoke as `/craft:<skill-
 
 | Skill | What it does |
 |---|---|
-| `architecture-baseline` | Establishes a project's architectural constraints before any feature work. Requires the separately installed `researcher` agent. |
+| `architecture-baseline` | Establishes a project's architectural constraints before any feature work, including an `AGENTS.md` and a `docs/rules.yaml` registry of the rules no tool checks. Requires the separately installed `researcher` agent. |
 | `python-engineering-standards` | Canonical Python standards for layout, typing, reliability, concurrency, and testing. |
 | `code-audit` | Non-destructive, language-agnostic defect review with scored JSON findings. |
 | `structure-review` | Senior-engineer review of a finished change for shape, conformance, and maintainability. |
