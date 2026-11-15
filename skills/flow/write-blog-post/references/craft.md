@@ -1,6 +1,8 @@
 # Craft
 
-These principles come from a company memo written for the 25th anniversary of the XBOX. It's a good model because it's warm and persuasive while it uses almost no adjectives of praise. The facts do the work. Each principle below has a short line from the memo and a rewrite in a data-engineering setting.
+Each principle below quotes a short line from a memo, then shows the same move in a data-engineering setting. The memo is warm and persuasive while using almost no adjectives of praise. The facts do the work.
+
+The numbers in the examples are made up for illustration. In a real post, use only the facts in the input.
 
 ## Let specific facts carry the claim
 
@@ -8,8 +10,10 @@ The memo never says the original XBOX was "groundbreaking". It says the console 
 
 When you want to call something fast, big, expensive, or important, find the fact that proves it and write that fact. Then delete the adjective.
 
+<example>
 Weak: "Our new pipeline dramatically improved performance."
 Strong: "The nightly load used to finish at 7:40, twenty minutes after the finance team logged in. Now it's done by 4:15."
+</example>
 
 ## Show scale with a comparison the reader can hold
 
@@ -19,7 +23,7 @@ When the input has a before and an after, put them next to each other in one or 
 
 ## Vary the length of your sentences
 
-The memo runs long, detailed sentences and then drops a short one: "Ultimately, this is why we exist." "We must change this." The short sentence lands because of the long ones around it.
+The memo runs long, detailed sentences and then drops a short one: "Ultimately, this is why we exist." "We must change this." The short sentence lands because of the long ones around it. Borrow the short sentence, not the word "Ultimately", which is on the AI-tells list.
 
 Write most sentences at a natural medium length, let some run long when they carry a list of details, and place a short sentence where you want the reader to stop. A post where every sentence is the same length reads as machine-made, even when each sentence is fine on its own.
 
@@ -29,10 +33,10 @@ The memo spends most of its length on history and only near the end says what it
 
 In a blog post, tell what happened first and state the lesson after. In a short LinkedIn post, you can state the point first, but the very next lines must be the evidence for it, not more claims.
 
+<example>
 Weak: "Data quality is the foundation of everything. Without it, nothing works. That's why we invested in it."
 Strong: "Last quarter, a null in one currency column made our revenue dashboard show 40% growth for six days. Nobody caught it until the CFO quoted it in a board deck. We now test that column on every load."
-
-(The numbers in the strong version are an example only. In a real post, use only the facts in the input.)
+</example>
 
 ## Give a blog post a story arc
 
@@ -40,13 +44,13 @@ A blog post needs a shape a reader can feel moving. A LinkedIn post doesn't; it'
 
 Most engineering posts fit the same five beats:
 
-1. **Where we started.** The situation before anything happened, with a time and a concrete detail: "In 2023, every report the sales team used ran off one Airflow server that nobody wanted to touch." (An illustration only; use the facts in the input.) Give the reader enough to care about what's at stake. Open on the scene or the stakes, not on a tutorial: if the post needs to explain how a system works, do it after the first paragraph has given the reader a reason to want to know. The biggest number in the story usually belongs near the top.
-2. **What went wrong, or what got hard.** The complication, told in order with time markers. This is where the tension is, so don't rush it, and don't explain the cause yet.
-3. **The turn.** The moment the team understood what was really going on: the query that showed the gap, the number that didn't match, the decision to stop patching and rebuild. The input almost always has one, even when it doesn't call it that: look for "the hard part was", "the surprise was", "it turned out", or the point where a plan changed. One short sentence often marks it.
-4. **What we did and what changed.** The fix and its results, with before and after numbers. Credit the people by name if the input names them.
-5. **What it means.** The lesson or belief, stated once and plainly, after the reader has seen the evidence. This is where a short landing sentence belongs.
+1. Where we started. The situation before anything happened, with a time and a concrete detail: "In 2023, every report the sales team used ran off one Airflow server that nobody wanted to touch." Give the reader enough to care about what's at stake. Open on the scene or the stakes, not on a tutorial: if the post needs to explain how a system works, do it after the first paragraph has given the reader a reason to want to know. The biggest number in the story usually belongs near the top.
+2. What went wrong, or what got hard. The complication, told in order with time markers. This is where the tension is, so don't rush it, and don't explain the cause yet.
+3. The turn. The moment the team understood what was really going on: the query that showed the gap, the number that didn't match, the decision to stop patching and rebuild. The input almost always has one, even when it doesn't call it that: look for "the hard part was", "the surprise was", "it turned out", or the point where a plan changed. One short sentence often marks it.
+4. What we did and what changed. The fix and its results, with before and after numbers. Credit the people by name if the input names them.
+5. What it means. The lesson or belief, stated once and plainly, after the reader has seen the evidence. This is where a short landing sentence belongs.
 
-Let the section headers follow the beats and name the moment, not the category: "The week the dashboards went blank" and "Why nobody noticed" pull a reader along, where "Background", "Root cause", and "Remediation" turn the post back into a postmortem. Not every post needs all five beats at equal length, and an opinion post can open on the claim and spend the arc on the story that led to it. But a reader should always be able to say where the post started, where it turned, and where it ended up.
+Not every post needs all five beats at equal length, and an opinion post can open on the claim and spend the arc on the story that led to it. But a reader should always be able to say where the post started, where it turned, and where it ended up. Headers, when the post has them, follow the rule in SKILL.md, Step 4.
 
 ## Thank and credit people with specifics
 
@@ -64,8 +68,8 @@ Name the tool, the table type, the warehouse, the version, and the year when the
 
 The memo ends on a plain statement of what the team will do ("deliver great games, unmistakable hardware, and give more people the chance to make something the world has never seen") and a short sign-off. It doesn't end on a slogan or a question.
 
-End your post on the last useful thing: what the author does now, the number that sums it up, or the one thing they'd tell a peer to check first. Don't end on an abstract noun phrase such as "a new chapter in our data journey".
+End your post on the last useful thing: what the author does now, the number that sums it up, or the one thing they'd tell a peer to check first.
 
 ## Keep the structure quiet
 
-The memo has two headers in about 900 words and no bold text in its paragraphs. The structure supports the reading and doesn't draw attention to itself. Use headers only when the subject changes, and use bold rarely or not at all.
+The memo has two headers in about 900 words and no bold text in its paragraphs. The structure supports the reading and doesn't draw attention to itself.
