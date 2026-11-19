@@ -1,7 +1,7 @@
 ---
 name: researcher
 description: Use to research a topic on the web and return structured findings with sources. Lightweight mid-session lookups — spawn for quick questions about syntax, libraries, APIs, announcements, or technology comparisons. Does not write files.
-model: claude-haiku-5-5[thinking=true,context=1m,reasoning_effort=xhigh]
+model: claude-haiku-5-5[thinking=true,context=1m,reasoning_effort=high]
 readonly: true
 ---
 
