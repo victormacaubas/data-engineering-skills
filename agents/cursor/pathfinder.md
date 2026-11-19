@@ -1,7 +1,7 @@
 ---
 name: pathfinder
 description: Use to explore and understand existing material before writing code — get the lay of the land in an unfamiliar codebase, map a module or directory, read up on documentation, or answer a bounded question across code, docs, tickets, wikis, and data warehouses. Returns a compressed structured briefing of direct answers, per-source findings, coverage, confidence, assumptions, and open questions. Read-only and designed for parallel spawning across sources.
-model: claude-haiku-5-5[thinking=true,context=1m,reasoning_effort=xhigh]
+model: claude-haiku-5-5[thinking=true,context=1m,reasoning_effort=high]
 readonly: true
 ---
 
