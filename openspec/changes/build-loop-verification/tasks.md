@@ -49,9 +49,3 @@
 - [ ] 6.5 Dispatch the Claude `implementer` on a slice where a lint rule fails and the task names no configuration change; verify that the lint configuration is unchanged and that the report names the rule
 - [ ] 6.6 Close a build in the scratch repository and ask for a commit; verify that `git log --format='%(trailers:key=Verified,valueonly)' -1` shows the gate command, and shows `none` for a build recorded as unverified
 - [ ] 6.7 Run `openspec validate build-loop-verification --strict`; verify that it reports no error
-
-## Workflow follow-up
-
-- Examine `design.md` for decisions that bind future changes and promote them to `docs/adr/` before the archive. `docs/adr/` does not exist, so ask the user first.
-- Archive the change with `/opsx:archive`.
-- Copy the archived change to the vault inbox as `openspec-build-loop-verification-data-engineering-skills/` and tell the user to run `/process-inbox`.
