@@ -58,6 +58,25 @@ The project `AGENTS.md` that the baseline writes SHALL name the gate command and
 - **WHEN** a session in a different tool reads the generated `AGENTS.md`
 - **THEN** it finds the path of the verify skill file and can follow its steps
 
+### Requirement: The generated AGENTS.md records the trailer decision
+The `architecture-baseline` skill SHALL ask the person if commits in the project carry verification trailers. It SHALL write the answer in the definition of done of the generated `AGENTS.md`, for a yes and for a no. For a yes, the line SHALL give the format of the trailers. The baseline SHALL NOT write an answer that the person did not give.
+
+#### Scenario: Person answers yes
+- **WHEN** the person says that commits carry verification trailers
+- **THEN** the definition of done has a line that says so and gives the format of the `Verified:` and `Unverified:` trailers
+
+#### Scenario: Person answers no
+- **WHEN** the person says that commits carry no verification trailer
+- **THEN** the definition of done has a line that says so
+
+#### Scenario: No default
+- **WHEN** the person has not answered the question
+- **THEN** the baseline asks, and does not write a line for a yes or for a no
+
+#### Scenario: One location
+- **WHEN** a contributor reads the generated `AGENTS.md`
+- **THEN** the trailer line is in the same section as the gate command and the verify skill path
+
 ### Requirement: The baseline does not say that the gate proves the program runs
 The `architecture-baseline` skill and the files that it generates SHALL describe the gate as static checks and tests. They SHALL NOT state that the gate proves that the program runs.
 

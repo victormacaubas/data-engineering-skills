@@ -13,6 +13,7 @@ The Anthropic article "How the Claude Code team thinks about verification" (2026
 - Add one validation command, `scripts/validate_repo.py`, that does the checks that `AGENTS.md` lists.
 - Add a project `verify` skill at `.claude/skills/verify/` that runs the validation command and the mod checks. Track that directory in git.
 - Make `craft:architecture-baseline` generate a `verify` skill in the target project and name it in the generated `AGENTS.md`.
+- Make the baseline ask the person if commits carry verification trailers, and write the answer in the definition of done of the generated `AGENTS.md`.
 - Remove the statement that the gate proves that the code runs.
 - Replace "the slow ones left to CI" in the baseline with three tiers: fast checks on each commit, the gate on the local machine before a push or a pull request, and the same gate in CI. The generated `AGENTS.md` tells the contributor to run the gate before a push.
 - Make the pytest configuration of the baseline deselect the `integration` marker in the default run, so that the gate needs no credentials.
@@ -42,5 +43,5 @@ The two existing rules of the mod do not change. No change is **BREAKING**.
 - New living specs at archive: `openspec/specs/repo-validation/spec.md`, `openspec/specs/baseline-verify-skill/spec.md`. Updated living spec: `openspec/specs/agent-write-guard/spec.md`.
 - No change to the install scripts or to the Cursor catalog.
 - Depends on the early-access mod API. The mod checks must run again after a Claude Code update.
-- Related change: `build-loop-verification` adds an instruction for the `implementer` and a diff check in the orchestrator for the same gate-configuration files. This change does not depend on it.
+- Related change: `build-loop-verification` adds an instruction for the `implementer` and a diff check in the orchestrator for the same gate-configuration files. It also makes the orchestrator read the trailer line that the baseline writes. This change does not depend on it. The generated line gives the format of the trailers in full.
 - Related change: `standards-verification-rules` puts the same three tiers and the same marker correction in `craft:python-engineering-standards`. Each skill states the rule in full.

@@ -12,8 +12,8 @@ The Anthropic article "How the Claude Code team thinks about verification" (2026
 - Add a limit of three attempts on the same failing check inside `implementer` and `test-author`.
 - Add the earlier reports and the last failing output to each re-dispatch brief. Each round writes its own report file.
 - Record a slice as `unverified` when no check that exercises the change ran. The option to dispatch without a test bar stays.
-- Run the project gate and the command-verified scenarios one time before the build closes.
-- Add a `Verified:` trailer to each commit that the orchestrator makes on request. The value is the list of checks that passed, or `none`.
+- Run the gate that the project declares, the command-verified scenarios, and the project `verify` skill, when one exists, one time before the build closes. Ask the user before a run of a gate that the project does not declare.
+- Add opt-in verification trailers to a commit that the orchestrator makes on request. A project enables them in the definition of done of its instructions, or the user asks for them. `Verified:` gives the list of checks that passed, or `none`. `Unverified:` names the slices that no check exercised. The closing summary states if the trailers are enabled.
 - Copy the "real check" rule from the Claude `implementer` to the Codex and Cursor variants.
 - Add a rule that the `implementer` does not change gate configuration to make a check pass. The orchestrator examines the changed paths after each slice.
 - Add property-based tests and differential tests to `test-author`. A differential test uses an oracle that the brief names.
@@ -39,4 +39,4 @@ No change is **BREAKING**. Existing briefs and reports stay valid.
 - Edited index: `agents/README.md`, only where an intentional platform difference changes.
 - New living spec at archive: `openspec/specs/build-verification/spec.md`. Updated living spec: `openspec/specs/test-authoring/spec.md`.
 - No change to install scripts, catalogs, or mods.
-- Related changes: `standards-verification-rules` puts the same property-test and flaky-test rules in the Python standard. `verification-infrastructure` adds an optional mod rule for gate configuration. This change does not depend on them.
+- Related changes: `standards-verification-rules` puts the same property-test and flaky-test rules in the Python standard. `verification-infrastructure` adds an optional mod rule for gate configuration and makes `craft:architecture-baseline` generate a project `verify` skill. This change runs a `verify` skill when the file exists, from any source. This change does not depend on them.
