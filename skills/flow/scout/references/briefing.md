@@ -20,7 +20,9 @@ For a Snowflake governance question, supply the view names or SQL yourself. You 
 rediscover the authoritative `ACCOUNT_USAGE` view.
 
 **`researcher`**: provide one bounded question and constraints: official-docs-only, compare X vs Y,
-or the number of sources you want. Keep each dispatch to one question; a two-part question comes
+or the number of sources you want. Add a page or search-round budget when the question needs more
+than the default of 5 pages and 3 rounds, say when exact wording is necessary, and name the
+`owner/repo` for a GitHub question. Keep each dispatch to one question; a two-part question comes
 back with one part answered well.
 
 **Pasted material** (a Slack thread, ticket body, or email the user pasted): wrap it in
