@@ -81,7 +81,7 @@ When a worker is dispatched without a test bar, or reports that no check that ex
 - **THEN** the closing summary names that slice as unverified
 
 ### Requirement: The build closes with a full check run
-Before it reports a build as finished, the orchestrator SHALL run the project gate command one time. When the project has no gate command, it SHALL run the full test suite and the configured linters and type checks. It SHALL also run each command that `test-author` reported for a command-verified scenario. The closing summary SHALL state each command and its result.
+Before it reports a build as finished, the orchestrator SHALL run one time the gate that the project instructions declare. It SHALL also run each command that `test-author` reported for a command-verified scenario. It SHALL NOT run a command that the project instructions reserve for the user. The closing summary SHALL state each command and its result.
 
 #### Scenario: Gate passes
 - **WHEN** every task is ticked and the gate command passes
@@ -95,19 +95,69 @@ Before it reports a build as finished, the orchestrator SHALL run the project ga
 - **WHEN** the `test-author` report lists a command for a command-verified scenario
 - **THEN** the orchestrator runs that command at close and states its result
 
-#### Scenario: No gate and no suite
-- **WHEN** the project has no gate command, no test suite, and no configured linter
+#### Scenario: Command reserved for the user
+- **WHEN** the project instructions say that the user runs `terraform plan`
+- **THEN** the orchestrator does not run that command at close
+
+#### Scenario: No check to run
+- **WHEN** the project declares no gate, the orchestrator finds no command to propose, and the project has no `verify` skill
 - **THEN** the closing summary states that no check was found and records the build as unverified
 
+### Requirement: A gate that the project does not declare needs approval
+When the project instructions declare no gate, the orchestrator SHALL look for a `check` or `test` target, a test suite, and configured linters and type checks. It SHALL NOT run a command that it finds without approval from the user. It SHALL ask one time for each build and SHALL name each command. Without approval, the build SHALL have no gate.
+
+#### Scenario: User approves a found gate
+- **WHEN** the project declares no gate, the `Makefile` has a `test` target, and the user approves it
+- **THEN** the orchestrator runs that target at close and states its result
+
+#### Scenario: User does not approve
+- **WHEN** the user does not approve the found commands
+- **THEN** the orchestrator runs none of them, and the closing summary says that no gate ran
+
+#### Scenario: The question shows how to remove it
+- **WHEN** the orchestrator asks for approval of a found gate
+- **THEN** the question names each command and says that a declaration in the project instructions removes the question
+
+#### Scenario: One question for each build
+- **WHEN** the close run occurs a second time in the same build
+- **THEN** the orchestrator uses the first answer and does not ask again
+
+#### Scenario: Declared gate
+- **WHEN** the project `AGENTS.md` names one command as the definition of done
+- **THEN** the orchestrator runs that command at close with no question
+
+### Requirement: The close run follows the project verify skill
+When the project has a `verify` skill, the orchestrator SHALL follow its steps one time at close, after the gate and the command-verified scenarios pass. The closing summary SHALL state the verify command, the evidence, and the result. When the project has no `verify` skill, the closing summary SHALL say so.
+
+#### Scenario: Verify flow passes
+- **WHEN** the gate passes and the project has `.claude/skills/verify/SKILL.md`
+- **THEN** the orchestrator follows the skill, and the closing summary states the verify command and its pass result
+
+#### Scenario: Verify flow fails
+- **WHEN** the verify flow does not satisfy its pass condition
+- **THEN** the orchestrator does not report the build as finished and opens a slice for the failure
+
+#### Scenario: Gate fails before the verify flow
+- **WHEN** the gate command fails at close
+- **THEN** the orchestrator does not run the verify flow in that close run
+
+#### Scenario: Verify flow cannot start
+- **WHEN** the verify flow cannot start for a reason outside the change
+- **THEN** the closing summary records verify as `not run` with the reason, and does not record a pass
+
+#### Scenario: No verify skill
+- **WHEN** the project has no `verify` skill
+- **THEN** the close run has the gate and the command-verified scenarios only, and the closing summary says that no verify skill was found
+
 ### Requirement: A commit records how it was verified
-When the user asks the orchestrator to commit the changes of a build, the commit message SHALL contain a `Verified:` trailer. The value SHALL list the checks that ran and passed at close on the committed tree, or SHALL be `none`. The orchestrator SHALL NOT commit without a request from the user.
+When the verification trailers are enabled and the user asks the orchestrator to commit the changes of a build, the commit message SHALL contain a `Verified:` trailer. The value SHALL list the checks that ran and passed at close on the committed tree, or SHALL be `none`. The value SHALL name `verify` only when the verify flow ran and passed at close. The orchestrator SHALL NOT commit without a request from the user.
 
 #### Scenario: Gate passed at close
-- **WHEN** the gate command passed at close and the user asks for a commit
+- **WHEN** the trailers are enabled, the gate command passed at close, and the user asks for a commit
 - **THEN** the commit message contains a `Verified:` trailer that names the gate command
 
 #### Scenario: Nothing was verified
-- **WHEN** the build is recorded as unverified and the user asks for a commit
+- **WHEN** the trailers are enabled, the build is recorded as unverified, and the user asks for a commit
 - **THEN** the commit message contains `Verified: none`
 
 #### Scenario: Tree changed after the close run
@@ -116,7 +166,68 @@ When the user asks the orchestrator to commit the changes of a build, the commit
 
 #### Scenario: Unverified commits can be found
 - **WHEN** a user lists the `Verified` trailer of each commit with `git log`
-- **THEN** each commit made by the orchestrator shows its checks or `none`
+- **THEN** each commit that the orchestrator made with the trailers enabled shows its checks or `none`
+
+#### Scenario: Verify passed at close
+- **WHEN** the trailers are enabled, the gate and the verify flow passed at close, and the user asks for a commit
+- **THEN** the `Verified:` trailer names the gate command and `verify`
+
+#### Scenario: Verify was not run
+- **WHEN** the trailers are enabled, the verify flow was recorded as `not run`, and the user asks for a commit
+- **THEN** the `Verified:` trailer does not name `verify`
+
+### Requirement: The verification trailers are opt-in
+The orchestrator SHALL add the verification trailers to a commit only when the project instructions say that commits carry them, or when the user asks for them. In all other cases, the commit message SHALL have no verification trailer. The closing summary SHALL state the verification result in each case.
+
+#### Scenario: Project enables the trailers
+- **WHEN** the definition of done in the project `AGENTS.md` says that commits carry the `Verified:` trailer and the user asks for a commit
+- **THEN** the commit message has the trailer
+
+#### Scenario: Project turns the trailers off
+- **WHEN** the definition of done in the project instructions says that commits carry no verification trailer and the user asks for a commit
+- **THEN** the commit message has no verification trailer
+
+#### Scenario: User asks for the trailers
+- **WHEN** the project instructions do not name the trailer and the user asks for a commit with the verification trailers
+- **THEN** the commit message has the trailer
+
+#### Scenario: Trailers are not enabled
+- **WHEN** the project instructions do not name the trailer and the user asks for a commit
+- **THEN** the commit message has no `Verified:` trailer and no `Unverified:` trailer
+
+#### Scenario: Summary without a trailer
+- **WHEN** a build closes in a project that does not enable the trailers
+- **THEN** the closing summary states each check and its result, and each unverified slice
+
+### Requirement: The closing summary states the trailer state
+The closing summary of each build SHALL have one line that states if the verification trailers are enabled for the project. The line SHALL give the reason: the project instructions enable them, the user asked for them, the project instructions turn them off, or no source names them.
+
+#### Scenario: No source names the trailers
+- **WHEN** a build closes in a project whose instructions do not name the trailers, and the user did not ask for them
+- **THEN** the closing summary says that the trailers are not enabled and that no source names them
+
+#### Scenario: Project enables the trailers
+- **WHEN** a build closes in a project whose definition of done enables the trailers
+- **THEN** the closing summary says that the trailers are enabled by the project instructions
+
+#### Scenario: Project turns the trailers off
+- **WHEN** a build closes in a project whose definition of done says that commits carry no verification trailer
+- **THEN** the closing summary says that the project instructions turn the trailers off
+
+### Requirement: A commit names its unverified slices
+When the verification trailers are enabled and one or more slices of the build are recorded as `unverified`, the commit message SHALL also contain an `Unverified:` trailer that names each such slice. A commit with no unverified slice SHALL have no `Unverified:` trailer.
+
+#### Scenario: Gate passed and one slice is unverified
+- **WHEN** the gate passed at close, one slice is recorded as `unverified`, and the user asks for a commit
+- **THEN** the commit message has a `Verified:` trailer that names the gate and an `Unverified:` trailer that names the slice
+
+#### Scenario: Each slice is verified
+- **WHEN** no slice of the build is recorded as `unverified`
+- **THEN** the commit message has no `Unverified:` trailer
+
+#### Scenario: Commits with unverified slices can be found
+- **WHEN** a user lists the `Unverified` trailer of each commit with `git log`
+- **THEN** each commit that has an unverified slice shows the names of its slices
 
 ### Requirement: Gate configuration is not changed to pass a check
 Every `implementer` variant SHALL NOT change linter, formatter, type-checker, import-contract, pre-commit, CI, or gate-command configuration to make a check pass, unless its task names that change. It SHALL report a configuration change that it thinks is necessary. After each slice, the orchestrator SHALL examine the changed paths for gate configuration and SHALL rule on each change that no task names.

@@ -24,7 +24,8 @@ Constraints from `AGENTS.md`:
 
 - A failing check cannot hold the loop open without limit.
 - A person who receives a stopped slice can decide without the diff.
-- Each commit made through the orchestrator can be queried for its verification.
+- In a project that enables the trailers, each commit made through the orchestrator can be queried for its verification.
+- The close run does not run a command that the project did not declare, unless the user approves it.
 - The three variants of each agent state the same verification rules.
 
 **Non-Goals:**
@@ -81,23 +82,67 @@ Alternative: forbid a dispatch without a test bar. This stops work that the user
 
 ### Decision 7: The close run
 
-The orchestrator finds the gate command in this order:
+The orchestrator runs only a gate that it has authority to run. There are two cases.
 
-1. The command that the project `AGENTS.md` or `CLAUDE.md` names as the definition of done.
-2. A `check` or `test` target in the `Makefile`.
-3. The test suite and the configured linters and type checks.
+A declared gate is the command, or the list of commands, that the project `AGENTS.md` or `CLAUDE.md` names as the definition of done or as the checks to run before a commit or a push. The orchestrator runs a declared gate with no question. It does not run a command that the project instructions reserve for the user, such as a command that needs credentials.
 
-When the orchestrator finds none, the build is unverified. The orchestrator runs the close checks itself. It already runs handed-off commands. A failure at close opens a new slice, and the round limit applies to it.
+When the project declares no gate, the orchestrator looks for a found gate, in this order:
+
+1. A `check` or `test` target in the `Makefile`.
+2. The test suite and the configured linters and type checks.
+
+It does not run a found gate without approval. It asks the user one time for each build. The question names each command and says that a declaration in the project instructions removes the question. On approval, the orchestrator runs the found gate. Without approval, the build has no gate.
+
+A command that the orchestrator finds can have an effect that its name does not show. A `test` target can start containers and drop a database, and a test suite can connect to a real service. The project instructions are the statement of the project owner that a command is safe to run.
+
+Alternative: run a found gate with no question. This design had that order before. An examination of nine repositories on 2026-11-20 found a `test` target that builds a container stack and replaces a database, and a test suite that drops the tables of the default database when it runs outside its container.
+
+Alternative: never run a found gate. A project with a test suite and no instruction file would then always close as unverified.
+
+The orchestrator runs the close checks itself. It already runs handed-off commands. A failure at close opens a new slice, and the round limit applies to it.
+
+After the gate and the command-verified scenarios pass, the orchestrator looks for a project `verify` skill: the file `.claude/skills/verify/SKILL.md`, or a verify skill path that the project `AGENTS.md` or `CLAUDE.md` names. When the file exists, the orchestrator follows its steps one time and records the command and the evidence that the skill says to capture. The low-cost checks run first, so the verify flow does not run while the gate fails.
+
+A verify flow that does not satisfy its pass condition is a failure at close. A verify flow that cannot start for a reason outside the change is recorded as `not run` with the reason. It is not a pass and not a failure.
+
+When no gate ran and the project has no verify skill, the build is unverified.
+
+The condition is the file, not the `verification-infrastructure` change. A project can have a `verify` skill from any source.
 
 The close run occurs one time for each build, not for each slice.
 
-### Decision 8: The stamp is a git trailer
+Alternative: the `implementer` runs the verify flow for each slice. The program frequently does not run until the last slice, and a slow check for each slice is run less.
+
+Alternative: rely on the Claude Code behavior that runs a project `verify` skill before a commit. The orchestrator commits only on request, so a build that closes with no commit gets no verify run. Codex and Cursor do not have this behavior, and a failure at commit time has no slice and no round count.
+
+### Decision 8: The stamp is an opt-in git trailer
+
+The orchestrator adds the verification trailers only when one of two conditions is true:
+
+- The project `AGENTS.md` or `CLAUDE.md` says that commits carry the `Verified:` trailer.
+- The user asks for the trailers. A request with the commit request counts, and a standing instruction of the user counts.
+
+In all other cases, the commit has no verification trailer. The closing summary states the verification result in each case, so the user has the information without the trailer.
+
+The project line has one location: the definition of done in the project instructions, adjacent to the declared gate. The close run reads that section for the gate, so the orchestrator reads the gate and the trailer decision in one step. The section can also say that commits carry no verification trailer. That statement turns the trailers off for the project.
+
+The closing summary of each build has one line with the state of the trailers and the reason: the project instructions enable them, the user asked for them, the project instructions turn them off, or no source names them. A missing line in the project instructions is then visible at each build, and the user does not assume a trailer that is not there.
+
+No skill in this change writes the project line. The `verification-infrastructure` change makes `craft:architecture-baseline` write it for a new project. For an existing project, a person adds it.
+
+A trailer is in the history that a team reads. `Verified: none` on a commit in a shared repository records something that the team did not agree to record. The project makes this decision, not the skill.
 
 Format: `Verified: <check>, <check>` or `Verified: none`. The trailer goes in the trailer block of the commit message.
 
-A user can list it with `git log --format='%h %(trailers:key=Verified,valueonly)'`.
+The value lists only the checks that passed at close on the committed tree. It names `verify` when the verify flow of Decision 7 ran and passed in that close run. A verify flow that was recorded as `not run` is not in the value. The article names no format, so this format is a decision of this repository.
 
-The value lists only the checks that passed at close on the committed tree. When the project has a `verify` skill and the skill ran, the value names it. The article names no format, so this format is a decision of this repository.
+When one or more slices of the build are recorded as `unverified`, the commit also gets `Unverified: <slice>, <slice>`. The gate can pass while no check exercises a slice. With `Verified:` alone, the commit then states a verification that the slice did not have.
+
+A user can list the two with `git log --format='%h %(trailers:key=Verified,valueonly) %(trailers:key=Unverified,valueonly)'`.
+
+Alternative: the trailers on each commit, with no opt-in. A commit in a shared repository then gets a line that the team did not select.
+
+Alternative: no `Verified:` trailer when a slice is unverified. The commit then does not show the checks that did pass.
 
 Alternative: git notes. Notes are not pushed by default.
 
@@ -165,8 +210,11 @@ The orchestrator counts `request_changes` verdicts for the same change. The thir
 - [The limit stops a slice that a fourth round can fix] → The user can restart the slice. The hand-back contains what the user needs to decide.
 - [A small model writes weak properties] → The trigger is a law that the scenario states. A live check in the tasks runs the Claude `test-author` on a round-trip scenario.
 - [The agent prompts grow in six files] → New text goes into existing sections. A diff of the changed sections across variants is a task.
-- [A reader trusts the stamp too much] → The stamp records which checks ran. It does not state that the change is correct. The orchestrate text says this in one sentence.
+- [A reader trusts the stamp too much] → The stamp records which checks ran. It does not state that the change is correct. The orchestrate text says this in one sentence. The `Unverified:` trailer names the slices that no check exercised.
+- [A project with no declared gate gets a question at each close] → The question says that one line in the project instructions removes it.
+- [A worker runs the test suite by its own verification rule before the close run] → Not solved in this change. The approval rule applies to the close run of the orchestrator. A project with a suite that is not safe to run must say so in its instructions.
 - [The close run is slow on a large repository] → It runs one time for each build.
+- [The verify flow is slow or needs a local service] → It runs one time for each build, after the gate passes. A flow that cannot start is recorded as `not run` with the reason.
 - [The three variants drift again] → The `verification-infrastructure` change adds a validation command. This change includes a manual diff task.
 - [A fixed seed hides a defect that a different seed finds] → The decision prefers a reproducible gate. A project can run a non-fixed profile outside the build loop.
 

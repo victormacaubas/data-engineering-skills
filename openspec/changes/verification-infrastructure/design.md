@@ -199,6 +199,20 @@ The description of the marker and the configuration then agree. Today the gate e
 
 Alternative: keep `addopts` and change the gate to `uv run pytest -m "not integration"`. A contributor who runs `pytest` directly then gets a different selection from the gate.
 
+### Decision 17: The generated AGENTS.md records the trailer decision
+
+The baseline asks the person one question: do commits in this project carry verification trailers? It writes the answer in the definition of done of the generated `AGENTS.md`, adjacent to the gate command and the verify skill path.
+
+For a yes, the line gives the format in full: `Verified:` lists the checks that passed on the committed tree, or is `none`, and `Unverified:` names the parts of the change that no check exercised. A tool that reads `AGENTS.md` can then follow the line with no other source. For a no, the line says that commits carry no verification trailer.
+
+The baseline writes the answer in the two cases. A file with no line does not show if the person decided or if the question was not asked. The baseline does not write a default. This agrees with Decision 8: it asks the person and does not guess.
+
+The definition of done is the one location for the line. A tool that looks for the gate command finds the trailer decision in the same section.
+
+Alternative: the baseline writes no line, and a person adds it later. The person can forget it, and the result has no visible sign: commits have no trailer and the person thinks that they have one.
+
+Alternative: write "yes" as the default. A trailer is in the history that a team reads, so the person makes this decision.
+
 ## Risks / Trade-offs
 
 - [Claude Code does not run `verify` for a Markdown-only change] → `AGENTS.md` states the rule in words. A task tests the behavior and records the result in `docs/authoring.md`.

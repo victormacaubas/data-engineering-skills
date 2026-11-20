@@ -34,6 +34,7 @@
 - [ ] 3.11 If the `standards-verification-rules` change is applied, compare the hook example and the pytest block with those in `skills/craft/python-engineering-standards/references/tooling.md`; verify that the two skills give the same tiers and the same marker expression
 - [ ] 3.12 Run the baseline on a short design document for a command-line tool in a scratch directory; verify that `.claude/skills/verify/SKILL.md` exists with the four parts, that it contains no command that the design document did not give, that the generated `AGENTS.md` names the gate, the run before a push, and the skill path, and that the hook configuration has the gate at the pre-push stage
 - [ ] 3.13 Read `skills/craft/README.md` and both catalog descriptions for `craft`; update them only if a statement about the skill is now wrong; verify with the validation command
+- [ ] 3.14 In `SKILL.md`, add the question about verification trailers and the line in the definition of done of the generated `AGENTS.md` from design Decision 17; verify by a run of the baseline on the design document of task 3.12 with the answer yes, and then with the answer no, that the line is adjacent to the gate command in the two cases, that the line for a yes gives the format of the two trailers, and that the skill asks and writes no default
 
 ## 4. agent-write-guard: gate-configuration rule with a mode
 
