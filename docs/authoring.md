@@ -80,13 +80,14 @@ Graduation is more than moving the directory. **A skill loads only when its grou
 5. Keep the group names and member sets aligned between the catalogs.
 6. Add the skill to the group's `skills/<group>/README.md` table.
 7. If the skill dispatches custom agents, name those separate prerequisites in the group's catalog description and the root README. Do not bundle `agents/` into the plugin.
-8. Validate and load the package in both Claude Code and Cursor CLI before release.
+8. Run `uv run scripts/validate_repo.py` and correct each failure it prints.
+9. Load the package in both Claude Code and Cursor CLI before release.
 
 Do not add a fixed plugin version unless platform validation requires one. Git supplies the update identity, so routine skill edits do not require hand-maintained version bumps.
 
 ## Validate the release
 
-At minimum, verify:
+Run `uv run scripts/validate_repo.py`. It exits with a non-zero status and prints one line for each failure. It checks that:
 
 - both marketplace files parse as JSON;
 - both catalogs expose the same three group names and the same member set within each group;
@@ -94,7 +95,11 @@ At minimum, verify:
 - every `skills` array path starts with `./` and resolves to a directory containing `SKILL.md`;
 - the array members and the group directory's contents agree exactly, with no extras and no omissions;
 - no skill name appears in more than one group;
-- no entry reaches `skills/in-progress/` or `skills/deprecated/`;
+- no entry reaches `skills/in-progress/` or `skills/deprecated/`.
+
+The command does not check the items below. Verify them by hand:
+
+- the skill is in the group's `skills/<group>/README.md` table;
 - installing a group includes only its members' `SKILL.md` and local supporting files;
 - installing a group does not expose top-level custom agents;
 - agent-dependent skills are identified in their group's description;

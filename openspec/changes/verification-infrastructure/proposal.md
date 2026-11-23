@@ -38,7 +38,7 @@ The two existing rules of the mod do not change. No change is **BREAKING**.
 - New project skill: `.claude/skills/verify/SKILL.md`. It is not a plugin skill and is not in a catalog.
 - Edited: `.gitignore` (an exception for `.claude/skills/verify/`), `AGENTS.md` (the validation command, and an exception to the rule that skills live under `skills/<group>/`), `docs/authoring.md` (release checklist).
 - Edited skill files: `skills/craft/architecture-baseline/SKILL.md` and `references/enforcement.md`. New reference file: `references/verify-skill.md`.
-- Edited mod files: `mods/agent-write-guard/.claude-plugin/plugin.json`, `hooks/rules.ts`, `hooks/register.ts`, `tests/guard.test.ts`, and the compiled `.js` files.
+- Edited mod files: `mods/agent-write-guard/.claude-plugin/plugin.json`, `hooks/rules.ts`, `hooks/register.ts`, `tests/guard.test.ts`. The three stale compiled `.js` files (`hooks/register.js`, `hooks/rules.js`, `tests/guard.test.js`) are removed: Claude Code loads `register.ts` as an ES module and does not load them.
 - Edited docs: `docs/mods.md`, `agents/README.md`, and the mod description in `.claude-plugin/marketplace.json`.
 - New living specs at archive: `openspec/specs/repo-validation/spec.md`, `openspec/specs/baseline-verify-skill/spec.md`. Updated living spec: `openspec/specs/agent-write-guard/spec.md`.
 - No change to the install scripts or to the Cursor catalog.

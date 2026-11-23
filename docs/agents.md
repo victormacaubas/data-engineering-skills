@@ -134,12 +134,10 @@ For `--platform both`, the installer checks that every selected name has both va
 
 ## Verify an agent
 
-Check both source sets and frontmatter names, then install into temporary targets:
+Check the source files, then install into temporary targets:
 
 ```bash
-comm -3 \
-  <(printf '%s\n' agents/claude/*.md | xargs -n1 basename | sort) \
-  <(printf '%s\n' agents/cursor/*.md | xargs -n1 basename | sort)
+uv run scripts/validate_repo.py
 
 tmp_dir="$(mktemp -d)"
 CLAUDE_AGENTS_DIR="$tmp_dir/claude" \
@@ -149,7 +147,7 @@ CURSOR_AGENTS_DIR="$tmp_dir/cursor" \
 ls -la "$tmp_dir/claude/my-agent.md" "$tmp_dir/cursor/my-agent.md"
 ```
 
-The `comm` command should print nothing. Also inspect each file's `name:` field and run the worker in both clients. A successful parse alone does not prove equivalent permissions or behavior.
+The validation command must print `OK`. It checks that each agent has a Claude, a Codex, and a Cursor file, that `name` matches the file name, that no description names a different agent, and that each Claude `skills:` preload is a cataloged `<group>:<skill>`. It does not check permissions or behavior, so run the worker in each client.
 
 Symlink installs reflect source edits immediately. Rerun the installer after changes when using copy mode.
 

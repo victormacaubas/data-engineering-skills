@@ -216,7 +216,11 @@ __marimo__/
 # agentic stuff
 .code-audit/
 .structure-review/
-.claude/
+# Local Claude Code content stays ignored; the project verify skill is tracked.
+.claude/*
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/verify/
 .cursor/
 .agents/
 

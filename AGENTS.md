@@ -25,11 +25,12 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 - Agent frontmatter is self-contained. An agent's `description` (in every variant, including the Codex TOML `description`) describes that agent's own role and never names another agent.
 - **Don't over-explain in a skill body.** No meta-commentary on what the skill does, why it exists, or what it will carry you through; whoever is reading it already loaded it. Write the instruction and the trap it avoids, not a case for following it.
 - Each release-ready skill is a kebab-case directory at `skills/<group>/<name>/`, where `<group>` is `craft`, `flow`, or `data`. Skill names must be unique across all three groups.
+- **One exception: the project `verify` skill at `.claude/skills/verify/`.** It is a tool for this repository, not a release skill, and no catalog lists it. git tracks it; the rest of `.claude/` stays ignored. Run `verify` before each commit, including a commit that changes only Markdown. Claude Code runs it before a commit only for some changes, so do not wait for that.
 - `SKILL.md` is the only required file. It contains the full skill instructions in markdown.
 - Optional subdirectories are `scripts/`, `assets/`, and `references/`. A catalog entry sources the group directory, so these files are packaged with `SKILL.md` and top-level agents remain excluded.
 - **A skill loads only when its group entry lists it.** Each entry carries an explicit `skills` array of `./<skill-name>` paths; a directory present on disk but absent from the array loads nowhere, and nothing reports it.
 - Skills not ready to ship go in `skills/in-progress/<name>/`. `in-progress/` and `deprecated/` are not groups and must never be cataloged or treated as plugin roots.
-- Graduating, renaming, or removing a skill requires matching changes to both catalogs' `skills` arrays and the group's `README.md`. Validate JSON, catalog parity, array/directory agreement, and cross-group name uniqueness.
+- Graduating, renaming, or removing a skill requires matching changes to both catalogs' `skills` arrays and the group's `README.md`. Run `uv run scripts/validate_repo.py` to check JSON validity, catalog parity, array/directory agreement, and cross-group name uniqueness. It does not check the group `README.md`, so check that by hand.
 - **A skill's group is part of its public name.** Moving one between groups is a breaking rename: it changes the invocation identifier and silently breaks every agent preload and downstream `CLAUDE.md` naming it. Regrouping needs its own OpenSpec change.
 - Marketplace updates are explicit client operations, not live symlink updates.
 - If a skill depends on custom agents, document the prerequisites in the group's catalog description and README onboarding. Current dependencies: `/craft:architecture-baseline` on `researcher`, `/flow:orchestrate` on `implementer`/`pathfinder`/`researcher`/`structure-reviewer`/`test-author`, and `/flow:scout` on `pathfinder`/`researcher`.
@@ -118,7 +119,7 @@ openspec/                        ← tracked changes
 
 ## What NOT to do
 
-- Don't create skills outside `skills/<group>/`.
+- Don't create skills outside `skills/<group>/`. The project `verify` skill is the only exception.
 - Don't add a skill to a group directory without adding it to both catalogs' `skills` arrays.
 - Don't move a released skill between groups as a tidy-up; it's a breaking rename.
 - Don't shorten a skill name because the group prefix carries the domain.

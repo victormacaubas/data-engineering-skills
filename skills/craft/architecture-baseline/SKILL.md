@@ -31,6 +31,7 @@ By the end the repo contains:
 - **Domain types** from the identity decision
 - **Testing conventions**, and the declared homes for factories and fakes
 - **A configured quality gate** — one command, wired into CI, and green against the declarations above
+- **A `verify` skill** at `.claude/skills/verify/SKILL.md` that starts the program and drives one flow, which the gate never does
 - **`docs/ARCHITECTURE.md`** — the reviewer-facing map: what the system is, and which ADR to open
 
 It should be small, and most of it is prose and config. If the baseline is taking more than an hour or two of conversation, you have drifted into designing features.
@@ -202,11 +203,20 @@ What lands:
 - **Forbidden contracts** pinning each Decision 2 dependency to its owning package
 - **Ruff, mypy, pytest** configured so the mechanical rules are mechanical, including Decision 6's integration marker
 - **One command that runs the whole gate** — `make check`, `just check`, whatever. One command, because a gate with four steps gets run partially.
+- **A pre-push hook running that command**, so the gate runs on the contributor's machine before a push and CI confirms it rather than finding the problem first
 - **CI running that same command**, so the gate is the same locally and remotely
 
 The ADR records what the config file can't show: the commitment that architectural rules are enforced mechanically rather than by review, and any deliberate exceptions with their reason (see `references/adr-set.md` → 0007).
 
 Then put the gate command in `AGENTS.md`, because that's what makes it reachable by everyone working in the repo, human or otherwise.
+
+### Write the verify skill
+
+The gate shows that the static checks and the tests pass. It doesn't start the program. Write `.claude/skills/verify/SKILL.md` in the target project, so that "done" also means the program ran one real flow. Read `references/verify-skill.md` for the four parts (start, drive, evidence, pass) and an example for each archetype.
+
+- **Take the start command from the design doc.** It comes from the entry point declared in Decision 1. If the design doc doesn't say how the program starts, ask the person. Don't write a command nobody gave you.
+- **If nothing runs yet**, which is normal before the first feature, name the declared entry point and write in the skill that the first feature change makes the flow run and fills in the command.
+- **If `.claude/skills/verify/SKILL.md` already exists**, show the person the change you plan and write it only after they confirm.
 
 ### Run it before you stop
 
@@ -248,8 +258,11 @@ Write `AGENTS.md` as the project's instruction file. Tell the person that Claude
 - what this project is, in two lines, with links to `docs/ARCHITECTURE.md` and `docs/adr/`
 - the pointer to the registry: read `docs/rules.yaml` before the first edit. It lists the rules no tool checks, so a change has to check them by hand; everything else fails the gate
 - the layer table. Registry rules refer to it; it's structure, not a single rule
-- the gate command, as the definition of done
-- the review bar: a change is not done when the gate passes, only when its structure has also been reviewed against the declarations above, and a review asking for changes blocks the archive. The gate proves the code runs; nothing in it proves the code is shaped the way this project decided. Ask what performs that review here and name it, the same way you named the coding standards.
+- **the definition of done**, in one section: the gate command passes on the local machine before a push or a pull request, the verify flow in `.claude/skills/verify/SKILL.md` passes, and CI confirms the gate. Give the skill's path, so a tool that doesn't load Claude Code skills can open the file and follow it.
+- **the trailer decision**, in the same section. Ask the person whether commits in this project carry verification trailers, and write their answer. There is no default: if they haven't answered, ask again rather than writing either line.
+  - yes: `Commits carry two trailers. Verified: lists the checks that passed on the committed tree, or none. Unverified: names the parts of the change that no check exercised.`
+  - no: `Commits carry no verification trailer.`
+- the review bar: a change is not done when the gate and the verify flow pass, only when its structure has also been reviewed against the declarations above, and a review asking for changes blocks the archive. The gate shows that the static checks and the tests pass, and the verify flow shows that the program runs; neither shows that the code is shaped the way this project decided. Ask what performs that review here and name it, the same way you named the coding standards.
 - the testing norms from Decision 6, with the litmus test verbatim, and the new-test case list
 - naming and vocabulary conventions
 - **the docstring rule** (below): the format, enforced in the gate, and the part the gate can't check.
@@ -343,7 +356,9 @@ The format goes in the gate. The rest goes in `AGENTS.md`, because no linter can
 
 The baseline ends when the gate is green and the decisions are written down. Building the product goes through the project's normal propose-and-implement process rather than continuing here: `/opsx:propose` for the first change if the project uses OpenSpec, plan mode otherwise.
 
-**The repo is the handoff.** The contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the rules a tool checks are in its config, the structural rules only review catches are in `docs/rules.yaml`, the conventions are in `AGENTS.md`, which points every agent at the registry, and the reasoning is in the ADRs. Don't restate any of it at the end; a second copy of something already checkable is the exact failure these seven decisions exist to avoid. `docs/ARCHITECTURE.md` is the one addition, aimed at the reviewer rather than the builder: what this system is in a page, and which ADR bears on the change in front of them.
+**The repo is the handoff.** The contracts are in `pyproject.toml`, the taxonomy and Protocols are real files, the rules a tool checks are in its config, the structural rules only review catches are in `docs/rules.yaml`, the conventions are in `AGENTS.md`, which points every agent at the registry, the run-the-program check is in `.claude/skills/verify/SKILL.md`, and the reasoning is in the ADRs. Don't restate any of it at the end; a second copy of something already checkable is the exact failure these seven decisions exist to avoid. `docs/ARCHITECTURE.md` is the one addition, aimed at the reviewer rather than the builder: what this system is in a page, and which ADR bears on the change in front of them.
+
+When you report what you wrote, tell the person when the verify skill runs. Claude Code (v2.1.286 or later) tells a session to run a project skill named `verify` before each commit, except for changes to docs or tests. Codex, Cursor, and other tools don't load Claude Code skills; they follow the definition of done in `AGENTS.md`, which names the file.
 
 ---
 
