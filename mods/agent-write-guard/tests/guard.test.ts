@@ -26,10 +26,27 @@ const GATE_PATHS = [
 ]
 const MODE =(gateConfigMode: string) => ({ options: { gateConfigMode } })
 
+function agentInfo(id: string, type: string, description: string): AgentInfo {
+  return {
+    id,
+    type,
+    description,
+    status: 'running',
+    kind: 'local_agent',
+    taskStatus: 'running',
+    label: description,
+    startTime: 0,
+    cwd: CWD,
+    tokenCount: 0,
+    tokenSamples: [],
+    hasRow: true,
+  }
+}
+
 const AGENTS: AgentInfo[] = [
-  { id: 'a-impl', type: 'implementer', description: 'slice', status: 'running' },
-  { id: 'a-test', type: 'test-author', description: 'tests', status: 'running' },
-  { id: 'a-review', type: 'structure-reviewer', description: 'review', status: 'running' },
+  agentInfo('a-impl', 'implementer', 'slice'),
+  agentInfo('a-test', 'test-author', 'tests'),
+  agentInfo('a-review', 'structure-reviewer', 'review'),
 ]
 
 type Options = { listFails?: boolean }

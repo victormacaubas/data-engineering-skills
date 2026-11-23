@@ -35,15 +35,29 @@ DIMENSIONS: list[tuple[str, str]] = [
     ("readability", "Readability & Style"),
 ]
 
+ORIGIN_INTRODUCED = "introduced"
+ORIGIN_PRE_EXISTING = "pre-existing"
+ORIGIN_NOT_ASSESSED = "not-assessed"
+ORIGINS = (ORIGIN_INTRODUCED, ORIGIN_PRE_EXISTING, ORIGIN_NOT_ASSESSED)
+
 
 def _severity_rank(finding: dict[str, Any]) -> int:
     return SEVERITY_ORDER.get(str(finding.get("severity", "low")).lower(), 99)
 
 
+def _origin(finding: dict[str, Any]) -> str:
+    """Return the finding's origin; a 2.1 finding has none and reads as not-assessed."""
+    origin = finding.get("origin")
+    return origin if origin in ORIGINS else ORIGIN_NOT_ASSESSED
+
+
 def _fmt_target(target: dict[str, Any]) -> str:
     mode = target.get("mode", "?")
     if mode == "diff":
-        return f"`diff` — {target.get('base_ref', '?')} → {target.get('head_ref', '?')}"
+        text = f"`diff` — {target.get('base_ref', '?')} → {target.get('head_ref', '?')}"
+        if target.get("rules_from"):
+            text += f"; rules read from: {target['rules_from']}"
+        return text
     scope = ", ".join(target.get("scope", [])) or "(unspecified)"
     return f"`{mode}` — ref {target.get('ref', '?')}; scope: {scope}"
 
@@ -69,7 +83,9 @@ def _render_anchor(finding: dict[str, Any]) -> list[str]:
         for loc in locations:
             lines.append(f"  - `{loc.get('file', '?')}{_span(loc.get('line_hint'))}`")
     elif "file" in anchor:
-        lines.append(f"- **Where:** `{anchor.get('file', '?')}{_span(anchor.get('line_hint'))}`")
+        lines.append(
+            f"- **Where:** `{anchor.get('file', '?')}{_span(anchor.get('line_hint'))}`"
+        )
         excerpt = anchor.get("excerpt")
         if excerpt:
             lines.append("")
@@ -87,8 +103,10 @@ def _render_finding(finding: dict[str, Any]) -> list[str]:
     sev = str(finding.get("severity", "?")).upper()
     conf = str(finding.get("confidence", "?"))
     lines = [
-        f"#### [{finding.get('id', '?')}] {finding.get('title', '(untitled)')} "
-        f"— **{sev}** · confidence: {conf}",
+        (
+            f"#### [{finding.get('id', '?')}] {finding.get('title', '(untitled)')} "
+            f"— **{sev}** · confidence: {conf} · origin: {_origin(finding)}"
+        ),
     ]
     lines += _render_anchor(finding)
     if finding.get("explanation"):
@@ -130,6 +148,57 @@ def _render_rubric(rubric: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _render_stale(stale: Any) -> list[str]:
+    if not stale:
+        return []
+    if not isinstance(stale, dict):
+        return [
+            "> **WARNING: STALE REVIEW.** The reviewed tree changed during the review.",
+            "",
+        ]
+    changed = stale.get("changed", "?")
+    warning = (
+        f"> **WARNING: STALE REVIEW.** The {changed} changed during the review "
+        f"(started at `{stale.get('start', '?')}`, ended at `{stale.get('end', '?')}`). "
+        "This result does not describe the current tree. Review again before you rely on it."
+    )
+    return [warning, ""]
+
+
+def _render_rule_changes(rule_changes: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "## Rule changes",
+        "",
+        "The change edits these rule sources. A person must approve each edit.",
+        "",
+    ]
+    for rc in rule_changes:
+        lines.append(
+            f"- `{rc.get('path', '?')}` — {rc.get('change', '?')}: {rc.get('effect', '')}".rstrip()
+        )
+    lines.append("")
+    return lines
+
+
+def _render_group(findings: list[dict[str, Any]], heading_level: str) -> list[str]:
+    """Render findings grouped by dimension, canonical dimensions first."""
+    by_dim: dict[str, list[dict[str, Any]]] = {}
+    for f in findings:
+        by_dim.setdefault(str(f.get("dimension", "other")), []).append(f)
+    known = [dim_id for dim_id, _ in DIMENSIONS]
+    labels = dict(DIMENSIONS)
+    lines: list[str] = []
+    for dim_id in [*known, *(d for d in by_dim if d not in known)]:
+        group = by_dim.get(dim_id)
+        if not group:
+            continue
+        lines.append(f"{heading_level} {labels.get(dim_id, dim_id)}")
+        lines.append("")
+        for f in sorted(group, key=_severity_rank):
+            lines += _render_finding(f)
+    return lines
+
+
 def render(artifact: dict[str, Any]) -> str:
     """Return the full markdown rendering of an artifact."""
     lines: list[str] = []
@@ -143,9 +212,16 @@ def render(artifact: dict[str, Any]) -> str:
     lines.append(f"- **Target:** {_fmt_target(target)}")
     lines.append(f"- **Created:** {artifact.get('created_at', '?')}")
     lines.append(f"- **Verdict:** **{artifact.get('verdict', '?')}**")
+    if artifact.get("verdict_reason"):
+        lines.append(f"- **Verdict reason:** {artifact['verdict_reason']}")
     if artifact.get("conventions"):
         lines.append(f"- **Conventions:** {artifact['conventions']}")
     lines.append("")
+    lines += _render_stale(artifact.get("stale"))
+
+    rule_changes = artifact.get("rule_changes") or []
+    if rule_changes:
+        lines += _render_rule_changes(rule_changes)
 
     stats = artifact.get("stats", {}) or {}
     lines.append("## Summary")
@@ -158,7 +234,17 @@ def render(artifact: dict[str, Any]) -> str:
     lines.append(
         f"**Totals:** {stats.get('critical', 0)} Critical · "
         f"{stats.get('high', 0)} High · {stats.get('medium', 0)} Medium · "
-        f"{stats.get('low', 0)} Low"
+        f"{stats.get('low', 0)} Low (scored findings only)"
+    )
+    lines.append("")
+    findings = artifact.get("findings", []) or []
+    origin_counts = stats.get("origin")
+    if not isinstance(origin_counts, dict):
+        origin_counts = {
+            o: sum(1 for f in findings if _origin(f) == o) for o in ORIGINS
+        }
+    lines.append(
+        "**Origin:** " + " · ".join(f"{origin_counts.get(o, 0)} {o}" for o in ORIGINS)
     )
     lines.append("")
 
@@ -196,37 +282,33 @@ def render(artifact: dict[str, Any]) -> str:
         for v in verification:
             confirms = ", ".join(v.get("confirms", [])) if v.get("confirms") else ""
             suffix = f" → confirms {confirms}" if confirms else ""
-            lines.append(f"- `{v.get('command', '?')}` — {v.get('result', '?')}{suffix}")
+            lines.append(
+                f"- `{v.get('command', '?')}` — {v.get('result', '?')}{suffix}"
+            )
         lines.append("")
 
-    findings = artifact.get("findings", []) or []
     lines.append("## Findings")
     lines.append("")
+    scored = [f for f in findings if _origin(f) != ORIGIN_PRE_EXISTING]
+    pre_existing = [f for f in findings if _origin(f) == ORIGIN_PRE_EXISTING]
     if not findings:
         lines.append("_No findings — the reviewed code is clean in scope._")
         lines.append("")
+    elif scored:
+        lines += _render_group(scored, "###")
     else:
-        by_dim: dict[str, list[dict[str, Any]]] = {}
-        for f in findings:
-            by_dim.setdefault(str(f.get("dimension", "other")), []).append(f)
-        # Known dimensions in canonical order, then any leftovers.
-        seen: set[str] = set()
-        for dim_id, label in DIMENSIONS:
-            group = by_dim.get(dim_id)
-            seen.add(dim_id)
-            if not group:
-                continue
-            lines.append(f"### {label}")
-            lines.append("")
-            for f in sorted(group, key=_severity_rank):
-                lines += _render_finding(f)
-        for dim_id, group in by_dim.items():
-            if dim_id in seen:
-                continue
-            lines.append(f"### {dim_id}")
-            lines.append("")
-            for f in sorted(group, key=_severity_rank):
-                lines += _render_finding(f)
+        lines.append("_No findings from this change._")
+        lines.append("")
+
+    if pre_existing:
+        lines.append("## Pre-existing findings")
+        lines.append("")
+        lines.append(
+            "These defects were in the code before the change. "
+            "They do not count in the verdict or in the scores."
+        )
+        lines.append("")
+        lines += _render_group(pre_existing, "###")
 
     return "\n".join(lines).rstrip() + "\n"
 

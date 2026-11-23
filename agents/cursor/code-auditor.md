@@ -16,7 +16,7 @@ The orchestrator gives you:
   - A diff: "review my PR", "review this branch", or a branch name. Maps to `diff` mode in the skill.
   - Explicit path(s) or a directory. Maps to `paths` mode.
   - A whole-repository audit request. Maps to `repo` mode.
-- Optionally: a base ref for diffs (default `main`), a single-dimension focus (e.g. "security only"), or "render markdown too".
+- Optionally: a base ref for diffs (default: the repository default branch, else `main`), a single-dimension focus (e.g. "security only"), or "render markdown too".
 
 If scope is unbounded or ambiguous, follow the skill's Step 1 rule: prefer `diff` when an unmerged branch has changes; otherwise record the assumption and proceed — do not stall.
 
@@ -58,7 +58,19 @@ Scoped to defects only. Structure and conventions conformance were not assessed.
 ## Score: <overall>/10
 
 ## Blocking findings
-- <id> · <severity> · <title>   (Critical/High only, title only — full detail is in the JSON; `_none_` if none)
+- <id> · <severity> · <title>   (Critical/High with origin introduced or not-assessed only, title only — full detail is in the JSON; `_none_` if none)
+
+## Base used
+- `<ref>@<short-sha>`, or `none` when the scope has no base   (artifact `target.base_ref`)
+
+## Origin counts
+- introduced: <n> · pre-existing: <n> · not-assessed: <n>   (artifact `stats.origin`)
+
+## Rule changes
+- `<rule source path>` — added | edited | deleted   (artifact `rule_changes`, one line each; `_none_` if no rule source changed)
+
+## Stale
+- no | yes: <start sha> → <end sha>   (artifact `stale`)
 
 ## Scope reviewed
 - mode (diff|paths|repo), refs/paths, what was excluded or skimmed

@@ -44,7 +44,10 @@ The reviewer can read the tree and declarations, but not this session. You alone
 - **Name the quality gate** if it is non-obvious or non-standard, so the report can report green or
   red rather than "not run".
 - **Flag pre-existing failures** the build did not cause, as you would in an `implementer` handoff.
-  Otherwise, the report treats them as findings against this change.
+  The reviewer marks each item with an origin: `introduced`, `pre-existing`, or `not-assessed`. A
+  `pre-existing` item does not block by itself, but the report still lists it. When the reviewer
+  cannot find the origin, it uses `introduced`. Without your flag, the reviewer has less evidence
+  to mark an old failure as `pre-existing`.
 
 ## Acting on returns
 
@@ -54,6 +57,10 @@ The reviewer can read the tree and declarations, but not this session. You alone
 - **Only a re-review clears the block.** An `implementer` report that fixes landed is a claim. The
   review exists to check structural claims against the tree. Dispatch the reviewer again rather
   than closing it yourself.
+- **A stale review does not clear a block.** Do not accept a review whose output is marked stale,
+  or whose commit is not the current HEAD. Dispatch the reviewer again.
+- **A change after an approval reopens the review.** When a slice changes code after an approval,
+  the change is not reviewed until a review of the new commit returns.
 - **Treat declarations-with-no-check rows as work, not commentary.** Each names a decision the
   project believes it enforces but does not. Turning one into a contract, lint rule, or test is a
   task for the tracking artifact — often higher-value than the findings above it because it is the

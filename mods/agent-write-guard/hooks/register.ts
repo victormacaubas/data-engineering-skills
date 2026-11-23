@@ -57,7 +57,7 @@ export const register: Register = (on, options) => {
       return { deny: result.reason }
     }
     $.ui.log(
-      `${PLUGIN}: ${agentType} ${e.tool} on ${relative} matches rule ${result.rule}; enforce mode would deny it`,
+      `${agentType} ${e.tool} on ${relative} matches rule ${result.rule}; enforce mode would deny it`,
       { to: 'transcript' },
     )
 
