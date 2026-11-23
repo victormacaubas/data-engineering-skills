@@ -15,7 +15,7 @@
 - [x] 2.1 Read the current Claude Code skills documentation for the behavior of a project skill named `verify`: when the commit instructions run it, which locations count, and the exception for docs and tests; verify that the points and the page link are in the session
 - [x] 2.2 Change `.gitignore` so that the content of `.claude/` stays ignored and `.claude/skills/verify/` is tracked; verify with `git check-ignore -v` that `.claude/settings.local.json` is ignored and `.claude/skills/verify/SKILL.md` is not, and with `git status` that no other file under `.claude/` shows as new
 - [x] 2.3 Load `skill-creator`, enter plan mode, and show the user the planned `.claude/skills/verify/SKILL.md` with the four steps from design Decision 5; verify by the user's approval in the session
-- [ ] 2.4 Write `.claude/skills/verify/SKILL.md`; verify by invoking the skill in a new session after a skill edit, with the validation command run and its output reported
+- [x] 2.4 Write `.claude/skills/verify/SKILL.md`; verify by invoking the skill in a new session after a skill edit, with the validation command run and its output reported
 - [x] 2.5 In `AGENTS.md`, add the exception for the project `verify` skill to the skill location rule, and state that a session runs `verify` before a commit; verify that the rule against skills outside `skills/<group>/` still applies to release skills
 - [ ] 2.6 In a new session, make a `SKILL.md`-only change and ask for a commit, then make a mod change and ask for a commit; verify in each case if Claude Code runs `verify` without a request, and record the result in `docs/authoring.md`
 
