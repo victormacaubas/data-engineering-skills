@@ -7,10 +7,11 @@ description: Canonical SQL standards for analytics, reporting, extraction, trans
 
 Write SQL the way a senior data engineer does when their team pays for every query: correct first, then simplest, then cheapest. A shorter query that returns the same rows is usually the cheaper one too, because every CTE, join, and predicate is work the warehouse repeats on each run.
 
-Two reference files carry the detail. Read each one at the point named below, not up front:
+Three reference files carry the detail. Read each one at the point named below, not up front:
 
 - `references/expensive-patterns.md`: before/after SQL for each costly shape in *Performance And Cost*, with the null and grain traps each rewrite can introduce.
 - `references/snowflake-explain.md`: what each `explain` column means, which plan rows are red flags, which ones look alarming but aren't, and the runtime follow-up.
+- `references/rewrite-comparison.md`: the query that compares a rewrite with the original, the low-cost checks to run first on a large table, the permitted normalizations, intended differences, and the rerun check for incremental and merge logic.
 
 ## Know What You're Building
 
@@ -26,6 +27,8 @@ What the SQL becomes decides what it costs and which shape it should take. Find 
 | dbt `ephemeral` | Inlined into every model that references it | Expensive logic is recomputed per reference; materialize it instead if reused |
 | dbt snapshot | Per run, comparing to history | `strategy` (`timestamp` vs `check`), `unique_key`, `updated_at` or `check_cols`; select source columns only and transform downstream |
 | Snowflake dynamic table / materialized view | On refresh | Check the refresh mode and the constructs it disallows before writing |
+
+For an incremental or merge model, check that a rerun produces the same result: run the load on a fixed input in a development schema, copy the target table, run the load again on the same input, and compare the copy with the target using the comparison in `references/rewrite-comparison.md`. A row the second run added or duplicated means the load is not idempotent. Without write access to a development schema, give the steps and say that the check did not run.
 
 ## Query Contract
 
@@ -47,7 +50,7 @@ Always produce SQL that can be pasted into the target environment with minimal e
 
 - Use the active SQL dialect when known; otherwise write portable ANSI-style SQL and note dialect assumptions.
 - For a function or syntax you're not sure the target warehouse supports in its current form (`qualify`, `approx_*`, JSON and semi-structured functions), check that warehouse's docs rather than memory. Dialects add, rename, and deprecate functions.
-- For dbt model code, write the model the request asked for. Don't add models, tests, or `schema.yml` docs it didn't ask for; mention the ones that would help.
+- For dbt model code, write the model the request asked for. Don't add models, tests, or `schema.yml` docs it didn't ask for. Name the invariants the model must keep as candidate tests instead: the unique grain, the keys that must not be null, accepted values or ranges, and row-count parity with the source where the model shouldn't filter. When the request asks for tests, write them for those invariants.
 - Avoid `select *` except during short-lived exploration; list production columns explicitly.
 - Use lowercase keywords: `select`, `from`, `where`, `join`, `group by`.
 - Use leading commas for column lists; they make diffs cleaner and columns easier to comment out.
@@ -149,7 +152,7 @@ These shapes are the usual sources of avoidable cost. Each has a cheaper equival
 | Unintended `cross join`, or a join condition that doesn't relate the two sides | Cross join only a bounded, small side (a one-row parameter set, a date spine); otherwise add the equality the join is missing |
 | Many-to-many or range (`between`) joins on large tables | Pre-aggregate or bucket one side first; confirm the row count after the join |
 
-Read `references/expensive-patterns.md` the first time one of these comes up: you're about to rewrite one of these shapes (in your draft or in SQL under review), a plan flags one, or you're asked to simplify a query that works but is long or slow. A rewrite here can change results in edge cases: an anti-join treats nulls differently from an `OR` chain, and dropping a `distinct` exposes a fan-out. The file shows which ones do and how to confirm the row count still matches.
+Read `references/expensive-patterns.md` the first time one of these comes up: you're about to rewrite one of these shapes (in your draft or in SQL under review), a plan flags one, or you're asked to simplify a query that works but is long or slow. A rewrite here can change results in edge cases: an anti-join treats nulls differently from an `OR` chain, and dropping a `distinct` exposes a fan-out. The file shows which ones do; compare a rewrite with the original as `references/rewrite-comparison.md` describes before swapping it in.
 
 ## Check The Plan Before Presenting
 
@@ -170,6 +173,8 @@ Read `references/snowflake-explain.md` before the first `explain` you run. It co
 `explain` partition and byte numbers are compile-time upper bounds; it shows no spill, timings, or actual row counts. When the query is still slow or a join may explode, run it, with a tight date filter if the full run would be large, and read `get_query_operator_stats`. The runtime query and how to read it are in `references/snowflake-explain.md`.
 
 On other warehouses, use the native equivalent when it's cheap: BigQuery dry-run bytes, Postgres `explain` (or `explain analyze`, which executes the query), Trino or Spark `explain`.
+
+A plan shows what a query costs, not which rows it returns. When you rewrite or optimize SQL whose result must stay the same, compare the rewrite with the original before presenting it. Compare in both directions and count duplicates: a set difference (`except`, `minus`) removes duplicate rows, so a rewrite that doubles a row passes it. State each normalization the comparison applies, list each difference the request intends and filter out only those, and treat any other difference as a defect. Report what the comparison returned, as *Response Pattern* describes. Read `references/rewrite-comparison.md` before the first comparison.
 
 ## Warehouse Awareness
 
@@ -211,5 +216,6 @@ When answering SQL requests:
 3. Explain the grain, key joins, and metric logic after the query when useful.
 4. On Snowflake, give the plan summary; elsewhere, call out the performance or cost considerations that matter for the target warehouse.
 5. For high-risk metrics or joins, run the validation queries when you can query the warehouse and report what they returned; suggest them only when you can't run them.
+6. For a rewrite that must return the same rows, state what the comparison returned: the count of rows only in the original, rows only in the rewrite, and rows whose count differs. Also state the input compared (the full relation, or the sample and its filter), the normalization, and the intended differences filtered out. Name the check that ran; an equal row count or fingerprint is evidence, not proof. When you couldn't run the comparison, give the query and say that it did not run. Call a rewrite verified only when the comparison ran and returned no unexplained difference.
 
 For reviews, report findings in severity order with file or line references when available. Include corrected SQL snippets only for the risky part unless a full rewrite is requested. When a simpler query returns the same rows, say so and show it; that is a finding, not a style note.

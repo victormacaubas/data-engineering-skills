@@ -71,7 +71,7 @@ group by <columns>
 having sum(side) <> 0
 ```
 
-A positive `net_count` is a row that the original has more times. A negative value is a row that the rewrite has more times.
+A positive `net_count` is a row that the original has more times. A negative value is a row that the rewrite has more times. The reference file replaces `net_count` with two per-side counts, `original_count` and `rewrite_count`, so that the report can give the three counts separately.
 
 Reasons:
 
@@ -163,7 +163,7 @@ The sentence at `references/tooling.md:122` is replaced with three tiers:
 2. Before a push or a pull request: the full gate on the local machine. The gate is the one gate command of the project. When the project has no gate command, it is the type check and the default test command.
 3. In CI: the same gate, as the check that a contributor cannot skip.
 
-The hook example gets one local hook at the pre-push stage that runs the gate. The install instruction is updated so that the pre-push hook is installed. The implementer checks the stage name and the install option in the pre-commit documentation before the write.
+The hook example gets one local hook at the pre-push stage that runs the gate. The install instruction is updated so that the pre-push hook is installed. The stage is `pre-push`. The local hooks use `language: unsupported`, the name pre-commit 4.4 gives to `system`. `default_install_hook_types: [pre-commit, pre-push]` makes a plain `pre-commit install` install the push hook, and `default_stages: [pre-commit]` keeps the fast hooks off the push.
 
 The article says that an agent that pushes before it tests locally "has spent shared review and CI time when it could have caught the bug itself". The middle tier is the part that the current text does not have.
 
@@ -177,9 +177,9 @@ The sentence at `SKILL.md:136` about mypy on changed code stays. It is the check
 
 ### Decision 14: The default run deselects the marked lanes
 
-The pytest example changes to `addopts = "-ra --strict-markers -m 'not integration'"`. The explicit lane is `pytest -m integration`. A marker expression on the command line replaces the expression from `addopts`. The implementer confirms this in a scratch project before the write.
+The pytest example changes to `addopts = "-ra --strict-markers -m 'not integration and not stress'"`. The explicit lane is `pytest -m integration`. A marker expression on the command line replaces the expression from `addopts`. The implementer confirms this in a scratch project before the write.
 
-The marker for timing-dependent tests from Decision 11 goes into the same expression, so the default run deselects the two lanes.
+The marker for timing-dependent tests from Decision 11 is `stress`. It goes into the same expression, `-m 'not integration and not stress'`, so the default run deselects the two lanes. A scratch project on pytest 9.2.0 confirmed that `-m integration` on the command line replaces the expression from `addopts`.
 
 The description of the marker and the configuration then agree. Today the text says "excluded from default runs", and the configuration does not exclude.
 
