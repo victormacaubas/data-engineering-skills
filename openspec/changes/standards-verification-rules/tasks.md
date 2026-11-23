@@ -39,9 +39,3 @@
 - [ ] 4.4 In a session with the Python skill loaded, ask for a fix to a test that fails one time in ten; verify that the response looks for the cause and adds no rerun, sleep, or skip
 - [ ] 4.5 In a session with the Python skill loaded, ask for the hook and pytest configuration of a new project; verify that the response gives fast hooks on commit, the gate before a push, the same gate in CI, and a default run that deselects the `integration` marker
 - [ ] 4.6 Run `openspec validate standards-verification-rules --strict`; verify that it reports no error
-
-## Workflow follow-up
-
-- Examine `design.md` for decisions that bind future changes and promote them to `docs/adr/` before the archive. `docs/adr/` does not exist, so ask the user first.
-- Archive the change with `/opsx:archive`.
-- Copy the archived change to the vault inbox as `openspec-standards-verification-rules-data-engineering-skills/` and tell the user to run `/process-inbox`.
