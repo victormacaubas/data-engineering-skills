@@ -34,7 +34,7 @@
 - [x] 3.11 If the `standards-verification-rules` change is applied, compare the hook example and the pytest block with those in `skills/craft/python-engineering-standards/references/tooling.md`; verify that the two skills give the same tiers and the same marker expression (Not applicable on 2026-11-23: `standards-verification-rules` is not applied. That change must use the same tiers and marker expression.)
 - [x] 3.12 Run the baseline on a short design document for a command-line tool in a scratch directory; verify that `.claude/skills/verify/SKILL.md` exists with the four parts, that it contains no command that the design document did not give, that the generated `AGENTS.md` names the gate, the run before a push, and the skill path, and that the hook configuration has the gate at the pre-push stage
 - [x] 3.13 Read `skills/craft/README.md` and both catalog descriptions for `craft`; update them only if a statement about the skill is now wrong; verify with the validation command
-- [ ] 3.14 In `SKILL.md`, add the question about verification trailers and the line in the definition of done of the generated `AGENTS.md` from design Decision 17; verify by a run of the baseline on the design document of task 3.12 with the answer yes, and then with the answer no, that the line is adjacent to the gate command in the two cases, that the line for a yes gives the format of the two trailers, and that the skill asks and writes no default
+- [x] 3.14 In `SKILL.md`, add the question about verification trailers and the line in the definition of done of the generated `AGENTS.md` from design Decision 17; verify by a run of the baseline on the design document of task 3.12 with the answer yes, and then with the answer no, that the line is adjacent to the gate command in the two cases, that the line for a yes gives the format of the two trailers, and that the skill asks and writes no default
 
 ## 4. agent-write-guard: gate-configuration rule with a mode
 
@@ -44,15 +44,10 @@
 - [x] 4.4 In `hooks/register.ts`, read the mode, let a matching call proceed with one transcript line in `observe` mode, deny in `enforce` mode, do nothing in `off` mode, and read the mode one time when `register` runs, with no second check of the value (Claude Code maps an invalid value to `observe`); verify with new test cases for the three modes and the invalid value
 - [x] 4.5 Run the existing tests; verify that every scenario of the two existing rules still passes with each mode value, and that the mod has no compiled `.js` file (the engine loads the `.ts` sources)
 - [x] 4.6 Run `claude plugin validate`, `claude plugin test`, and `tsc -p` for the mod; verify that the three report no error
-- [ ] 4.7 With the mod loaded through `--plugin-dir` in a scratch repository, dispatch `implementer` to edit `ruff.toml` in each mode; verify that `observe` lets the edit proceed and shows one line in the session, `enforce` denies with the reason, and `off` shows nothing. The load refreshes `.claude-plugin/types/` to the current Claude Code version: then dispatch `test-author` to update the `AGENTS` fixture in `tests/guard.test.ts` to the new `AgentInfo` type, and verify that `claude plugin validate` reports no `TS2740` warning and that `tsc -p mods/agent-write-guard` passes
+- [x] 4.7 With the mod loaded through `--plugin-dir` in a scratch repository, dispatch `implementer` to edit `ruff.toml` in each mode; verify that `observe` lets the edit proceed and shows one line in the session, `enforce` denies with the reason, and `off` shows nothing. The load refreshes `.claude-plugin/types/` to the current Claude Code version: then dispatch `test-author` to update the `AGENTS` fixture in `tests/guard.test.ts` to the new `AgentInfo` type, and verify that `claude plugin validate` reports no `TS2740` warning and that `tsc -p mods/agent-write-guard` passes
 - [x] 4.8 Update the `agent-write-guard` section of `docs/mods.md`, the `implementer` row of `agents/README.md`, and the mod description in `.claude-plugin/marketplace.json` with the new rule, its modes, and the default; verify with the validation command that the catalogs are valid and that the Cursor catalog is unchanged
 
 ## 5. Integration
 
-- [ ] 5.1 Invoke the project `verify` skill on the final tree of this change; verify that the validation command and the mod checks for `agent-write-guard` pass
+- [x] 5.1 Invoke the project `verify` skill on the final tree of this change; verify that the validation command and the mod checks for `agent-write-guard` pass
 - [x] 5.2 Run `openspec validate verification-infrastructure --strict`; verify that it reports no error
-
-## Workflow follow-up
-
-- Examine `design.md` for decisions that bind future changes and promote them to `docs/adr/` before the archive. `docs/adr/` does not exist, so ask the user first.
-- Archive the change with `/opsx:archive`.
