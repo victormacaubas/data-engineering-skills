@@ -36,8 +36,8 @@
 
 ## 5. Live checks
 
-- [ ] 5.1 Run the Claude `code-auditor` on the fixture branch; verify one `introduced` finding, one `pre-existing` finding that does not change the verdict or the scores, the rule break reported with the ADR named, and the ADR in `rule_changes`
-- [ ] 5.2 Run the Claude `structure-reviewer` on the fixture branch; verify the origin mark on each fix-list item, the *Rule changes* section, and a verdict reason that names items
-- [ ] 5.3 Start a review on the fixture and make a commit before it ends; verify that the output is marked stale with the two commits, and that a review with no change is not marked stale
-- [ ] 5.4 Set the default branch of the fixture to a name other than `main` and give no base; verify that the output states that branch as the base
+- [x] 5.1 Run the Claude `code-auditor` on the fixture branch; verify one `introduced` finding, one `pre-existing` finding that does not change the verdict or the scores, the rule break reported with the ADR named, and the ADR in `rule_changes`
+- [x] 5.2 Run the Claude `structure-reviewer` on the fixture branch; verify the origin mark on each fix-list item, the *Rule changes* section, and a verdict reason that names items
+- [x] 5.3 Start a review on the fixture and make a commit before it ends; verify that the output is marked stale with the two commits, and that a review with no change is not marked stale
+- [x] 5.4 Set the default branch of the fixture to a name other than `main` and give no base; verify that the output states that branch as the base
 - [x] 5.5 Run `openspec validate review-origin-and-base-rules --strict`; verify that it reports no error
