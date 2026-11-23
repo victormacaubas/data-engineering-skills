@@ -41,9 +41,3 @@
 - [ ] 5.3 Start a review on the fixture and make a commit before it ends; verify that the output is marked stale with the two commits, and that a review with no change is not marked stale
 - [ ] 5.4 Set the default branch of the fixture to a name other than `main` and give no base; verify that the output states that branch as the base
 - [x] 5.5 Run `openspec validate review-origin-and-base-rules --strict`; verify that it reports no error
-
-## Workflow follow-up
-
-- Examine `design.md` for decisions that bind future changes and promote them to `docs/adr/` before the archive. `docs/adr/` does not exist, so ask the user first.
-- Archive the change with `/opsx:archive`.
-- Copy the archived change to the vault inbox as `openspec-review-origin-and-base-rules-data-engineering-skills/` and tell the user to run `/process-inbox`.
