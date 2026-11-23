@@ -66,6 +66,18 @@ Scoped to structure and conformance only. Correctness, security, and performance
 ## Gate
 - <command run> → <green | red | not run>
 
+## Base used
+- `<ref>@<short-sha>`, or `none` when the scope has no base   (the base on the report's header line)
+
+## Origin counts
+- introduced: <n> · pre-existing: <n> · not-assessed: <n>   (count the origin marks on the fix-list items)
+
+## Rule changes
+- `<rule source path>` — added | edited | deleted   (from the report's `## Rule changes` section, one line each; `_none_` if no rule source changed)
+
+## Stale
+- no | yes: <start sha> → <end sha>   (the report's `**Stale:**` line)
+
 ## Scope reviewed
 - unit resolved (openspec change | branch diff | uncommitted | paths), what was in scope, what was excluded
 

@@ -29,10 +29,10 @@
 
 ## 4. Reviewer agents and the orchestrator reference
 
-- [ ] 4.1 In the three `code-auditor` variants, add the origin counts, the rule changes, the base, and the stale state to the receipt template; verify with a diff of the receipt templates across the three variants
-- [ ] 4.2 In the three `structure-reviewer` variants, add the same fields to the receipt template; verify with a diff of the receipt templates across the three variants
-- [ ] 4.3 Verify that the four Markdown variants have valid frontmatter, that the two TOML variants parse, and that no agent `description` names a different agent
-- [ ] 4.4 In `skills/flow/orchestrate/references/dispatch-reviewer.md`, add the rule that a stale review, or a review of a commit that is not the current commit, does not clear a block; verify that the text about pre-existing failures agrees with the origin rule
+- [x] 4.1 In the three `code-auditor` variants, add the origin counts, the rule changes, the base, and the stale state to the receipt template; verify with a diff of the receipt templates across the three variants
+- [x] 4.2 In the three `structure-reviewer` variants, add the same fields to the receipt template; verify with a diff of the receipt templates across the three variants
+- [x] 4.3 Verify that the four Markdown variants have valid frontmatter, that the two TOML variants parse, and that no agent `description` names a different agent
+- [x] 4.4 In `skills/flow/orchestrate/references/dispatch-reviewer.md`, add the rule that a stale review, or a review of a commit that is not the current commit, does not clear a block; verify that the text about pre-existing failures agrees with the origin rule
 
 ## 5. Live checks
 
@@ -40,7 +40,7 @@
 - [ ] 5.2 Run the Claude `structure-reviewer` on the fixture branch; verify the origin mark on each fix-list item, the *Rule changes* section, and a verdict reason that names items
 - [ ] 5.3 Start a review on the fixture and make a commit before it ends; verify that the output is marked stale with the two commits, and that a review with no change is not marked stale
 - [ ] 5.4 Set the default branch of the fixture to a name other than `main` and give no base; verify that the output states that branch as the base
-- [ ] 5.5 Run `openspec validate review-origin-and-base-rules --strict`; verify that it reports no error
+- [x] 5.5 Run `openspec validate review-origin-and-base-rules --strict`; verify that it reports no error
 
 ## Workflow follow-up
 
