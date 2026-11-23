@@ -142,6 +142,8 @@ Alternative: copy the verify steps into `AGENTS.md`. Two copies drift.
 
 The implementer confirms the exact shape of `userConfig`, and how the hooks module and the test harness read it, with the `plugin-authoring` skill and the type files in `.claude-plugin/types/` before the write.
 
+Confirmed on Claude Code 2.1.330 (task 4.1): the field is `"gateConfigMode": { "type": "string", "title": ..., "description": ..., "options": ["off", "observe", "enforce"], "default": "observe" }`. The hooks module reads `options.gateConfigMode` from `register(on, options)`. A test sets it with `test(name, { options: { gateConfigMode: "enforce" } }, body)`. The engine treats a stored value outside `options` as unset, applies the default, and reports the invalid value itself ("option mode in settings is not one of off, observe, enforce; it reads as the default, observe"). The hooks module does not check the value again. It reads the mode one time, when `register` runs (structure review, 2026-11-23).
+
 Alternative: an environment variable. The user cannot see or change it in the `/config` menu.
 
 ### Decision 11: Only the new rule has a mode

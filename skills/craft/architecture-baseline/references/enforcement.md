@@ -92,13 +92,13 @@ One thing strict mode won't catch, worth knowing before you rely on it: a `dict[
 ```toml
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+addopts = "-ra --strict-markers -m 'not integration'"
 markers = [
     "integration: touches real infrastructure; excluded from default runs",
 ]
 ```
 
-`--strict-markers` turns a typo'd marker into an error rather than a test that silently never runs. The `integration` marker is the lane Decision 6 declared: unit tests run everywhere by default, integration tests run with `-m integration` where the credentials are.
+`--strict-markers` turns a typo'd marker into an error rather than a test that silently never runs. The `-m 'not integration'` in `addopts` is what makes the `integration` lane from Decision 6 excluded from default runs, so `uv run pytest`, and the gate with it, needs no credentials. Run the lane with `uv run pytest -m integration` where the credentials are: a `-m` on the command line replaces the one in `addopts`. The registry test has no marker, so the default run keeps it.
 
 ## import-linter — the layer map, enforced
 
@@ -226,16 +226,27 @@ Order matters a little: the fast, cheap checks run first so a formatting mistake
 
 The registry test from `references/rules-registry.md` runs inside the `pytest` step, so it needs no line of its own.
 
-Put `make check` in `AGENTS.md` as the definition of done. That single line is what makes the gate reachable by anyone working in the repo, and it's what turns "the tests pass" into a statement about the architecture as well as the behavior.
+The gate doesn't start the program. It shows that the static checks and the tests pass. Starting the program and driving one flow is the verify skill's job (`references/verify-skill.md`). It stays out of the gate because a real run can need a local service or data that CI doesn't have.
+
+Put `make check` in `AGENTS.md` as part of the definition of done, together with the verify skill. That single line is what makes the gate reachable by anyone working in the repo, and it's what turns "the tests pass" into a statement about the architecture as well as the behavior.
 
 ## CI
 
 CI runs `make check` — the same command, not an equivalent list of steps. If CI checks a different set than the gate, the gate is the one that stops being trusted, and the divergence is invisible until something lands that only one of them would have caught.
 
-Fast checks also run on commit, with the slow ones left to CI:
+The checks run in three tiers:
+
+1. **On each commit**: the fast hooks (ruff, ruff-format, detect-secrets). A slow commit hook gets bypassed.
+2. **Before a push or a pull request**: `make check` on the contributor's machine, through a pre-push hook.
+3. **In CI**: the same `make check`, as confirmation.
+
+CI is never the first place the type check or the tests run.
 
 ```yaml
 # .pre-commit-config.yaml
+minimum_pre_commit_version: "4.4.0"   # language: unsupported
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]           # fast hooks run on commit only
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: <current release>   # filled in by `pre-commit autoupdate`
@@ -247,6 +258,15 @@ repos:
     rev: <current release>
     hooks:
       - id: detect-secrets
+  - repo: local
+    hooks:
+      - id: gate
+        name: make check
+        entry: make check
+        language: unsupported
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
 ```
 
-`detect-secrets` is cheap insurance: a credential committed once is in the history permanently, and rotating it is the only real remedy. Run `uv run pre-commit autoupdate` once to pin each `rev` to its current release, then `uv run pre-commit install` so the hooks actually fire. After that, update the pins deliberately. Check the hook ids against the repo's current `.pre-commit-hooks.yaml` while you're there, since hook repos rename them occasionally.
+`detect-secrets` is cheap insurance: a credential committed once is in the history permanently, and rotating it is the only real remedy. Run `uv run pre-commit autoupdate` once to pin each `rev` to its current release, then `uv run pre-commit install`, which installs both the commit and the pre-push hook because of `default_install_hook_types`. After that, update the pins deliberately. Check the hook ids against the repo's current `.pre-commit-hooks.yaml` while you're there, since hook repos rename them occasionally.

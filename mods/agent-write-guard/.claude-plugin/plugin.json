@@ -1,6 +1,15 @@
 {
   "name": "agent-write-guard",
-  "description": "Denies implementer file edits on the test tree and test-author file edits on production code, so each agent stays on its side of the test boundary.",
+  "description": "Denies implementer file edits on the test tree and test-author file edits on production code, so each agent stays on its side of the test boundary. Also guards gate configuration (ruff, mypy, import-linter, pre-commit files) from the implementer through the gate-configuration rule, with modes off, observe (default), and enforce.",
+  "userConfig": {
+    "gateConfigMode": {
+      "type": "string",
+      "title": "Gate-configuration rule mode",
+      "description": "How the gate-configuration rule treats implementer edits to linter, type-checker, and pre-commit config files: off, observe (allow and log one line), or enforce (deny).",
+      "options": ["off", "observe", "enforce"],
+      "default": "observe"
+    }
+  },
   "author": {
     "name": "Victor Macaubas"
   }

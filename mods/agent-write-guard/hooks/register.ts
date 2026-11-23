@@ -1,6 +1,13 @@
 import type { EngineInterface, Register } from 'claude-code'
 
-import { GUARDED_TOOLS, IMPLEMENTER, TEST_AUTHOR, denyReason, relativeTo } from './rules'
+import {
+  GUARDED_TOOLS,
+  IMPLEMENTER,
+  TEST_AUTHOR,
+  evaluate,
+  relativeTo,
+} from './rules'
+import type { GateMode } from './rules'
 
 const PLUGIN = 'agent-write-guard'
 
@@ -28,7 +35,9 @@ async function agentTypeOf($: EngineInterface, agentId: string): Promise<string 
   }
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const gateMode = options.gateConfigMode as GateMode
+
   on('tool.call', { tool: GUARDED_TOOLS }, async ($, e, next) => {
     if (e.agentId === undefined) {
       return next(e)
@@ -39,8 +48,19 @@ export const register: Register = on => {
     }
     const path = targetPath(e as Record<string, unknown>)
     const relative = path === undefined ? undefined : relativeTo(await $.session.cwd(), path)
-    const reason = relative === undefined ? undefined : denyReason(agentType, relative)
+    const result =
+      relative === undefined ? undefined : evaluate(agentType, relative, gateMode)
+    if (result === undefined) {
+      return next(e)
+    }
+    if (result.action === 'deny') {
+      return { deny: result.reason }
+    }
+    $.ui.log(
+      `${PLUGIN}: ${agentType} ${e.tool} on ${relative} matches rule ${result.rule}; enforce mode would deny it`,
+      { to: 'transcript' },
+    )
 
-    return reason === undefined ? next(e) : { deny: reason }
+    return next(e)
   }).catch(($, e, next) => next(e))
 }

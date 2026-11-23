@@ -81,11 +81,11 @@ Add one entry per mod to `.claude-plugin/marketplace.json`:
 - Catalog parity between Claude Code and Cursor CLI covers skill groups only. A mod entry in the Claude catalog is not a parity failure.
 - The description says the mod is Claude Code only and names anything it requires, such as an MCP server.
 
-Check that the catalog and `mods/` agree:
+Run `uv run scripts/validate_repo.py` to check that the catalog and `mods/` agree. It fails when:
 
-- every `mods/<name>/` with a `.claude-plugin/plugin.json` has exactly one Claude catalog entry sourced from it;
-- every Claude catalog entry sourced under `mods/` resolves to such a directory;
-- no plugin name appears twice in the catalog.
+- a `mods/<name>/` with a `.claude-plugin/plugin.json` has no Claude catalog entry sourced from it, or more than one;
+- a Claude catalog entry sourced under `mods/` does not resolve to such a directory;
+- a plugin name appears twice in a catalog.
 
 ## Install
 
@@ -118,6 +118,12 @@ Holds the write boundary between the `implementer` and `test-author` agents on C
 - It denies `implementer` `Edit`, `Write`, and `NotebookEdit` calls on the test tree: `**/tests/**`, `**/__tests__/**`, `**/conftest.py`, `**/test_*.py`, `**/*_test.py`, `**/*.test.ts`, `**/*.spec.ts`.
 - It denies `test-author` the same tools outside the test tree, except `.orchestrate/**` and test-runner config (`pytest.ini`, `pyproject.toml`, `setup.cfg`, `tox.ini`, `jest.config.*`, `vitest.config.*`, `playwright.config.*`).
 - Each denial gives the model a reason pointing at `Disputed tests` or `Needed production changes`.
+- A third rule, `gate-configuration`, covers `implementer` calls on gate configuration files at any depth: `ruff.toml`, `.ruff.toml`, `mypy.ini`, `.mypy.ini`, `.importlinter`, `.pre-commit-config.yaml`. It does not cover `pyproject.toml`, a `Makefile`, or CI workflow files, because an `implementer` changes those as normal work.
+- Only the `gate-configuration` rule has a mode. Set it with the plugin option `gateConfigMode` (the `/config` menu or plugin settings). The default is `observe`.
+  - `observe`: the call proceeds, and one line in the session transcript names the agent type, the tool, the path, the rule, and that `enforce` would deny it.
+  - `enforce`: the call is denied. The reason tells the model to report the configuration change it needs and not to make it.
+  - `off`: the call proceeds and nothing is written.
+- Claude Code turns an unknown value into `observe` and reports it; the mod does not check the value a second time. The two test-boundary rules deny in every mode.
 - It applies only to subagents of those two types. The main session, including one started with `--agent implementer`, and every other agent are untouched, as are paths outside the session's working directory.
 - It does not cover `Bash`. Shell writes stay bounded by the agents' instructions.
 - When it cannot tell which agent made a call, it lets the call through and writes the reason to the debug log.

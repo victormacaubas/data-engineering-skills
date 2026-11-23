@@ -51,7 +51,7 @@
     {
       "name": "agent-write-guard",
       "source": "./mods/agent-write-guard",
-      "description": "Claude Code only. Optional. Denies the implementer agent file edits on the test tree and the test-author agent file edits on production code. Without it, both agents are bounded by their instructions only.",
+      "description": "Claude Code only. Optional. Denies the implementer agent file edits on the test tree and the test-author agent file edits on production code. Also has a gate-configuration rule for implementer edits to ruff, mypy, import-linter, and pre-commit config files, with modes off, observe, and enforce; the default is observe, which allows the edit and logs one line. Without the mod, both agents are bounded by their instructions only.",
       "strict": false
     }
   ]

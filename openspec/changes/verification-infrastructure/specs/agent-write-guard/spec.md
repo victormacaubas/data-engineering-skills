@@ -52,8 +52,8 @@ In `observe` mode, the mod SHALL let a matching call proceed and SHALL record on
 - **THEN** the call proceeds and nothing is recorded
 
 ### Requirement: An invalid mode uses the default
-When the configured mode is not `off`, `observe`, or `enforce`, the mod SHALL use `observe` and SHALL write the invalid value to the debug log.
+When the configured mode is not `off`, `observe`, or `enforce`, the gate-configuration rule SHALL be in `observe` mode. Claude Code replaces a stored value outside the declared options with the default and reports the invalid value. The mod SHALL NOT have a second check of the value.
 
 #### Scenario: Unknown value
 - **WHEN** the configured mode is `block`
-- **THEN** the gate-configuration rule is in `observe` mode, and a debug-log line records the value `block`
+- **THEN** the gate-configuration rule is in `observe` mode
