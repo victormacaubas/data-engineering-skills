@@ -320,7 +320,7 @@ The safe patterns:
 
 The general pattern uses a connection pool sized to the number of concurrent workers. Take one connection from the pool per unit of work, then return it on completion. Use the driver's pool when it has one; do not roll your own.
 
-When in doubt, write a stress test with hundreds of threads, each doing the operation in a loop, and watch for deadlocks, hangs, or corrupted results. Twenty minutes of stress testing can save a week of production debugging.
+When in doubt, write a stress test with hundreds of threads, each doing the operation in a loop, and watch for deadlocks, hangs, or corrupted results. Its result depends on timing and load, so mark it `@pytest.mark.stress`; the default test command doesn't select it, and `uv run pytest -m stress` runs it. Twenty minutes of stress testing can save a week of production debugging.
 
 ## 12. Concurrency bugs you will hit eventually
 

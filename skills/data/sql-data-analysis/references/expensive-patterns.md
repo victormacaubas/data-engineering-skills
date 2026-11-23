@@ -1,6 +1,6 @@
 # Expensive SQL Patterns And Their Rewrites
 
-Each pattern shows a costly shape, the cheaper equivalent, and why the rewrite is cheaper. The examples are generic, so adapt the names to the query in front of you. When you rewrite existing SQL, check the rewrite returns the same rows before you swap it in: run a row-count or `except` comparison when you can query the warehouse.
+Each pattern shows a costly shape, the cheaper equivalent, and why the rewrite is cheaper. The examples are generic, so adapt the names to the query in front of you. When you rewrite existing SQL, check the rewrite returns the same rows before you swap it in, using the comparison in `references/rewrite-comparison.md`. A row count or an `except` on its own isn't enough: `except` removes duplicates, so a rewrite that fans out passes it.
 
 ## Contents
 
@@ -236,3 +236,4 @@ A reader checks one condition rather than a chain of negations, and the planner 
 - **Many-to-many and range joins.** `on a.ts between b.start_at and b.end_at` across two large tables compares many row pairs. Bucket one side by day or key first, or pre-aggregate, and check the row count after the join.
 - **`count(distinct)` at scale.** Exact distinct counts over billions of rows are memory-hungry. Use `approx_count_distinct` only when the business tolerates it, and label the result.
 - **Raw-layer reads.** Reading the load or CDC table and filtering deletes yourself duplicates the modeled layer's work and drifts from it. Read the modeled table unless it lacks a column you need.
+- **`except` as an equality check.** `original except rewrite` returning nothing doesn't mean the two match: it checks one direction and removes duplicates first. Compare with `references/rewrite-comparison.md`.
