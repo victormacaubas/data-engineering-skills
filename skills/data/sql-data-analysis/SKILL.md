@@ -174,7 +174,7 @@ Read `references/snowflake-explain.md` before the first `explain` you run. It co
 
 On other warehouses, use the native equivalent when it's cheap: BigQuery dry-run bytes, Postgres `explain` (or `explain analyze`, which executes the query), Trino or Spark `explain`.
 
-A plan shows what a query costs, not which rows it returns. When you rewrite or optimize SQL whose result must stay the same, compare the rewrite with the original before presenting it. Compare in both directions and count duplicates: a set difference (`except`, `minus`) removes duplicate rows, so a rewrite that doubles a row passes it. State each normalization the comparison applies, list each difference the request intends and filter out only those, and treat any other difference as a defect. Report what the comparison returned, as *Response Pattern* describes. Read `references/rewrite-comparison.md` before the first comparison.
+A plan shows what a query costs, not which rows it returns. When you rewrite or optimize SQL whose result must stay the same, compare the rewrite with the original before presenting it. Compare in both directions and count duplicates: a set difference (`except`, `minus`) removes duplicate rows, so a rewrite that doubles a row passes it. State each normalization the comparison applies, list each difference the request intends and filter out only those, and treat any other difference as a defect. A rewrite meant to drop rows, such as a fan-out removal, has an intended difference: write its predicate into the comparison and report how many rows it excluded. Report what the comparison returned, as *Response Pattern* describes. Read `references/rewrite-comparison.md` before the first comparison.
 
 ## Warehouse Awareness
 
