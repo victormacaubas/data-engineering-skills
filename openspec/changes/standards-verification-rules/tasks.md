@@ -33,9 +33,9 @@
 
 ## 4. Live checks
 
-- [ ] 4.1 In a new session with the SQL skill loaded, ask for an optimization of a query whose obvious rewrite changes a duplicate count; verify that the response gives the signed-union comparison and does not describe the rewrite as verified without a result
-- [ ] 4.2 In the same session, ask for a rewrite that must remove a join fan-out; verify that the response lists the removed duplicates as intended and filters only those
-- [ ] 4.3 In a new session with the Python skill loaded, ask for a serializer and a parser in a project that declares Hypothesis, then in a project that does not; verify a round-trip property-based test in the first case, and a recommendation with example-based tests in the second
-- [ ] 4.4 In a session with the Python skill loaded, ask for a fix to a test that fails one time in ten; verify that the response looks for the cause and adds no rerun, sleep, or skip
-- [ ] 4.5 In a session with the Python skill loaded, ask for the hook and pytest configuration of a new project; verify that the response gives fast hooks on commit, the gate before a push, the same gate in CI, and a default run that deselects the `integration` marker
+- [x] 4.1 In a new session with the sql-data-analysis skill loaded, ask for an optimization of a query whose obvious rewrite changes a duplicate count; verify that the response gives the signed-union comparison and does not describe the rewrite as verified without a result
+- [x] 4.2 In the same session, ask for a rewrite that must remove a join fan-out; verify that the response lists the removed duplicates as intended and filters only those
+- [x] 4.3 In a new session with the Python skill loaded, ask for a serializer and a parser in a project that declares Hypothesis, then in a project that does not; verify a round-trip property-based test in the first case, and a recommendation with example-based tests in the second
+- [x] 4.4 In a session with the Python skill loaded, ask for a fix to a test that fails one time in ten; verify that the response looks for the cause and adds no rerun, sleep, or skip
+- [x] 4.5 In a session with the Python skill loaded, ask for the hook and pytest configuration of a new project; verify that the response gives fast hooks on commit, the gate before a push, the same gate in CI, and a default run that deselects the `integration` marker
 - [x] 4.6 Run `openspec validate standards-verification-rules --strict`; verify that it reports no error

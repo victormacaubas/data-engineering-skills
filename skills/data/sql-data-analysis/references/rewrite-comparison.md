@@ -39,14 +39,23 @@ with original as (
     having sum(side) <> 0
 )
 
+,unintended_differences as (
+    select *
+    from differences
+    where not (
+        -- intended differences from section 4; `false` when the rewrite should change no rows
+        false
+    )
+)
+
 select
     sum(case when rewrite_count = 0 then 1 else 0 end) as only_in_original
     ,sum(case when original_count = 0 then 1 else 0 end) as only_in_rewrite
     ,sum(case when original_count > 0 and rewrite_count > 0 then 1 else 0 end) as different_count
-from differences
+from unintended_differences
 ```
 
-Select `* from differences` to see the rows behind the counts. An empty `differences` means the two return the same rows the same number of times.
+Select `* from differences` to see the rows behind the counts. An empty `differences` means the two return the same rows the same number of times. Report the number of rows the intended predicate excluded beside the three counts, and state the predicate.
 
 - List the same columns in the same order on both sides: every output column, minus any that section 3 excludes.
 - Keep `union all`. `union` removes duplicates first and hides the counts this query exists to catch.
