@@ -54,13 +54,14 @@ The reviewer can read the tree and declarations, but not this session. You alone
 - **`request_changes` makes the fix list your next slice set.** Re-enter the dispatch loop with it,
   briefing the `implementer` per `dispatch-implementer.md`. Preserve the report's ranking. It
   orders by leverage, and reordering it for quick work defeats that purpose.
-- **The third `request_changes` verdict ends the loop.** Count the `request_changes` verdicts for the
-  same change. After the third, dispatch no more fix slices for the review. Hand the change to the
+- **The third `request_changes` verdict ends the loop.** Count the review rounds with a `request_changes`
+  verdict for the same change. A round in which two reviewers return `request_changes` counts once. After the third, dispatch no more fix slices for the review. Hand the change to the
   user with the five items from `../SKILL.md` → *Guardrails*, with the open fix-list items as the
   failing output.
 - **Only a re-review clears the block.** An `implementer` report that fixes landed is a claim. The
   review exists to check structural claims against the tree. Dispatch the reviewer again rather
-  than closing it yourself.
+  than closing it yourself. When two reviews ran, the block clears only when each selected reviewer
+  returns a verdict that is not `request_changes` for the current tree (*Two reviews*).
 - **A stale review does not clear a block.** Do not accept a review whose output is marked stale,
   or whose commit is not the current HEAD. Dispatch the reviewer again.
 - **A change after an approval reopens the review.** When a slice changes code after an approval,
@@ -74,8 +75,32 @@ The reviewer can read the tree and declarations, but not this session. You alone
 - **You remain the single writer of task tracking.** The reviewer writes its report and nothing
   else. Fix-list items become tasks only when you record them.
 
+## Two reviews
+
+When the user selected the structure review and the defect audit, these rules apply to the pair.
+`dispatch-auditor.md` holds the audit brief.
+
+- **Wait for each reviewer.** Dispatch no fix slice until the two are back. A fix that starts early
+  changes the tree, and the second result is then stale.
+- **Make one slice set.** It holds the structure fix list in its rank and the blocking audit
+  findings in severity order. Items that change the same file go in one slice, or in slices that run
+  in sequence. A structure fix can remove code that has an audit finding. The audit re-review then
+  records that finding as `superseded`.
+- **Run the close checks, then each reviewer again.** After the fix slices return, run the close
+  checks again. Then dispatch each selected reviewer as a re-review, with the path of its earlier
+  output, in one message. A reviewer that approved reviews the fix diff only, because a fix for the
+  other reviewer's items can change what it checked.
+- **The block clears** when each selected reviewer returns a verdict that is not `request_changes`,
+  for the current tree, with no stale mark. An approval for an earlier tree does not count.
+- **A round counts for the change.** One dispatch of the selected reviewers is one round. A round
+  with one or more `request_changes` verdicts counts once. After the third, stop, and hand back with
+  the open items of each reviewer as the failing output.
+- **A stale result does not clear the block.** Dispatch that reviewer again. The dispatch is not a
+  round, because it gave no verdict that you accepted.
+
 ## Re-review
 
 Scope the review to the prior report's fix list plus the diff since it. Pass the prior report's path
 explicitly. The reviewer re-runs each finding's original measurement instead of trusting the
-handoff, and it needs the report to know those measurements. Use slug `re-review`.
+handoff, and it needs the report to know those measurements. Use slug `re-review`. When the reviewer
+approved in the last round, its fix list is empty, so the scope is the fix diff only.

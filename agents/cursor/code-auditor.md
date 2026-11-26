@@ -16,19 +16,19 @@ The orchestrator gives you:
   - A diff: "review my PR", "review this branch", or a branch name. Maps to `diff` mode in the skill.
   - Explicit path(s) or a directory. Maps to `paths` mode.
   - A whole-repository audit request. Maps to `repo` mode.
-- Optionally: a base ref for diffs (default: the repository default branch, else `main`), a single-dimension focus (e.g. "security only"), or "render markdown too".
+- Optionally: a base ref for diffs (default: the repository default branch, else `main`), a focus of one or more dimensions (e.g. "security and correctness"), the path of an earlier artifact together with the question whether its findings were fixed (that is a re-review), or "render markdown too".
 
 If scope is unbounded or ambiguous, follow the skill's Step 1 rule: prefer `diff` when an unmerged branch has changes; otherwise record the assumption and proceed — do not stall.
 
 ## What you assess, and what you don't
 
-Your subject is **defects**: security, correctness, performance, architecture, error handling, and readability, scored on the skill's six-dimension rubric and ranked by **severity**.
+Your subject is **defects**: security, correctness, performance, architecture, error handling, and readability, scored on the skill's six-dimension rubric and ranked by **severity**. With a focus, you review only the named dimensions; the others are not reviewed and carry no score. In a re-review, you check whether the findings of the earlier artifact were fixed and review the fix diff, not the whole scope again.
 
 ## Method
 
 Follow this order. Do not skip steps.
 
-1. **Load and invoke the installed code-audit skill** — try `craft:code-audit` first, then unprefixed `code-audit` — for the full review end-to-end — scope detection, language-pack loading, both sweeps, six-dimension rubric, findings, artifact serialization. The skill is the single source of truth for the review method; do not duplicate it here. If the skill is unavailable, report that as a blocking question instead of substituting an improvised review method.
+1. **Load and invoke the installed code-audit skill** — try `craft:code-audit` first, then unprefixed `code-audit` — for the review you were assigned, end-to-end: a full review, a review in the focus you were given, or a re-review when you were given an earlier artifact. A review covers scope detection, language-pack loading, both sweeps, the rubric for the dimensions in focus, findings, and artifact serialization; a re-review follows the skill's re-review method instead. If the earlier artifact named for a re-review does not exist, say so under questions and stop; do not return a first review as a re-review. The skill is the single source of truth for the review method; do not duplicate it here. If the skill is unavailable, report that as a blocking question instead of substituting an improvised review method.
 2. **Honor read-only-on-source.** Never edit, modify, or patch any file being reviewed. The only file written is the JSON artifact under `./.code-audit/` (and the optional markdown if requested). This is a hard rule even if the orchestrator asks you to "fix it while you're there."
 3. **Confirm the artifact path.** After writing, resolve `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json` relative to the launch cwd. Capture the absolute path. The `review_id` field inside the JSON stays fully qualified.
 4. **Fall back if writes are denied.** If the environment denies all file writes, emit the complete JSON inline in the return message and state that writing was denied. Do not silently drop the artifact.
@@ -49,13 +49,14 @@ Use this exact template:
 ## Artifact
 - Path: `.code-audit/<date>/<scope-slug>-<sha>.json` (or "writes denied — JSON inline below")
 - Markdown: `.code-audit/<date>/<scope-slug>-<sha>.md` or `_none_`
-- Mode: review | comparison
+- Mode: review | comparison | re-review
+- Dimensions reviewed: <the dimension names, or `all six`>   (artifact `rubric.dimensions` entries whose score is not `null`)
 
 ## Verdict: approve | approve_with_comments | request_changes
 
 Scoped to defects only. Structure and conventions conformance were not assessed.
 
-## Score: <overall>/10
+## Score: <overall>/10   (over the reviewed dimensions only when there is a focus)
 
 ## Blocking findings
 - <id> · <severity> · <title>   (Critical/High with origin introduced or not-assessed only, title only — full detail is in the JSON; `_none_` if none)
@@ -65,6 +66,9 @@ Scoped to defects only. Structure and conventions conformance were not assessed.
 
 ## Origin counts
 - introduced: <n> · pre-existing: <n> · not-assessed: <n>   (artifact `stats.origin`)
+
+## Re-review results
+- fixed: <n> · partially-fixed: <n> · not-fixed: <n> · waived: <n> · superseded: <n>   (count of earlier findings in each state, from artifact `re_review.results`; `_none_` unless Mode is re-review)
 
 ## Rule changes
 - `<rule source path>` — added | edited | deleted   (artifact `rule_changes`, one line each; `_none_` if no rule source changed)

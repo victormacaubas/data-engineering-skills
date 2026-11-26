@@ -8,7 +8,7 @@ Distributed as the `flow` marketplace plugin. Members invoke as `/flow:<skill-na
 |---|---|
 | `scout` | Explores an undecided problem through delegated research. Requires the separately installed `pathfinder` and `researcher` agents. |
 | `grill-me` | Pressure-tests a change idea, plan, spec, or ADR before implementation. |
-| `orchestrate` | Drives workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, `researcher`, `structure-reviewer`, and `test-author` agents. |
+| `orchestrate` | Drives workers to implement a bounded plan. Requires the separately installed `code-auditor`, `implementer`, `pathfinder`, `researcher`, `structure-reviewer`, and `test-author` agents. `code-auditor` is needed for the defect audit at close. |
 | `write-blog-post` | Writes LinkedIn and blog posts that sound like a human practitioner, in the author's own voice when given samples, without AI writing tells. |
 | `write-ticket` | Writes Jira tickets and comments in plain language using the Atlassian CLI (`acli`). |
 | `stash` | Parks raw content in an Obsidian vault inbox for later processing. |

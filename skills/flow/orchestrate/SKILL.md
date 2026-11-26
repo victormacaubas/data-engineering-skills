@@ -184,9 +184,11 @@ Ending a turn while workers in the batch are still running is waiting, not stopp
 
 ## Closing the build
 
-The build is finished once you complete the last slice's after-return work (read the receipt, resolve `blocking: true` items, run handed-off commands, and tick tasks) and the close checks pass. Ask one question: should someone review this change's *shape* before it goes further?
+The build is finished once you complete the last slice's after-return work (read the receipt, resolve `blocking: true` items, run handed-off commands, and tick tasks) and the close checks pass. Then ask one question: should someone review this change before it goes further? Two reviews are available: a structure review of its shape, and a defect audit.
 
 Offer a review only when the signals below apply; a prompt that is usually noise trains users to dismiss it. Default to silence.
+
+The order is fixed: the close checks, then the offer, then the selected reviewers. A reviewer never reads a tree that fails its gate.
 
 ### Run the close checks
 
@@ -205,7 +207,9 @@ A found command can do more than its name shows: a `test` target can rebuild a c
 
 ### Signals worth offering on
 
-You can assess each without a fresh read of the tree.
+You can assess each without a fresh read of the tree. Each fact is in the tracking artifact, the plan, or a worker report.
+
+**Structure review**: the shape of the change can have drifted.
 
 - **More than one slice was dispatched.** Independent workers make locally sensible choices, and shape drift accumulates in the seams between them.
 - **A new module or package appeared.** Its boundaries are being set now, and they're cheapest to move before anything imports it.
@@ -213,19 +217,33 @@ You can assess each without a fresh read of the tree.
 - **A worker's handoff mentioned copying a helper, introducing an abstraction, or following a test pattern.** Each is a shape decision from a worker that could not see the rest of the change.
 - **The plan source was an OpenSpec change.** It has a stated design to check the implementation against, which is the richest thing a review of this kind can have.
 
-A single-slice change to existing files, with no new module or shape note in the handoff, needs nothing. End the skill.
+**Defect audit**: a defect is more probable than usual.
+
+- **A slice is recorded as `unverified`, in a project where tests run** (tracking artifact). No check exercised that code. In a project with no working test environment, each slice is `unverified` from pre-flight, so the record says nothing about one slice and is not a signal.
+- **A scenario is recorded as `not covered`** (tracking artifact), for example after a flaky test was deleted.
+- **The plan or a worker report puts a slice at a trust boundary**: a SQL statement or a shell command built from input, a secret or a credential, external data that is deserialized, or a permission grant.
+- **A slice adds retry, concurrency, or cache logic** (plan or worker report).
+- **A slice needed two or more rounds** (round count in the tracking artifact).
+
+A single-slice change to existing files, with no new module or shape note in the handoff, has no structure signal. When no audit signal applies either, ask nothing and end the skill.
 
 ### Making the offer
 
+Name each review that has a signal, with at most two signals each in a few words, and the possible answers:
+
+> Review before this goes further? Structure review (3 slices, new module `loader/`) and defect audit (slice B `unverified`, slice C builds SQL from input). Answer: structure, audit, both, or no.
+
+When one review has a signal, name that review only. When neither has a signal, ask nothing. A direct request from the user for either review needs no signal.
+
 Ask once in one line, then accept the answer. Do not argue, raise it again later in the same build, or turn a decline into a smaller version of the same question. If the user says no, the build is done.
 
-When the user agrees, or asks for a review directly, **read `references/dispatch-reviewer.md`** and dispatch `structure-reviewer` under its contract. It covers information only you can provide (the written statement of intent, what the build touched, and decisions that never reached the design), the response to a `request_changes` fix list, and the re-review path.
+When the user selects a review, or asks for one directly, dispatch it under its reference: **`references/dispatch-reviewer.md`** for `structure-reviewer`, **`references/dispatch-auditor.md`** for `code-auditor`. When the user selects both, dispatch the two in one message, for the same commit, and follow `dispatch-reviewer.md` → *Two reviews*. While a reviewer runs, dispatch no `implementer` or `test-author`: a change to the tree makes the result stale. Do not dispatch `code-auditor` for one slice during the dispatch loop, because the other slices change the tree while it reads.
 
 ### Clean up the run folder
 
 Once the review question has resolved (answered, or never raised) and every task in scope is ticked, ask once in one line: "Remove `.orchestrate/<slug>/`?" On yes, run `<skill-dir>/scripts/cleanup.sh <slug>` from the repo root. On no, leave it.
 
-Never ask while the build is stopped on a blocker; a later session resumes from those reports. Review reports in `.structure-review/` are not part of the run folder and outlive the build on purpose. The script never touches them.
+Never ask while the build is stopped on a blocker; a later session resumes from those reports. Review reports in `.structure-review/` and `.code-audit/` are not part of the run folder and outlive the build on purpose. The script never touches them.
 
 ## Guardrails
 

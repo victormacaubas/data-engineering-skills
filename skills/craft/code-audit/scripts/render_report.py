@@ -40,6 +40,8 @@ ORIGIN_PRE_EXISTING = "pre-existing"
 ORIGIN_NOT_ASSESSED = "not-assessed"
 ORIGINS = (ORIGIN_INTRODUCED, ORIGIN_PRE_EXISTING, ORIGIN_NOT_ASSESSED)
 
+NOT_REVIEWED = "not reviewed"
+
 
 def _severity_rank(finding: dict[str, Any]) -> int:
     return SEVERITY_ORDER.get(str(finding.get("severity", "low")).lower(), 99)
@@ -134,10 +136,13 @@ def _render_rubric(rubric: dict[str, Any]) -> list[str]:
     for dim_id, label in DIMENSIONS:
         d = dims.get(dim_id, {})
         s = d.get("stats", {}) or {}
-        score = d.get("score", "?")
+        if "score" in d and d["score"] is None:
+            score = NOT_REVIEWED
+        else:
+            score = f"{d.get('score', '?')}/10"
         weight = d.get("weight", "?")
         lines.append(
-            f"| {label} | {score}/10 | ×{weight} | "
+            f"| {label} | {score} | ×{weight} | "
             f"{s.get('critical', 0)} | {s.get('high', 0)} | "
             f"{s.get('medium', 0)} | {s.get('low', 0)} |"
         )
@@ -176,6 +181,20 @@ def _render_rule_changes(rule_changes: list[dict[str, Any]]) -> list[str]:
         lines.append(
             f"- `{rc.get('path', '?')}` — {rc.get('change', '?')}: {rc.get('effect', '')}".rstrip()
         )
+    lines.append("")
+    return lines
+
+
+def _render_re_review(re_review: dict[str, Any]) -> list[str]:
+    lines = ["## Re-review results", ""]
+    lines.append(
+        f"- **Earlier review:** {re_review.get('of', '?')} "
+        f"(`{re_review.get('artifact', '?')}`)"
+    )
+    lines.append("")
+    for result in re_review.get("results") or []:
+        lines.append(f"- **{result.get('id', '?')}** — {result.get('state', '?')}")
+        lines.append(f"  - Evidence: {result.get('evidence', '(none recorded)')}")
     lines.append("")
     return lines
 
@@ -286,6 +305,10 @@ def render(artifact: dict[str, Any]) -> str:
                 f"- `{v.get('command', '?')}` — {v.get('result', '?')}{suffix}"
             )
         lines.append("")
+
+    re_review = artifact.get("re_review")
+    if isinstance(re_review, dict):
+        lines += _render_re_review(re_review)
 
     lines.append("## Findings")
     lines.append("")
