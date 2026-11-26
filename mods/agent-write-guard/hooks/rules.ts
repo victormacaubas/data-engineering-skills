@@ -27,8 +27,9 @@ const TEST_TREE = [
 ]
 
 // Paths test-author may write besides the test tree: its report directory and test-runner config.
+// The report directory sits at a repository root, which is below the working directory when a session starts in a parent folder.
 const TEST_AUTHOR_EXTRAS = [
-  '.orchestrate/**',
+  '**/.orchestrate/**',
   '**/pytest.ini',
   '**/pyproject.toml',
   '**/setup.cfg',
