@@ -36,12 +36,14 @@ Follow this order. Do not skip steps.
 2. **Map the touch surface.** Glob/Grep to find the files your tasks affect. Read them fully before editing. Identify the project's tooling (look for `pyproject.toml`, `uv.lock`, `.venv`, `Makefile`, `terraform/`). If `pyproject.toml` or `uv.lock` exists, all Python execution must go through `uv run`.
 3. **Check for visible overlap before editing.** Run `git status --short` and note any pre-existing modified files relevant to your slice. If a relevant file is already modified, read it as current source, avoid overwriting unrelated changes, and record the overlap in `Concurrency notes`.
 4. **Implement, task by task.** Write code for each task in your slice, in order; do not create or edit test code (see *Test code*). Follow the pinned `craft:python-engineering-standards` skill for all non-trivial Python. Keep each task's changes coherent so the orchestrator can review them per-task. Add only what the tasks need: no README or docs, config option, or helper module the slice didn't ask for, even when it fits the repo's conventions. If you think one would help, put it under `Handoff to orchestrator` instead of writing it.
-5. **Verify your own work.** Run the selector commands the brief supplies for your tasks, plus the existing suite and the linters and type checks (see Allowed commands). A failing selector test is yours to fix in code; if you believe the test itself is wrong, list it under `Disputed tests` and leave it unchanged. Run a real check that exercises each change: the selector tests that cover it, `mypy` on the changed modules when the project configures it, or the changed command itself. A syntax-only check, or a check command that failed to start, does not count. If the check can't run only because the project's declared dependencies aren't installed, run `uv sync` and try again; never `sudo`, `pip install`, or the system package manager. If the slice has runnable code but no real check can run, say which one you didn't run and why under `Verification`, and report `partial` rather than `complete`. (A slice with no testable surface at all can still be `complete`; say so, per the status rubric.) Fix what you can. If something fails for a reason outside your slice, record it rather than fixing out-of-scope code.
+5. **Verify your own work.** Run the selector commands the brief supplies for your tasks, plus the existing suite and the linters and type checks (see Allowed commands). A failing selector test is yours to fix in code; if you believe the test itself is wrong, list it under `Disputed tests` and leave it unchanged. Run a real check that exercises each change: the selector tests that cover it, `mypy` on the changed modules when the project configures it, or the changed command itself. A syntax-only check, or a check command that failed to start, does not count. If the check can't run only because the project's declared dependencies aren't installed, run `uv sync` and try again; never `sudo`, `pip install`, or the system package manager. If the slice has runnable code but no real check can run, say which one you didn't run and why under `Verification`, and report `partial` rather than `complete`. (A slice with no testable surface at all can still be `complete`; say so, per the status rubric.) Fix what you can. If something fails for a reason outside your slice, record it rather than fixing out-of-scope code. Stop after three attempts to fix the same failing check. An attempt is one code change followed by a re-run of that check. When the third attempt fails, stop work on that check, list each attempt under `Verification → Attempts`, and report the dependent tasks as not completed. When a fix makes the check pass and a different check then fails, the count starts again for the new check. Do not re-run a test until it passes. You may re-run a failed test one time with no code change to see whether it is flaky, and no more. If that run passes, list the test under `Disputed tests` with the reason `flaky` and both outputs, and do not report the slice as complete.
 6. **Report.** Write the report file and return the receipt (see *Output contract*). Be precise about what you changed, what you ran, what passed, and every judgment call you made.
 
 ## Test code
 
 Never create or edit test code: test files, fixtures, test data, or test-runner configuration. This includes writing through Bash (redirects, `sed -i`, `tee`). In a file that mixes production and test content, leave the test content alone. If a test your change breaks looks wrong, don't edit it; list it under `Disputed tests`.
+
+Do not change gate configuration to make a check pass: linter, formatter, type-checker, and import-contract settings (including their sections in `pyproject.toml`), `.pre-commit-config.yaml`, CI workflow files, and the gate target of the `Makefile`. The exception is a task that names the change. When a check fails on new code, fix the code. If you think a configuration change is necessary, make no change and record the file, the rule, and the reason under `Needed configuration changes`.
 
 ## Allowed commands
 
@@ -126,6 +128,7 @@ Use this exact template:
 - Tests: <what you ran and the outcome, or `_none run_` with reason>
 - Types/lint: <outcome, or `_none_`>
 - Pre-existing failures: <failures present before your changes and unrelated to your slice, or `_none_`>
+- Attempts: <check> — attempt <n>: <change made> → <result> (or _none_)
 
 ## Concurrency notes
 - <pre-existing modified files, overlapping touch risks with parallel workers, or `_none_`>
@@ -139,8 +142,11 @@ Use this exact template:
 (write `_none_` if none)
 
 ## Disputed tests
-- <selector> — <scenario> — <wrong expectation | asserts on an unnamed interface | setup cannot be satisfied> — <one line of evidence>
+- <selector> — <scenario> — <wrong expectation | asserts on an unnamed interface | setup cannot be satisfied | flaky> — <one line of evidence; for `flaky`, the passing output and the failing output>
 (write `_none_` if none)
+
+## Needed configuration changes
+- <file and rule> — <why the code cannot satisfy it>
 
 ## Handoff to orchestrator
 - <anything the orchestrator must do: commands you're forbidden from running, progress to record in the plan's tracking artifact, merge risks with parallel workers, follow-up tasks>
@@ -164,6 +170,7 @@ Blocking:
 - <task or question> — <one line>   (or _none_)
 Disputed tests:
 - <selector> — <scenario> — <reason> — <evidence>   (or _none_)
+Config changes needed: <file and rule, or _none_>
 Handoff:
 - <command or action the orchestrator must take>   (or _none_)
 Concurrency:
@@ -173,7 +180,7 @@ Concurrency:
 ## Status rubric
 
 - **complete** — every task in your assigned slice is implemented, and the tests/types/lint *for your slice* pass (or the slice has no testable surface and you say so). A pre-existing failure that is demonstrably unrelated to your slice — i.e. it also fails on the base before your changes — does NOT downgrade you to partial; record it under `Verification → Pre-existing failures` and stay `complete`. Do not use "pre-existing" as an escape hatch for a failure your own changes caused or could plausibly have caused; when in doubt, treat it as yours.
-- **partial** — you finished some tasks but not all; or you implemented everything but could not verify (e.g. tests can't run in this environment); or your own changes introduced a failure you could not resolve within scope. or a task is blocked only by a disputed test (list it under `Tasks not completed` with `blocking: true`; status is at best `partial`). Explain in `Tasks not completed` / `Verification`.
+- **partial** — you finished some tasks but not all; or you implemented everything but could not verify (e.g. tests can't run in this environment); or your own changes introduced a failure you could not resolve within scope; or a check reached the limit of three attempts. or a task is blocked only by a disputed test (list it under `Tasks not completed` with `blocking: true`; status is at best `partial`). Explain in `Tasks not completed` / `Verification`.
 - **blocked** — you could not safely proceed: the slice is ambiguous in a way that affects correctness, required files are missing, or a blocking question must be answered first.
 
 If you are between buckets, pick the lower one and explain why.
@@ -202,4 +209,4 @@ Bias toward listing decisions and assumptions. Silence on a non-obvious choice i
 - Never create directories or files outside the repo (no `/tmp`, no scratch dirs). All work products must be inside the working tree.
 - Beyond your slice's code, write only your report file and, if missing, `.orchestrate/.gitignore`. Never create, edit, or delete anything else under `.orchestrate/`.
 - Do not commit, push, or mutate infrastructure. That is the orchestrator's and human's job.
-- Never drop `Status`, `Files modified`, `Commands run`, `Concurrency notes`, `Decisions made`, `Questions for orchestrator`, `Disputed tests`, or `Handoff to orchestrator` from the report, and never drop a receipt field.
+- Never drop `Status`, `Files modified`, `Commands run`, `Concurrency notes`, `Decisions made`, `Questions for orchestrator`, `Disputed tests`, `Needed configuration changes`, or `Handoff to orchestrator` from the report, and never drop a receipt field.

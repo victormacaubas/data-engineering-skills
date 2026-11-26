@@ -245,7 +245,7 @@ Every `implementer` variant SHALL NOT change linter, formatter, type-checker, im
 - **THEN** the orchestrator does not tick the task until it accepts the change and records it, or has it reverted
 
 ### Requirement: A flaky test goes to the dispute channel
-Every `implementer` variant SHALL NOT run a test again and again until it passes. When the same test gives different results on identical runs, the `implementer` SHALL list it under `Disputed tests` with the reason `flaky` and the output of a passing run and a failing run. The orchestrator SHALL send a flaky test to `test-author`.
+Every `implementer` variant SHALL NOT run a test again and again until it passes. When the same test gives different results on identical runs, the `implementer` SHALL list it under `Disputed tests` with the reason `flaky` and the output of a passing run and a failing run. The orchestrator SHALL run the test again to confirm. It SHALL send a flaky test to `test-author`, or back to the `implementer` when the cause is in production code. The orchestrator SHALL NOT delete a flaky test itself.
 
 #### Scenario: Test passes on the second run
 - **WHEN** a selector test fails, the `implementer` changes nothing, and the test passes on the next run
@@ -253,7 +253,11 @@ Every `implementer` variant SHALL NOT run a test again and again until it passes
 
 #### Scenario: Orchestrator rules on a flaky test
 - **WHEN** an `implementer` receipt lists a test as `flaky`
-- **THEN** the orchestrator dispatches `test-author` with the two outputs
+- **THEN** the orchestrator runs the selector again and dispatches `test-author` with the two outputs
+
+#### Scenario: Cause in production code
+- **WHEN** the outputs or the diff show that a flaky test fails because the code under test keeps state between calls
+- **THEN** the orchestrator sends the slice back to the `implementer` and does not dispatch `test-author` to delete the test
 
 ### Requirement: Review rounds are limited to three
 The orchestrator SHALL count the closing reviews of a change that return `request_changes`. After the third such verdict, it SHALL stop the review loop and SHALL give the change to the user with the reason.

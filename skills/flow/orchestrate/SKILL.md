@@ -53,7 +53,7 @@ Make four checks in one pass over the scope before you dispatch, then record wha
 
 Scan the slice for anything the worker is forbidden from provisioning, and do it first. Otherwise, the worker halts with a handoff:
 
-- **A working environment to test in** → If none exists, **ask the user** how to handle it (create one, or dispatch without a test bar, where the worker verifies by inspection only) rather than dispatching a worker whose verification step is doomed to fail.
+- **A working environment to test in** → If none exists, **ask the user** how to handle it (create one, or dispatch without a test bar, where the worker verifies by inspection only) rather than dispatching a worker whose verification step is doomed to fail. A slice built without a test bar is `unverified`: write `unverified` beside its tasks in the tracking artifact and list it in the closing summary. Record a slice the same way when its receipt shows that no check that exercises the change ran. Never describe an unverified slice as verified.
 - **New dependencies** → declare them in the project's lock/config and install now. The worker may only `uv sync` deps already declared; it cannot add, upgrade, or install undeclared ones.
 - **Terraform** → run `terraform init` yourself (downloads providers, creates `.terraform/`). The worker may only run `validate` and `fmt`.
 - **Validation tooling the verification bar names** (linter, type checker, test runner) → make it runnable now. The worker runs checks; it can't provision them.
@@ -139,8 +139,20 @@ A receipt with `Disputed tests` entries is a ruling for you, not the implementer
 
 - **The test is wrong** → re-dispatch `test-author` with the entries and your ruling.
 - **The code is wrong** → send it back to the `implementer` with the ruling under `Not in the plan`.
+- **`flaky`** (identical runs gave a pass and a fail) → run the selector again to confirm, then rule on the cause. When the outputs or the diff show it in production code (state that the code under test keeps between calls), send the slice back to the `implementer`. Otherwise re-dispatch `test-author` with the two outputs: it fixes a cause in the test, reports a cause in production code, or deletes the test when it finds no cause. Do not delete the test yourself: the right action depends on a diagnosis, and a deletion can hide a defect in production code. A deleted test is not a pass: write its scenario as `not covered` in the tracking artifact and in the closing summary.
 
-Fix tests through `test-author`, never inline: the split exists so that whoever makes the code pass never decides what the test asserts. Batch the rulings for one round of dispatches, and keep a disputed task open until its selector passes.
+Fix tests through `test-author`, never inline: the split exists so that whoever makes the code pass never decides what the test asserts. Batch the rulings for one round of dispatches, and keep a disputed task open until its selector passes or the slice reaches the round limit.
+
+### Count rounds for each slice
+
+A round is one dispatch for a slice that returns while a required check of the slice still fails. A re-dispatch after a ruling on a disputed test counts for the slice that the test blocks, whether it goes to `test-author` or to the `implementer`. A dispatch that stops on a permission denial or a broken environment is not a round; handle it as a handoff.
+
+- **Record the count** beside the slice's tasks in the tracking artifact (`round 2 of 3`) each time a round returns.
+- **Each round writes its own report.** Round 1 uses the slice's report name; later rounds add `-r2`, `-r3`. The brief for a later round names each earlier report and carries the last failing output (`references/dispatch-implementer.md`).
+- **After the third round, stop the slice.** Do not send a fourth. Write `blocked: round limit` beside its tasks, retitle its task-list entry, and hand it back (*Guardrails*). Continue the slices that do not depend on it.
+- **A restart resets the count.** When the user tells you to continue a stopped slice, set its count to zero and dispatch again.
+
+Without a limit, a check the workers cannot fix holds the loop open, because an open task with no blocker always reads as owed work.
 
 ### Dispatch as one batch, synthesize once
 
@@ -166,13 +178,28 @@ Three endings leave owed work undone. Don't use them:
 - An offer to continue unless the user would prefer otherwise.
 - A list of decisions for the user when, by your own account, none of them blocks the next slice. Put your recommendation next to each one and keep dispatching whatever doesn't depend on the answer.
 
-Ending a turn while workers in the batch are still running is waiting, not stopping; that is what a partial-return turn does. Otherwise, stop only when nothing can move without the user: a `blocking: true` you can't resolve from the code or the plan, a pre-flight item that needs their decision, or every task in scope ticked, which moves you to *Closing the build*. Before ending any turn, re-read the tracking artifact: open tasks in scope with no stated blocker mean the turn isn't over. The task list shows the same thing at a glance: an open entry with no blocker in its title is owed work. This does not override asking before risky or destructive actions.
+Ending a turn while workers in the batch are still running is waiting, not stopping; that is what a partial-return turn does. Otherwise, stop only when nothing can move without the user: a `blocking: true` you can't resolve from the code or the plan, a slice at the round limit once the slices that do not depend on it are done, a pre-flight item that needs their decision, or every task in scope ticked, which moves you to *Closing the build*. Before ending any turn, re-read the tracking artifact: open tasks in scope with no stated blocker mean the turn isn't over. The task list shows the same thing at a glance: an open entry with no blocker in its title is owed work. This does not override asking before risky or destructive actions.
 
 ## Closing the build
 
-The build is finished once you complete the last slice's after-return work: read the receipt, resolve `blocking: true` items, run handed-off commands, and tick tasks. Ask one question: should someone review this change's *shape* before it goes further?
+The build is finished once you complete the last slice's after-return work (read the receipt, resolve `blocking: true` items, run handed-off commands, and tick tasks) and the close checks pass. Ask one question: should someone review this change's *shape* before it goes further?
 
 Offer a review only when the signals below apply; a prompt that is usually noise trains users to dismiss it. Default to silence.
+
+### Run the close checks
+
+Run them one time for each build, after the last slice is ticked and before you report the build as finished. Run each command yourself.
+
+1. **The declared gate.** It is the command, or the commands, that the project `AGENTS.md` or `CLAUDE.md` names as the definition of done or as the checks to run before a commit or a push. Run it with no question. Do not run a command that the project instructions reserve for the user, such as one that needs credentials.
+2. **No declared gate: a found gate**, in this order: a `check` or `test` target in the `Makefile`, then the test suite and the configured linters and type checks. Do not run a found gate without approval. Ask one time for each build, in one question that names each command and says that a declaration of the gate in the project instructions removes the question. On yes, run them. On no, run none; the build has no gate. A later close run in the same build uses the first answer.
+3. **The command-verified scenarios**: each command that the `test-author` report lists for a `command` scenario.
+4. **The project `verify` skill**, only after steps 1 to 3 pass: the file `.claude/skills/verify/SKILL.md`, or a verify skill path that the project instructions name. When the file exists, follow its steps one time and record the command and the evidence it says to capture. A flow that does not meet its pass condition is a failure. A flow that cannot start for a reason outside the change is `not run`, with the reason; it is not a pass and not a failure.
+
+A failure opens a new slice for it, and the round limit applies. Do not run the later steps in that close run, and do not report the build as finished. When no gate ran and the project has no verify skill, say that no check was found and record the build as unverified.
+
+A found command can do more than its name shows: a `test` target can rebuild a container stack and replace a database, and a suite can drop the tables of a default database. The project instructions are the owner's statement that a command is safe to run.
+
+**The closing summary** states each close command and its result; the verify command and its evidence, or `not run` with the reason, or that no verify skill was found; each `unverified` slice; each scenario `not covered`; and one line on the verification trailers: enabled by the project instructions, enabled because the user asked, turned off by the project instructions, or not enabled because no source names them. The checks record what ran. They do not state that the change is correct.
 
 ### Signals worth offering on
 
@@ -200,9 +227,9 @@ Never ask while the build is stopped on a blocker; a later session resumes from 
 
 ## Guardrails
 
-- **Never `git commit` / `git push` unless the user asks.** If on the default branch, branch first.
+- **Never `git commit` / `git push` unless the user asks.** If on the default branch, branch first. On a commit you make, add verification trailers only when the definition of done in the project instructions says that commits carry the `Verified:` trailer, or when the user asks for them (with the commit request or as a standing instruction). A statement there that commits carry no verification trailer turns them off. In all other cases the commit has no verification trailer. In the trailer block: `Verified: <check>, <check>`, with only the checks that passed at close on the committed tree, or `Verified: none`. Name `verify` only when the verify flow ran and passed in that close run. When a slice is `unverified`, also add `Unverified: <slice>, <slice>`. When the tree changed after the close run, run the close checks again before you write the trailer.
 - **Cede the deciding phase.** If the plan is not settled, that is conversation, not this skill. Do not force a half-baked plan into a dispatch.
-- **Hand back on blocking questions.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf.
+- **Hand back on blocking questions and limits.** When a worker returns a `blocking: true` you can't resolve from the code or the plan, surface it to the user rather than guessing on their behalf. When a slice or a review reaches its limit, give five items: the failing command, the last failing output, the change that each round made, the reason that the workers cannot resolve it, and the decision the user must make. The round reports supply the first three, so the user does not need the diff.
 - **Dispatch a batch in one message.** All workers for one step, one message, one line of preamble naming each scope. Dispatch-comment-dispatch staggers the returns and invites narration between them.
 - **Don't reason on a partial return.** Record it and stop. Synthesis happens once, after the last worker in the batch is back.
 - **Don't build a waiter.** No `Monitor`, no polling loop. Notifications only.

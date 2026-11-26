@@ -52,11 +52,15 @@ For each scenario that requires new behavior to match existing behavior, the `or
 - **THEN** the orchestrator settles the oracle in pre-flight before it dispatches `test-author`
 
 ### Requirement: Flaky tests are fixed or deleted
-`test-author` SHALL NOT use a skip marker, an expected-failure marker, a sleep, or a retry to make a test pass. When a test is reported as flaky, `test-author` SHALL find the cause and fix the test. When it cannot find the cause, it SHALL delete the test and SHALL report the reason and the scenario that has no test.
+`test-author` SHALL NOT use a skip marker, an expected-failure marker, a sleep, or a retry to make a test pass. When a test is reported as flaky, `test-author` SHALL find the cause and fix the test. When the cause is in production code, it SHALL NOT delete or change the test and SHALL report the cause under `Needed production changes`. When it cannot find the cause, it SHALL delete the test and SHALL report the reason and the scenario that has no test.
 
 #### Scenario: Cause found
 - **WHEN** a flaky test depends on test order and `test-author` finds that dependency
 - **THEN** `test-author` removes the dependency and the test gives the same result on each run
+
+#### Scenario: Cause in production code
+- **WHEN** `test-author` finds that a flaky test fails because the code under test keeps state between calls
+- **THEN** it does not delete or change the test, and it reports the cause under `Needed production changes`
 
 #### Scenario: Cause not found
 - **WHEN** `test-author` cannot find why a test gives different results

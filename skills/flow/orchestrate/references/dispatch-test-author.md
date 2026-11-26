@@ -17,6 +17,10 @@ Task map: <task id → scenarios, incl. quoted "Verify with a test" clauses>   w
 Seams / settled values: <ones pre-flight settled outside the plan>           when any exist
 Capability scope + Must not touch: <other workers' test files>               split batches only
 Not in the plan: <resolved facts>                                            when any exist
+Oracle: <scenario → existing implementation seam>                             differential scenarios only
+Input source: <fixture file | generator | sample extract path>                differential scenarios only
+Normalization: <what is made equal before the compare>                        differential scenarios only
+Approved differences: <difference → reason>                                   differential scenarios only
 ```
 
 For an OpenSpec change whose design names its seams, the brief is the first three lines plus the
@@ -38,6 +42,12 @@ flags the gap, which leaves the classification to you.
 **Task map.** Map each task id to the scenarios it covers, and quote any "Verify with a test that
 ..." clause verbatim as a scenario. The worker returns one selector command per task, which is what
 the implementer briefs carry. Task ids stay out of the test code.
+
+**Differential slots.** When a scenario says that new behavior must match existing behavior (a
+migration, a rewrite, "same results as before"), fill all four before you dispatch. The oracle is an
+existing implementation, never the code under test. When the plan names no oracle, settle it in
+pre-flight and record it in the plan source (`../SKILL.md` → *Record what you settled*); a brief
+without one returns the scenario as `blocked`.
 
 **Capability split.** For a large change, give each worker one capability, its own report name, and
 the other workers' test files as `Must not touch`. Overlapping fixtures or `conftest.py` edits are a
@@ -79,3 +89,12 @@ When you rule that a disputed test is wrong (`../SKILL.md` → *Rule on disputed
 carries the `Disputed tests` entries, your ruling, and the expected outcome the corrected tests
 should produce. Usually that is `pass`, because the implementer's code for the task already exists.
 Then send the slice back to the implementer to re-run its selectors.
+
+The brief also names the earlier `test-author` report and the implementer report that raised the
+dispute, and carries the failing output of the selector. Report to a new name with the round suffix
+(`test-author-r2.md`). The re-dispatch counts as a round for the slice that the test blocks.
+
+For a `flaky` entry, send the passing and the failing output. `test-author` fixes a cause in the
+test, reports a cause in production code under `Needed production changes` (send that to the
+`implementer`), or deletes the test with the reason when it finds no cause. For a deleted test, write its scenario as `not covered` beside its
+task in the tracking artifact and carry it to the closing summary.
