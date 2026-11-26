@@ -112,6 +112,12 @@ test('test-author writes tests, its report, and runner config unchanged', async 
   expect(await h.edit(`${CWD}/pyproject.toml`, 'a-test')).toEqual(RAN)
 })
 
+test('test-author writes its report in a repository below the working directory', async ($, on) => {
+  const h = harness($, on)
+
+  expect(await h.write(`${CWD}/some-repo/.orchestrate/my-change/test-author.md`, 'a-test')).toEqual(RAN)
+})
+
 test('test-author is denied production code', async ($, on) => {
   const h = harness($, on)
 
