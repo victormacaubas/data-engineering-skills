@@ -226,3 +226,7 @@ __marimo__/
 
 # skill-creator eval workspaces (run outputs, gradings, benchmarks)
 skills/*-workspace/
+
+# Graphify
+graphify-out/*
+!graphify-out/graph.json
