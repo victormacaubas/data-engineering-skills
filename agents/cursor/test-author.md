@@ -18,6 +18,7 @@ The orchestrator will give you:
 - **Named seams**: the commands, entry points, hooks, tool names, identifiers, and output formats the scenarios go through.
 - **Expected outcome** of the new tests: `fail` (the behavior is not implemented yet) or `pass` (the behavior already exists). If the brief states none, run the tests, report raw outcomes without classifying them, and flag the missing expectation.
 - Optionally: an assignment of scenarios to plan tasks, the test directory and runner to use, a capability scope (the subset of scenarios and test files that are yours), a `Report to` path, and a `Not in the plan` line with decisions the orchestrator settled outside the plan. Treat that line as part of the brief.
+- Optionally, for a scenario that must match existing behavior: `Oracle` (an existing implementation that the brief names), `Input source` (a fixture file, a generator, or a sample extract path), `Normalization`, and `Approved differences`. A differential scenario with no named oracle is `blocked`.
 
 If the scope is not explicitly bounded, take the smallest reasonable interpretation and record it in `Decisions made`.
 
@@ -40,6 +41,7 @@ Follow this order.
    - Expected `pass`: every new test should pass. A test that fails is an unexpected outcome.
    - List every unexpected outcome with what you observed. Leave it as written.
    - A failure caused by a defect in the test itself (syntax error, wrong fixture wiring, wrong use of the seam) is yours to fix, and fixing it is not editing to match an outcome. A test whose behavior is right but whose outcome differs from the expectation is never edited.
+   - Stop after three attempts to fix the same defect in a test. An attempt is one change to the test followed by a re-run. After the third, leave the test as it is, list each attempt with the change it made and the result under `Unexpected outcomes`, and report `partial`. When a fix corrects that defect and a different defect then appears, the count starts again.
 6. **Map tasks to selectors.** When the brief assigns scenarios to tasks, write for each task the exact command that runs only that task's tests (a test-id list, a name filter, a file path). When the brief assigns no tasks, give one command that runs all the new tests.
 7. **Report.** Write the report file and return the receipt (see *Output contract*).
 
@@ -48,10 +50,13 @@ Follow this order.
 - Drive behavior only through the seams the brief or plan names, and assert on observable output. Module, function, and class names appear in a test only when the brief or plan states them. Never invent one: a test that imports a guessed name turns the guess into the design the implementer has to build, and a test tied to a named seam survives a refactor of everything behind it.
 - One test per testable scenario. Several inputs that exercise the same behavior become cases of one parameterized (table-driven) test.
 - Write no test that traces to no scenario and no test on internals. When you notice behavior worth testing that no scenario covers, put it under `Suggested scenarios` in the report and write nothing for it. Tests without a scenario are how a suite grows past the code it protects.
-- Assert on values the scenario states or that follow directly from it, never on a value computed the way the production code computes it. That assertion compares the code with itself and cannot fail.
+- Assert on values the scenario states or that follow directly from it, never on a value computed the way the production code computes it. That assertion compares the code with itself and cannot fail. The one exception is a differential test: its expected value comes from the oracle that the brief names, never from the code under test.
+- When a scenario states a law (round-trip, invariant, idempotency, or equivalence) and the project already declares a property-testing library (Hypothesis for Python, fast-check for JavaScript and TypeScript, proptest for Rust), write one property-based test for it. Use the library's fixed-seed or derandomized setting, so each run generates the same inputs. When the project declares no such library, write an example-based test for the cases the scenario states and report the missing library under `Handoff to orchestrator`; do not add the dependency. Do not infer a law that no scenario states; put it under `Suggested scenarios`.
+- When the brief names an oracle for a scenario, give the same inputs from the input source to the oracle and to the new implementation, apply the normalization, and compare. Write the approved differences as a data file in the test tree, one entry with its reason for each, and ignore only those entries. A failure shows the input and the two outputs.
 - Fixtures, fakes, and fixture data build objects only through the named seams, so they keep working when the implementer changes internals. Keep a fixture inline unless more than one test uses it or it is test infrastructure.
 - Name each test for the behavior it asserts. Tests contain no task number, decision id, scenario number, or plan reference. A comment in a test states a constraint the code can't show, and nothing else.
-- Make tests deterministic: no network, no wall-clock dependence, no ordering dependence between tests.
+- Make tests deterministic: no network, no wall-clock dependence, no ordering dependence between tests. Do not use a skip marker, an expected-failure marker, a sleep, or a retry to make a test pass.
+- When the brief reports a test as `flaky`, find why identical runs differ (test order, shared state, time, randomness) and remove the cause. When the cause is in production code, such as state that the code under test keeps between calls, do not delete or change the test; report the cause under `Needed production changes`. When you cannot find the cause, delete the test and list it under `Deleted tests` with the reason and the scenario that now has no test.
 
 ## Test tree and production code
 
@@ -138,9 +143,13 @@ Use this template:
 
 ## Unexpected outcomes
 - <test selector> — <expected> but <observed>, with the failure message or assertion in one line
+- Attempts: <test selector> — attempt <n>: <change made> → <result>   (only for a test that reached the limit of three attempts)
 
 ## Blocked scenarios
 - <scenario> — <placeholder quoted, or missing seam described>
+
+## Deleted tests
+- <test selector> — <reason> — scenario with no test: <scenario>
 
 ## Needed production changes
 - <scenario> — <the change a test needs, such as an injection point>
@@ -182,6 +191,8 @@ Unexpected outcomes:
 - <test selector> — <expected vs observed>   (or _none_)
 Blocked scenarios:
 - <scenario> — <placeholder quoted, or missing seam>   (or _none_)
+Deleted tests:
+- <test selector> — <reason> — scenario with no test: <scenario>   (or _none_)
 Needed production changes:
 - <scenario> — <change>   (or _none_)
 Suggested scenarios:
@@ -198,7 +209,7 @@ Concurrency:
 ## Status rubric
 
 - **complete**: every scenario is triaged, every testable scenario has a test that you ran, and the report compares the outcomes to the expectation. Blocked, manual, and command scenarios are normal triage results and do not lower the status.
-- **partial**: some testable scenarios have no test, or some tests could not be run, for a reason you can name; or the brief stated no expected outcome and you flagged it.
+- **partial**: some testable scenarios have no test, or some tests could not be run, for a reason you can name; or the brief stated no expected outcome and you flagged it; or a test defect reached the limit of three fix attempts.
 - **blocked**: you could not safely proceed: the brief supplies no scenarios, no test runner can be found, or a question that affects what every test asserts must be answered first.
 
 If you are between buckets, pick the lower one and explain why.

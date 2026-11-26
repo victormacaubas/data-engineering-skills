@@ -48,7 +48,7 @@ When the orchestrator gives a slice or a review to the user because a limit was 
 - **THEN** the message to the user contains the five items, and the user does not need the diff to find the reason
 
 ### Requirement: A re-dispatch carries the earlier rounds
-For the second and each later round of a slice, the brief SHALL give the path of each earlier report for that slice and the failing output of the last round. Each round SHALL write its report to a path that contains the round number. A later round SHALL NOT overwrite an earlier report.
+For the second and each later round of a slice, the brief SHALL give the path of each earlier report for that slice and the failing output of the last round. Each round SHALL write its own report. Round 1 SHALL use the report name of the slice, and each later round SHALL add the round number to it (`-r2`, `-r3`). A later round SHALL NOT overwrite an earlier report.
 
 #### Scenario: Second round brief
 - **WHEN** the orchestrator dispatches the second round for a slice
@@ -69,6 +69,17 @@ Every `implementer` variant SHALL run a check that exercises each change: the se
 - **WHEN** the only check that an `implementer` ran is a syntax check
 - **THEN** its report does not show the slice as complete
 
+### Requirement: Terraform static checks count as a real check
+For a Terraform module, every `implementer` variant SHALL count `terraform validate` after `terraform init`, and the `tflint`, `checkov`, or `trivy` checks that the project configures, as the real check. `terraform fmt` alone SHALL NOT count.
+
+#### Scenario: Terraform module with no tests
+- **WHEN** a slice changes a Terraform module that has no tests, and `terraform validate` passes after `terraform init`
+- **THEN** the check counts as a real check, and the orchestrator does not record the slice as `unverified`
+
+#### Scenario: Terraform format check only
+- **WHEN** the only Terraform check that an `implementer` ran is `terraform fmt`
+- **THEN** its report does not show the slice as complete
+
 ### Requirement: A slice with no executed check is recorded as unverified
 When a worker is dispatched without a test bar, or reports that no check that exercises the change ran, the orchestrator SHALL record the slice as `unverified` in the tracking artifact. The closing summary SHALL list each unverified slice. The orchestrator SHALL NOT describe an unverified slice as verified.
 
@@ -81,7 +92,7 @@ When a worker is dispatched without a test bar, or reports that no check that ex
 - **THEN** the closing summary names that slice as unverified
 
 ### Requirement: The build closes with a full check run
-Before it reports a build as finished, the orchestrator SHALL run one time the gate that the project instructions declare. It SHALL also run each command that `test-author` reported for a command-verified scenario. It SHALL NOT run a command that the project instructions reserve for the user. The closing summary SHALL state each command and its result.
+Before it reports a build as finished, the orchestrator SHALL run one time the gate that the project instructions declare. It SHALL also run each command that `test-author` reported for a command-verified scenario. It SHALL NOT run a command that the project instructions reserve for the user. It SHALL give each such command to the user, and SHALL record it as a passed check only when the user runs it and confirms the result. The closing summary SHALL state each command and its result.
 
 #### Scenario: Gate passes
 - **WHEN** every task is ticked and the gate command passes
@@ -98,6 +109,14 @@ Before it reports a build as finished, the orchestrator SHALL run one time the g
 #### Scenario: Command reserved for the user
 - **WHEN** the project instructions say that the user runs `terraform plan`
 - **THEN** the orchestrator does not run that command at close
+
+#### Scenario: Plan that the user runs
+- **WHEN** the project instructions say that the user runs `terraform plan`, and the user runs it at close and confirms that the plan agrees with the intended change
+- **THEN** the orchestrator records `terraform plan (user)` as a passed check
+
+#### Scenario: User does not run the plan
+- **WHEN** the orchestrator gives the user `terraform plan` at close and the user does not run it
+- **THEN** the closing summary states that no plan ran, and the plan is not a passed check
 
 #### Scenario: No check to run
 - **WHEN** the project declares no gate, the orchestrator finds no command to propose, and the project has no `verify` skill
@@ -245,7 +264,7 @@ Every `implementer` variant SHALL NOT change linter, formatter, type-checker, im
 - **THEN** the orchestrator does not tick the task until it accepts the change and records it, or has it reverted
 
 ### Requirement: A flaky test goes to the dispute channel
-Every `implementer` variant SHALL NOT run a test again and again until it passes. When the same test gives different results on identical runs, the `implementer` SHALL list it under `Disputed tests` with the reason `flaky` and the output of a passing run and a failing run. The orchestrator SHALL send a flaky test to `test-author`.
+Every `implementer` variant SHALL NOT run a test again and again until it passes. When the same test gives different results on identical runs, the `implementer` SHALL list it under `Disputed tests` with the reason `flaky` and the output of a passing run and a failing run. The orchestrator SHALL run the test again to confirm. It SHALL send a flaky test to `test-author`, or back to the `implementer` when the cause is in production code. The orchestrator SHALL NOT delete a flaky test itself.
 
 #### Scenario: Test passes on the second run
 - **WHEN** a selector test fails, the `implementer` changes nothing, and the test passes on the next run
@@ -253,7 +272,11 @@ Every `implementer` variant SHALL NOT run a test again and again until it passes
 
 #### Scenario: Orchestrator rules on a flaky test
 - **WHEN** an `implementer` receipt lists a test as `flaky`
-- **THEN** the orchestrator dispatches `test-author` with the two outputs
+- **THEN** the orchestrator runs the selector again and dispatches `test-author` with the two outputs
+
+#### Scenario: Cause in production code
+- **WHEN** the outputs or the diff show that a flaky test fails because the code under test keeps state between calls
+- **THEN** the orchestrator sends the slice back to the `implementer` and does not dispatch `test-author` to delete the test
 
 ### Requirement: Review rounds are limited to three
 The orchestrator SHALL count the closing reviews of a change that return `request_changes`. After the third such verdict, it SHALL stop the review loop and SHALL give the change to the user with the reason.

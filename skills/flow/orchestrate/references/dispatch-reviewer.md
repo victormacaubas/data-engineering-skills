@@ -54,6 +54,10 @@ The reviewer can read the tree and declarations, but not this session. You alone
 - **`request_changes` makes the fix list your next slice set.** Re-enter the dispatch loop with it,
   briefing the `implementer` per `dispatch-implementer.md`. Preserve the report's ranking. It
   orders by leverage, and reordering it for quick work defeats that purpose.
+- **The third `request_changes` verdict ends the loop.** Count the `request_changes` verdicts for the
+  same change. After the third, dispatch no more fix slices for the review. Hand the change to the
+  user with the five items from `../SKILL.md` → *Guardrails*, with the open fix-list items as the
+  failing output.
 - **Only a re-review clears the block.** An `implementer` report that fixes landed is a claim. The
   review exists to check structural claims against the tree. Dispatch the reviewer again rather
   than closing it yourself.

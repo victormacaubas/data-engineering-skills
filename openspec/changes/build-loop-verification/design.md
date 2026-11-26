@@ -193,7 +193,13 @@ When the brief names no oracle, the scenario is `blocked`. This agrees with the 
 
 A test is flaky when identical runs with no code change give different results. The `implementer` can run a failed test one more time to confirm this. That run detects the condition. It is not a retry until the test passes.
 
-The `implementer` lists the test under `Disputed tests` with the reason `flaky` and the two outputs. The orchestrator sends it to `test-author`. `test-author` fixes the cause, or deletes the test and reports the reason. The orchestrator records the scenario as not covered. A deleted test is not a pass.
+The `implementer` lists the test under `Disputed tests` with the reason `flaky` and the two outputs. The orchestrator runs the selector again to confirm, and rules on the cause as it rules on each disputed test. When the outputs or the diff show the cause in production code, such as state that the code under test keeps between calls, the orchestrator sends the slice back to the `implementer`. In all other cases, it sends the test to `test-author`.
+
+`test-author` fixes a cause in the test. When it finds the cause in production code, it does not delete or change the test. It reports the cause under `Needed production changes`, and the orchestrator sends it to the `implementer`. When `test-author` cannot find the cause, it deletes the test and reports the reason. The orchestrator records the scenario as not covered. A deleted test is not a pass.
+
+A flaky test can be the only test that shows a defect in production code, such as state that leaks between calls. A rule that deletes each flaky test would remove that test and hide the defect.
+
+Alternative: the orchestrator deletes the flaky test. The correct action depends on the cause, and the diagnosis reads fixtures and runs the test in different orders. That work in the main session edits tests outside `test-author` and uses the context of the orchestrator. A deletion with no diagnosis removes a good test when the cause is a fixture, and hides a defect when the cause is in production code.
 
 ### Decision 14: The review limit
 
@@ -204,6 +210,22 @@ The orchestrator counts `request_changes` verdicts for the same change. The thir
 - `flow:orchestrate` loads in the main session. The edit uses `skill-creator` and plan mode, and the user confirms the planned text before the write.
 - Models to read guides for: `claude-sonnet-5-5` (Claude `implementer`), `claude-haiku-5-5` (Claude and Cursor `test-author`), `gpt-5.6-terra` (Codex `implementer`), `gpt-5.6-luna` (Codex `test-author`), `kimi-k3` (Cursor `implementer`).
 - New text goes into the existing sections. No section is added that describes the agent or the skill.
+
+### Decision 16: Static checks for Terraform, and a plan that the user runs
+
+A Terraform repository frequently has no tests. `terraform plan` exercises the change, but it needs credentials and state, and the `implementer` cannot run it.
+
+The real-check rule counts the static checks of a Terraform module: `terraform validate` after `terraform init`, and `tflint`, `checkov`, or `trivy` when the repository configures them. `terraform validate` checks references and types against the provider schema, as a type check does for Python code. `terraform fmt` alone is a format check and does not count. A slice that passes the static checks is not `unverified`.
+
+At close, the orchestrator gives the user each command that the project instructions reserve for the user, such as `terraform plan`. When the user runs it and confirms that the result agrees with the intended change, the orchestrator records `<command> (user)` as a passed check, and the `Verified:` trailer can name it. When the user does not run it, the closing summary states that it did not run.
+
+A Terraform project declares the two parts in its instructions: the gate, such as `terraform fmt -check && terraform validate && tflint`, and `terraform plan` as a command that the user runs.
+
+Alternative: record each Terraform slice as `unverified`. Each build in these repositories then has the label, and the label stops giving information.
+
+Alternative: let the `implementer` decide if `terraform validate` counts. The result then changes between runs.
+
+`terraform test` with mock providers needs test files and conventions in each repository. It is not in scope.
 
 ## Risks / Trade-offs
 

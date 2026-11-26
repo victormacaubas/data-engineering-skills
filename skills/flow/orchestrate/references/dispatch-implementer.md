@@ -12,11 +12,12 @@ prompt.
 
 ```
 Slice: tasks <ids> of <plan path>                      always
-Report to: .orchestrate/<slug>/<slice>.md              always
+Report to: .orchestrate/<slug>/<slice>[-r<n>].md       always
 Must not touch: <paths>                                parallel batches only
 Not in the plan: <decisions and resolved facts>        when any exist
 Verification bar: <exact command> must pass            when the tasks carry no checks of their own
 Run for verification: <selector commands for these tasks>   when test-author ran
+Earlier rounds: <earlier report paths>; last failing output: <command and output>   round 2 and later
 Goal / Non-goals / Edge cases: <one line each>         when the plan doesn't state them
 Report as blocking: <ADR decisions the slice touches>  when any exist
 ```
@@ -55,9 +56,14 @@ standard that must apply to every slice belongs in the agent's `skills:` preload
 **Bound the slice.** Give explicit task ids ("tasks 3–7"), never "implement the plan." An unbounded
 slice makes the worker pick its own scope.
 
-**Report path** (`Report to`)**.** One file per slice, named for the slice (`slice-a.md`). The worker
+**Report path** (`Report to`)**.** One file per round of a slice, named for the slice in round 1 (`slice-a.md`). The worker
 writes its full report there and returns a short receipt. Always send it: without it the worker
-derives a path itself, and parallel slices need names you control.
+derives a path itself, and parallel slices need names you control. From round 2, add `-r2`, `-r3` to
+the name. A later round never overwrites an earlier report.
+
+**Earlier rounds.** From round 2, name each earlier report for the slice and paste the last failing
+command with its output. The worker then starts from what failed and does not repeat a fix that an
+earlier round tried.
 
 **Separation for parallel slices** (`Must not touch`)**.** Give each worker in a batch a disjoint
 slice and the other slices' paths. Workers report visible overlap but won't carve up work for you,
@@ -80,8 +86,8 @@ core action fails fast into a handoff.
 ## After the worker returns
 
 **Read the receipt, not the report.** It carries status, completed task ids, blocking items,
-handoff commands, concurrency notes, the files touched, verification results, a count of judgment
-calls, and the worker's one-line reading of the slice. Open the report file only when the status is
+handoff commands, concurrency notes, the files touched, verification results, needed configuration changes, a count of
+judgment calls, and the worker's one-line reading of the slice. Open the report file only when the status is
 `partial` or `blocked`, or when the receipt's reading of the slice doesn't match the plan. When
 `Decisions` is non-zero, read just the report's `Decisions made` section: a call that changes intent
 goes into the plan source, per `../SKILL.md` → *Record what you settled*.
@@ -96,8 +102,25 @@ are follow-ups; they don't gate the next dispatch.
 notes a pre-existing failure is fine.
 A `complete` that glosses over a failure the diff plausibly caused is not.
 
+**Count the round.** When a required check of the slice still fails, add one to the slice's count in
+the tracking artifact. At three, stop the slice (`../SKILL.md` → *Count rounds for each slice*). When
+the receipt's `Verified` line shows no check that exercises the change, write `unverified` beside its
+tasks.
+
+**Check the gate configuration.** Run `git diff --name-only` for the slice and compare it with these
+paths: the linter, formatter, type-checker, and import-contract sections of `pyproject.toml`; `ruff.toml`,
+`mypy.ini`, `.importlinter`, `.pre-commit-config.yaml`; the gate target of the `Makefile`; CI workflow
+files. For a mixed file such as `pyproject.toml`, read the changed hunks; the pytest section belongs
+to `test-author`. Rule on each change that no task names, as on a disputed test: accept it and record
+it in the plan source, or have the `implementer` revert it. Do not tick the task before the ruling. A
+relaxed lint rule makes the check prove nothing. When the receipt's `Config changes needed` is not
+`_none_`, read the report's `Needed configuration changes` and rule on each: add the change as a task
+in the plan source, or keep the rule and send the slice back to fix the code.
+
 **Route disputed tests before ticking.** A `Disputed tests` field other than `_none_` goes to
-`../SKILL.md` → *Rule on disputed tests*. Those tasks stay open until their selectors pass.
+`../SKILL.md` → *Rule on disputed tests*. Those tasks stay open until their selectors pass or the slice reaches the round limit. A `flaky`
+entry goes to `test-author` with its two outputs, or back to the `implementer` when the cause is in
+production code.
 
 **Then tick the tasks** the receipt lists as completed, and in the same message update the slice's
 task-list entry. You are the single writer of both.
