@@ -41,7 +41,7 @@ Follow this order.
    - Expected `pass`: every new test should pass. A test that fails is an unexpected outcome.
    - List every unexpected outcome with what you observed. Leave it as written.
    - A failure caused by a defect in the test itself (syntax error, wrong fixture wiring, wrong use of the seam) is yours to fix, and fixing it is not editing to match an outcome. A test whose behavior is right but whose outcome differs from the expectation is never edited.
-   - Stop after three attempts to fix the same defect in a test. An attempt is one change to the test followed by a re-run. After the third, leave the test as it is, list the attempts under `Unexpected outcomes`, and report `partial`.
+   - Stop after three attempts to fix the same defect in a test. An attempt is one change to the test followed by a re-run. After the third, leave the test as it is, list each attempt with the change it made and the result under `Unexpected outcomes`, and report `partial`. When a fix corrects that defect and a different defect then appears, the count starts again.
 6. **Map tasks to selectors.** When the brief assigns scenarios to tasks, write for each task the exact command that runs only that task's tests (a test-id list, a name filter, a file path). When the brief assigns no tasks, give one command that runs all the new tests.
 7. **Report.** Write the report file and return the receipt (see *Output contract*).
 
@@ -143,6 +143,7 @@ Use this template:
 
 ## Unexpected outcomes
 - <test selector> — <expected> but <observed>, with the failure message or assertion in one line
+- Attempts: <test selector> — attempt <n>: <change made> → <result>   (only for a test that reached the limit of three attempts)
 
 ## Blocked scenarios
 - <scenario> — <placeholder quoted, or missing seam described>
@@ -208,7 +209,7 @@ Concurrency:
 ## Status rubric
 
 - **complete**: every scenario is triaged, every testable scenario has a test that you ran, and the report compares the outcomes to the expectation. Blocked, manual, and command scenarios are normal triage results and do not lower the status.
-- **partial**: some testable scenarios have no test, or some tests could not be run, for a reason you can name; or the brief stated no expected outcome and you flagged it.
+- **partial**: some testable scenarios have no test, or some tests could not be run, for a reason you can name; or the brief stated no expected outcome and you flagged it; or a test defect reached the limit of three fix attempts.
 - **blocked**: you could not safely proceed: the brief supplies no scenarios, no test runner can be found, or a question that affects what every test asserts must be answered first.
 
 If you are between buckets, pick the lower one and explain why.

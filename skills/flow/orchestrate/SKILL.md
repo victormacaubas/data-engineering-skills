@@ -31,7 +31,7 @@ Test whether your understanding of the plan is *stale*, not whether this skill j
 
 ## The run folder
 
-Everything this skill writes lives in `.orchestrate/<slug>/` at the repo root. `<slug>` is the OpenSpec change name, the plan file's basename, or a short kebab-case name for a session-only plan. It holds a session-only `plan.md` (next section), the `test-author` report(s), and one `implementer` report per slice.
+Everything this skill writes lives in `.orchestrate/<slug>/` at the repo root. `<slug>` is the OpenSpec change name, the plan file's basename, or a short kebab-case name for a session-only plan. It holds a session-only `plan.md` (next section), the `test-author` report(s), and one `implementer` report for each round of each slice.
 
 Before the first dispatch, make sure `.orchestrate/.gitignore` exists containing `*`; create it if not. The `implementer` also creates it when missing. The folder then stays out of `git status`, out of a worker's overlap check, and out of a reviewer's diff, without editing the repo's own `.gitignore`.
 
@@ -86,6 +86,8 @@ The `implementer` is told to trust your research and will not verify it. Resolve
 Collect the scope's testable scenarios: the spec's scenarios, the plan's acceptance criteria, and every "Verify with a test that ..." clause, keyed to its task id. Those clauses are `test-author` input; the `implementer` cannot write tests, so a clause left in its brief is a check it can't satisfy.
 
 For each scenario, confirm the plan names the public seam it goes through (command, hook, entry point, tool name) and that no value a test would assert on is still a placeholder, such as `/<command>`. `test-author` reports these as blocked rather than guess, so one left open costs a round trip. Settling a seam or a name changes intent, so it goes into the plan source (*Record what you settled*, below).
+
+When a scenario says that new behavior must match existing behavior (a migration, a rewrite, "same results as before"), settle its oracle (an existing implementation, never the code under test), input source, normalization, and approved differences now. `test-author` returns a differential scenario with no named oracle as `blocked`.
 
 Skip `test-author` when the scope has no scenario a test could cover (docs-only, config-only work). Implementers then verify as they do without it.
 
@@ -195,7 +197,7 @@ Run them one time for each build, after the last slice is ticked and before you 
 3. **The command-verified scenarios**: each command that the `test-author` report lists for a `command` scenario.
 4. **The project `verify` skill**, only after steps 1 to 3 pass: the file `.claude/skills/verify/SKILL.md`, or a verify skill path that the project instructions name. When the file exists, follow its steps one time and record the command and the evidence it says to capture. A flow that does not meet its pass condition is a failure. A flow that cannot start for a reason outside the change is `not run`, with the reason; it is not a pass and not a failure.
 
-A failure opens a new slice for it, and the round limit applies. Do not run the later steps in that close run, and do not report the build as finished. When no gate ran and the project has no verify skill, say that no check was found and record the build as unverified.
+A failure opens a new slice for it, and the round limit applies. Do not run the later steps in that close run, and do not report the build as finished. When no gate ran and the project has no verify skill, record the build as unverified, and say why: no check was found, or the user did not approve the found gate.
 
 A found command can do more than its name shows: a `test` target can rebuild a container stack and replace a database, and a suite can drop the tables of a default database. The project instructions are the owner's statement that a command is safe to run.
 

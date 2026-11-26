@@ -48,7 +48,7 @@ When the orchestrator gives a slice or a review to the user because a limit was 
 - **THEN** the message to the user contains the five items, and the user does not need the diff to find the reason
 
 ### Requirement: A re-dispatch carries the earlier rounds
-For the second and each later round of a slice, the brief SHALL give the path of each earlier report for that slice and the failing output of the last round. Each round SHALL write its report to a path that contains the round number. A later round SHALL NOT overwrite an earlier report.
+For the second and each later round of a slice, the brief SHALL give the path of each earlier report for that slice and the failing output of the last round. Each round SHALL write its own report. Round 1 SHALL use the report name of the slice, and each later round SHALL add the round number to it (`-r2`, `-r3`). A later round SHALL NOT overwrite an earlier report.
 
 #### Scenario: Second round brief
 - **WHEN** the orchestrator dispatches the second round for a slice
