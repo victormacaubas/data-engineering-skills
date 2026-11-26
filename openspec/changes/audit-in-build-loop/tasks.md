@@ -38,12 +38,12 @@
 
 ## 5. Live checks
 
-- [ ] 5.1 In a scratch repository with a working test environment, close a build of one slice that is recorded as `unverified`, then a build of three slices that adds a module and has one `unverified` slice, then a build of one verified slice; verify that the first question names the audit only, that the second names the two reviews with their signals in one line, and that the third build gets no question; then, in a scratch repository with no test environment, close a build of one slice that was dispatched without a test bar and verify that it gets no audit offer
-- [ ] 5.2 In the second build of 5.1, answer "both"; verify that the two reviewers are dispatched in one step, that the two receipts state the same commit, and that the audit brief names the four dimensions and no suspected defect
-- [ ] 5.3 With one `request_changes` from the audit and an approval from the structure review, verify that the orchestrator makes one slice set from the blocking findings, lists the findings that do not block in the closing summary, runs the close run again after the fix slices, and then dispatches the two reviewers again
-- [ ] 5.4 In the re-review round of 5.3, verify that the Claude `structure-reviewer` with an empty fix list reviews the fix diff only, and that the states in its report and in the audit artifact use the same five names
-- [ ] 5.5 Make a commit while an audit runs; verify that the orchestrator does not clear the block on the stale result, dispatches the audit again, and does not increase the round count
-- [ ] 5.6 Run `openspec validate audit-in-build-loop --strict`; verify that it reports no error
+- [x] 5.1 In a scratch repository with a working test environment, close a build of one slice that is recorded as `unverified`, then a build of three slices that adds a module and has one `unverified` slice, then a build of one verified slice; verify that the first question names the audit only, that the second names the two reviews with their signals in one line, and that the third build gets no question; then, in a scratch repository with no test environment, close a build of one slice that was dispatched without a test bar and verify that it gets no audit offer
+- [x] 5.2 In the second build of 5.1, answer "both"; verify that the two reviewers are dispatched in one step, that the two receipts state the same commit, and that the audit brief names the four dimensions and no suspected defect
+- [x] 5.3 With one `request_changes` from the audit and an approval from the structure review, verify that the orchestrator makes one slice set from the blocking findings, lists the findings that do not block in the closing summary, runs the close run again after the fix slices, and then dispatches the two reviewers again
+- [x] 5.4 In the re-review round of 5.3, verify that the Claude `structure-reviewer` with an empty fix list reviews the fix diff only, and that the states in its report and in the audit artifact use the same five names
+- [x] 5.5 Make a commit while an audit runs; verify that the orchestrator does not clear the block on the stale result, dispatches the audit again, and does not increase the round count
+- [x] 5.6 Run `openspec validate audit-in-build-loop --strict`; verify that it reports no error
 
 ## 6. Structure review fixes (review round 1 of 3, `.structure-review/2026-11-26-audit-in-build-loop/review.md`)
 
