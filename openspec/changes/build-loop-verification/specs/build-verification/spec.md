@@ -69,6 +69,17 @@ Every `implementer` variant SHALL run a check that exercises each change: the se
 - **WHEN** the only check that an `implementer` ran is a syntax check
 - **THEN** its report does not show the slice as complete
 
+### Requirement: Terraform static checks count as a real check
+For a Terraform module, every `implementer` variant SHALL count `terraform validate` after `terraform init`, and the `tflint`, `checkov`, or `trivy` checks that the project configures, as the real check. `terraform fmt` alone SHALL NOT count.
+
+#### Scenario: Terraform module with no tests
+- **WHEN** a slice changes a Terraform module that has no tests, and `terraform validate` passes after `terraform init`
+- **THEN** the check counts as a real check, and the orchestrator does not record the slice as `unverified`
+
+#### Scenario: Terraform format check only
+- **WHEN** the only Terraform check that an `implementer` ran is `terraform fmt`
+- **THEN** its report does not show the slice as complete
+
 ### Requirement: A slice with no executed check is recorded as unverified
 When a worker is dispatched without a test bar, or reports that no check that exercises the change ran, the orchestrator SHALL record the slice as `unverified` in the tracking artifact. The closing summary SHALL list each unverified slice. The orchestrator SHALL NOT describe an unverified slice as verified.
 
@@ -81,7 +92,7 @@ When a worker is dispatched without a test bar, or reports that no check that ex
 - **THEN** the closing summary names that slice as unverified
 
 ### Requirement: The build closes with a full check run
-Before it reports a build as finished, the orchestrator SHALL run one time the gate that the project instructions declare. It SHALL also run each command that `test-author` reported for a command-verified scenario. It SHALL NOT run a command that the project instructions reserve for the user. The closing summary SHALL state each command and its result.
+Before it reports a build as finished, the orchestrator SHALL run one time the gate that the project instructions declare. It SHALL also run each command that `test-author` reported for a command-verified scenario. It SHALL NOT run a command that the project instructions reserve for the user. It SHALL give each such command to the user, and SHALL record it as a passed check only when the user runs it and confirms the result. The closing summary SHALL state each command and its result.
 
 #### Scenario: Gate passes
 - **WHEN** every task is ticked and the gate command passes
@@ -98,6 +109,14 @@ Before it reports a build as finished, the orchestrator SHALL run one time the g
 #### Scenario: Command reserved for the user
 - **WHEN** the project instructions say that the user runs `terraform plan`
 - **THEN** the orchestrator does not run that command at close
+
+#### Scenario: Plan that the user runs
+- **WHEN** the project instructions say that the user runs `terraform plan`, and the user runs it at close and confirms that the plan agrees with the intended change
+- **THEN** the orchestrator records `terraform plan (user)` as a passed check
+
+#### Scenario: User does not run the plan
+- **WHEN** the orchestrator gives the user `terraform plan` at close and the user does not run it
+- **THEN** the closing summary states that no plan ran, and the plan is not a passed check
 
 #### Scenario: No check to run
 - **WHEN** the project declares no gate, the orchestrator finds no command to propose, and the project has no `verify` skill

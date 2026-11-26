@@ -211,6 +211,22 @@ The orchestrator counts `request_changes` verdicts for the same change. The thir
 - Models to read guides for: `claude-sonnet-5-5` (Claude `implementer`), `claude-haiku-5-5` (Claude and Cursor `test-author`), `gpt-5.6-terra` (Codex `implementer`), `gpt-5.6-luna` (Codex `test-author`), `kimi-k3` (Cursor `implementer`).
 - New text goes into the existing sections. No section is added that describes the agent or the skill.
 
+### Decision 16: Static checks for Terraform, and a plan that the user runs
+
+A Terraform repository frequently has no tests. `terraform plan` exercises the change, but it needs credentials and state, and the `implementer` cannot run it.
+
+The real-check rule counts the static checks of a Terraform module: `terraform validate` after `terraform init`, and `tflint`, `checkov`, or `trivy` when the repository configures them. `terraform validate` checks references and types against the provider schema, as a type check does for Python code. `terraform fmt` alone is a format check and does not count. A slice that passes the static checks is not `unverified`.
+
+At close, the orchestrator gives the user each command that the project instructions reserve for the user, such as `terraform plan`. When the user runs it and confirms that the result agrees with the intended change, the orchestrator records `<command> (user)` as a passed check, and the `Verified:` trailer can name it. When the user does not run it, the closing summary states that it did not run.
+
+A Terraform project declares the two parts in its instructions: the gate, such as `terraform fmt -check && terraform validate && tflint`, and `terraform plan` as a command that the user runs.
+
+Alternative: record each Terraform slice as `unverified`. Each build in these repositories then has the label, and the label stops giving information.
+
+Alternative: let the `implementer` decide if `terraform validate` counts. The result then changes between runs.
+
+`terraform test` with mock providers needs test files and conventions in each repository. It is not in scope.
+
 ## Risks / Trade-offs
 
 - [The limit stops a slice that a fourth round can fix] → The user can restart the slice. The hand-back contains what the user needs to decide.
