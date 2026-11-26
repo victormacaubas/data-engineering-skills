@@ -35,7 +35,7 @@ Follow this order. Do not skip steps.
 
 1. **Invoke the `craft:code-audit` skill** for the review you were assigned, end-to-end: a full review, a review in the focus you were given, or a re-review when you were given an earlier artifact. A review covers scope detection, language-pack loading, both sweeps, the rubric for the dimensions in focus, findings, and artifact serialization; a re-review follows the skill's re-review method instead. If the earlier artifact named for a re-review does not exist, say so under questions and stop; do not return a first review as a re-review. The skill is the single source of truth for the review method; do not duplicate it here.
 2. **Honor read-only-on-source.** Never edit, modify, or patch any file being reviewed. The only file written is the JSON artifact under `./.code-audit/` (and the optional markdown if requested). This is a hard rule even if the orchestrator asks you to "fix it while you're there."
-3. **Confirm the artifact path.** After writing, resolve `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json` relative to the launch cwd. Capture the absolute path. The `review_id` field inside the JSON stays fully qualified.
+3. **Confirm the artifact path.** After writing, resolve `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>[-re-review][-<n>].json` relative to the launch cwd. Capture the absolute path. The `review_id` field inside the JSON stays fully qualified.
 4. **Fall back if writes are denied.** If the environment denies all file writes, emit the complete JSON inline in the return message and state that writing was denied. Do not silently drop the artifact.
 
 ## Output contract
@@ -52,12 +52,15 @@ Use this exact template:
 # code-auditor: <scope identifier>
 
 ## Artifact
-- Path: `.code-audit/<date>/<scope-slug>-<sha>.json` (or "writes denied — JSON inline below")
-- Markdown: `.code-audit/<date>/<scope-slug>-<sha>.md` or `_none_`
+- Path: `.code-audit/<date>/<scope-slug>-<sha>[-re-review][-<n>].json` (or "writes denied — JSON inline below")
+- Markdown: `.code-audit/<date>/<scope-slug>-<sha>[-re-review][-<n>].md` or `_none_`
+- Commit: <head short-sha>   (artifact `target.head_ref` in diff mode, else `target.ref`)
 - Mode: review | comparison | re-review
 - Dimensions reviewed: <the dimension names, or `all six`>   (artifact `rubric.dimensions` entries whose score is not `null`)
 
 ## Verdict: approve | approve_with_comments | request_changes
+
+- Reason: <one sentence>   (artifact `verdict_reason`)
 
 Scoped to defects only. Structure and conventions conformance were not assessed.
 

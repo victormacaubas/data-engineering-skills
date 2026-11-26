@@ -39,6 +39,10 @@ origin counts.
   gives the artifact path and the finding id, not a summary: a summary is a paraphrase that the
   worker cannot check. When the structure review also ran, follow `dispatch-reviewer.md` → *Two
   reviews*.
+- **The third `request_changes` round ends the loop.** Count the review rounds with a
+  `request_changes` verdict for the same change. After the third, dispatch no more fix slices for
+  the audit. Hand the change to the user with the five items from `../SKILL.md` → *Guardrails*,
+  with the open blocking findings as the failing output.
 - **A finding that does not block, and a `pre-existing` finding**, go in the closing summary. Build
   one only when the user asks.
 - **Only a re-review clears the block.** An `implementer` report that a finding is fixed is a

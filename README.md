@@ -25,7 +25,7 @@ Skills ship in three plugins, one per domain. A skill is invoked as `/<group>:<s
 |-------|--------|-------------|
 | `scout` | `/flow:scout` | Explore work whose shape is not settled and return a decision-ready briefing. Requires the separately installed `pathfinder` and `researcher` agents. |
 | `grill-me` | `/flow:grill-me` | Pressure-test ideas and change artifacts before implementation. |
-| `orchestrate` | `/flow:orchestrate` | Drive workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, and `researcher` agents. |
+| `orchestrate` | `/flow:orchestrate` | Drive workers to implement a bounded plan. Requires the separately installed `implementer`, `pathfinder`, `researcher`, `structure-reviewer`, `test-author`, and `code-auditor` agents. |
 | `write-ticket` | `/flow:write-ticket` | Write Jira tickets and comments in plain language through the Atlassian MCP. |
 | `stash` | `/flow:stash` | Park raw content in an Obsidian vault inbox for later processing. |
 
@@ -168,13 +168,13 @@ Marketplace plugins contain skills only. Install these agents separately before 
 | Skill | Required agents |
 |-------|-----------------|
 | `/craft:architecture-baseline` | `researcher` |
-| `/flow:orchestrate` | `implementer`, `pathfinder`, `researcher` |
+| `/flow:orchestrate` | `code-auditor`, `implementer`, `pathfinder`, `researcher`, `structure-reviewer`, `test-author` |
 | `/flow:scout` | `pathfinder`, `researcher` |
 
 For example:
 
 ```bash
-./scripts/install-agents.sh --platform both --agents implementer,pathfinder,researcher
+./scripts/install-agents.sh --platform both --agents code-auditor,implementer,pathfinder,researcher,structure-reviewer,test-author
 ```
 
 ### Custom agents for Claude Code, Codex, and Cursor CLI

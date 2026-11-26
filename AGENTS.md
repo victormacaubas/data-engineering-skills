@@ -43,6 +43,7 @@ Applies to skills and agents alike. `docs/prompting.md` holds the general princi
 - Claude and Cursor variants may use different model and capability fields. Preserve the same role and safety intent with native controls; use Cursor's `readonly: true` for non-writing agents.
 - Claude agents preload skills with a namespaced `skills:` entry (`craft:structure-review`). A preload that doesn't resolve is skipped with only a debug-log warning, so the agent launches and returns output without it — verify a preload change by *running* the agent, never by a clean launch.
 - Cursor variants have no `skills` field. They name the skill in prose and try the namespaced form first, then the bare one, which is what the Cursor fallback installer produces.
+- When a skill or its references read a field from an agent receipt, each variant of that agent has the field in its receipt template. A change to one side checks the other.
 - `agents/README.md` is the agent index. Update all platform entries, models, descriptions, and intentional differences together.
 - Agents install into `~/.claude/agents/`, `~/.codex/agents/`, and `~/.cursor/agents/`. See `docs/agents.md`.
 - Marketplace plugins must not expose or install the top-level custom agents.

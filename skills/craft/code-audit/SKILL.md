@@ -216,13 +216,15 @@ A clean module merits a short artifact with high scores and few findings; never 
 
 ## Step 5: Write the artifact
 
-Serialize only once the findings are settled (both sweeps run, each reviewed dimension scored, every finding's failure story formed). Write to `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json` under the **current working directory** — the project root you were launched in. Resolve it as `.code-audit/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates the parent directories, so don't `mkdir` first: a denied `mkdir` in a restricted harness can wrongly read as "I can't write here".
+Serialize only once the findings are settled (both sweeps run, each reviewed dimension scored, every finding's failure story formed). Write to `.code-audit/<YYYY-MM-DD>/<scope-slug>-<short-sha>.json` (a re-review: `<scope-slug>-<short-sha>-re-review.json`) under the **current working directory** — the project root you were launched in. Resolve it as `.code-audit/` relative to the cwd, *not* relative to this skill's install location, and never under `.claude/`. Run `pwd` if you're unsure where you are. The `Write` tool creates the parent directories, so don't `mkdir` first: a denied `mkdir` in a restricted harness can wrongly read as "I can't write here".
 
 The date directory groups a day's reviews; the filename identifies the scope within it. Example: `.code-audit/2026-06-04/gateway-7f3a91.json`.
 
+Never write over an existing artifact. When the path is taken, for example by a second review on the same uncommitted tree, add `-2`, then `-3`, before `.json`: `gateway-7f3a91-re-review-2.json`.
+
 If writing is blocked: first try `code-review.json` at the working-directory root; if *all* file writes are denied by the environment, emit the complete JSON inline in your final message (and say that writing was denied) so the artifact is never lost. The proper fix for a denied write is granting the environment a `Write(.code-audit/**)` permission — note that in your reply.
 
-`review_id = <YYYY-MM-DD>-<scope-slug>-<short-sha>`. `<scope-slug>`: a file's basename without extension, a directory's name, or `pr-<branch>` for a diff. Include a short SHA from `git rev-parse --short HEAD` when in a git repo (mark `dirty` if the tree is dirty). Use UTC for `created_at`.
+`review_id = <YYYY-MM-DD>-<scope-slug>-<short-sha>`, with the same `-re-review` and `-2`, `-3` suffix as the filename, so that it stays unique. `<scope-slug>`: a file's basename without extension, a directory's name, or `pr-<branch>` for a diff. Include a short SHA from `git rev-parse --short HEAD` when in a git repo (mark `dirty` if the tree is dirty). Use UTC for `created_at`.
 
 **`review_id` keeps the date even though the filename drops it**, so the artifact still identifies itself when copied out of the tree: `review_id: "2026-06-04-gateway-7f3a91"` lives at `.code-audit/2026-06-04/gateway-7f3a91.json`.
 
@@ -388,7 +390,7 @@ The origin rule (*Origin of a finding*) and the stale check (Step 5) apply as fo
 
 **Evidence.** The per-finding `verification` field is the first source. Run it when *Verify by execution when a theory is unconfirmed* permits it: the existing tests, or a scratch script. Do not start the application. When the command cannot run, decide from the code, and say in the evidence that the command did not run. A report from the worker that made the fix is a claim about the tree, not evidence. Check the tree.
 
-**The re-review artifact.** Write a new artifact, as in Step 5. Do not edit the earlier artifact. It is the record of the first review, and the directory keeps the history.
+**The re-review artifact.** Write a new artifact, as in Step 5, named `<scope-slug>-<short-sha>-re-review.json`. Do not edit the earlier artifact, and never write over an existing artifact: add `-2`, `-3` to the name instead. It is the record of the first review, and the directory keeps the history.
 
 ```json
 "re_review": {
@@ -444,7 +446,7 @@ Each finding is the atomic unit and must stand alone for a downstream consumer.
 ## When the user wants something slightly different
 
 - **"Just the score"** — still write the full JSON artifact; in your reply, paste the rubric (overall + the score of each reviewed dimension, and `not reviewed` for the others).
-- **"Review only security / only correctness / just the bug scan", or a focus of more than one dimension** — raise findings for the named dimensions only. Each dimension that was not reviewed keeps its entry in `rubric.dimensions` with `"score": null`, zero `stats`, and no findings, and the summary names the reviewed dimensions. The overall score uses the reviewed dimensions only (*Overall score*). When a requested name maps to none of the six ids, ask; do not guess.
+- **"Review only security / only correctness / just the bug scan", or a focus of more than one dimension** — raise findings for the named dimensions only. Each dimension that was not reviewed keeps its entry in `rubric.dimensions` with `"score": null`, zero `stats`, and no findings, and the summary names the reviewed dimensions. The overall score uses the reviewed dimensions only (*Overall score*). When a requested name maps to none of the six ids, ask; do not guess. When an orchestrator dispatched you, you cannot ask: review the dimensions that map, write the name that did not map in `notes` and in the receipt questions, and do not guess a dimension for it, because a guessed dimension gives a score that no one asked for.
 - **"Compare against last review"** — do a full review of the scope, as for a first review. Then find the most recent artifact for this scope, reconcile by `anchor.excerpt` + `dimension`, and add a "since last review" note in the summary (resolved / still-open / new). Artifacts are nested one level under a date directory, so glob both levels rather than listing the root: `ls .code-audit/*/*<scope-slug>*.json` and take the newest date directory that matches. A flat `ls .code-audit/` returns date directories, not artifacts, and reading it as "no prior review exists" is a silent failure that turns every re-review into a first review. A comparison answers *what changed since the last review*. When the request gives an earlier artifact and asks if its findings were fixed, do a *Re-review* instead.
 - **"Give me the markdown"** — render it from the JSON via `scripts/render_report.py`.
 - **"Apply the fixes"** — decline politely; this skill is review-only. Offer to hand the findings over for a separate coding turn.
