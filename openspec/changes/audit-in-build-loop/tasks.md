@@ -2,7 +2,7 @@
 
 ## 1. Preparation
 
-- [ ] 1.1 Confirm that `build-loop-verification` and `review-origin-and-base-rules` are applied; verify by `grep -n "unverified" skills/flow/orchestrate/SKILL.md` and `grep -n "pre-existing" skills/craft/code-audit/SKILL.md` that each gives a result, and stop and tell the user if one gives none
+- [x] 1.1 Confirm that `build-loop-verification` and `review-origin-and-base-rules` are applied; verify by `grep -n "unverified" skills/flow/orchestrate/SKILL.md` and `grep -n "pre-existing" skills/craft/code-audit/SKILL.md` that each gives a result, and stop and tell the user if one gives none
 - [ ] 1.2 Read the current prompting guide for each model in design Decision 16 and list the points that apply to these edits; verify that the list is in the session before any file is written
 - [ ] 1.3 Load `skill-creator`, enter plan mode, and show the user the planned text for `skills/craft/code-audit/SKILL.md`; verify by the user's approval in the session
 - [ ] 1.4 In the same plan, show the user the planned text for `skills/flow/orchestrate/SKILL.md`, `references/dispatch-reviewer.md`, and the new `references/dispatch-auditor.md`; verify by the user's approval in the session
