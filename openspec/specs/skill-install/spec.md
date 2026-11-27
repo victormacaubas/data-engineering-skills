@@ -90,7 +90,7 @@ Skills installed from a group plugin SHALL invoke as `<group>:<skill-name>`, whe
 
 #### Scenario: User invokes an installed skill
 - **WHEN** a user has installed the `craft` group
-- **THEN** its member skills are available as `/craft:structure-review`, `/craft:code-audit`, `/craft:architecture-baseline`, and `/craft:python-engineering-standards`
+- **THEN** each skill listed in the `craft` entry's `skills` array is available as `/craft:<skill-name>`
 
 #### Scenario: Skill names are unique across groups
 - **WHEN** the catalogs are validated

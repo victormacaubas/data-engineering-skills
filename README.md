@@ -16,6 +16,7 @@ Skills ship in three plugins, one per domain. A skill is invoked as `/<group>:<s
 |-------|--------|-------------|
 | `architecture-baseline` | `/craft:architecture-baseline` | Decide a new project's architectural constraints before feature work, including an `AGENTS.md` and a registry of the rules no tool checks. Requires the separately installed `researcher` agent. |
 | `python-engineering-standards` | `/craft:python-engineering-standards` | Apply production Python standards for layout, typing, configuration, logging, error handling, testing, and packaging. |
+| `rust-engineering-standards` | `/craft:rust-engineering-standards` | Apply production Rust standards for ownership and types, Clean Code, error handling, memory and allocation, async concurrency, performance, security, and testing. |
 | `code-audit` | `/craft:code-audit` | Audit code in any language and write a machine-readable report covering correctness, security, performance, architecture, error handling, and readability. |
 | `structure-review` | `/craft:structure-review` | Review the shape and project conformance of a finished change before merge or archive. |
 

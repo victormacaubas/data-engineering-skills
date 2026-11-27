@@ -14,9 +14,10 @@
         "./architecture-baseline",
         "./code-audit",
         "./python-engineering-standards",
+        "./rust-engineering-standards",
         "./structure-review"
       ],
-      "description": "How code gets written and checked: architectural baselines, Python standards, and the defect and structure reviews that gate a finished change. Invoke as /craft:<skill-name>. The architecture-baseline skill requires the separately installed researcher agent."
+      "description": "How code gets written and checked: architectural baselines, Python and Rust standards, and the defect and structure reviews that gate a finished change. Invoke as /craft:<skill-name>. The architecture-baseline skill requires the separately installed researcher agent."
     },
     {
       "name": "flow",
