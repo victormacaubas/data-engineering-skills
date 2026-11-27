@@ -39,7 +39,7 @@ const TEST_AUTHOR_EXTRAS = [
   '**/playwright.config.*',
 ]
 
-// Files that hold only gate configuration. pyproject.toml, Makefiles and CI workflows are left out:
+// Files that hold only gate configuration. pyproject.toml, Cargo.toml, Makefiles and CI workflows are left out:
 // an implementer legitimately adds dependencies, targets and jobs there, and a path rule cannot tell those edits apart.
 const GATE_CONFIGURATION = [
   '**/ruff.toml',
@@ -48,6 +48,11 @@ const GATE_CONFIGURATION = [
   '**/.mypy.ini',
   '**/.importlinter',
   '**/.pre-commit-config.yaml',
+  '**/clippy.toml',
+  '**/.clippy.toml',
+  '**/rustfmt.toml',
+  '**/.rustfmt.toml',
+  '**/deny.toml',
 ]
 
 const escapeRegex = (text: string): string => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
