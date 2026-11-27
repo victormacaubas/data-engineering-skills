@@ -17,12 +17,20 @@ const GATE_PATHS = [
   '.mypy.ini',
   '.importlinter',
   '.pre-commit-config.yaml',
+  'clippy.toml',
+  '.clippy.toml',
+  'rustfmt.toml',
+  '.rustfmt.toml',
+  'deny.toml',
   'tools/lint/ruff.toml',
   'tools/lint/.ruff.toml',
   'services/api/mypy.ini',
   'services/api/.mypy.ini',
   'services/api/.importlinter',
   'services/api/.pre-commit-config.yaml',
+  'crates/engine/clippy.toml',
+  'crates/engine/rustfmt.toml',
+  'crates/engine/deny.toml',
 ]
 const MODE =(gateConfigMode: string) => ({ options: { gateConfigMode } })
 
@@ -183,6 +191,16 @@ test(
     const h = harness($, on)
 
     expect(await h.edit(`${CWD}/pyproject.toml`, 'a-impl')).toEqual(RAN)
+  },
+)
+
+test(
+  'implementer Edit on Cargo.toml is not matched by the gate rule',
+  MODE('enforce'),
+  async ($, on) => {
+    const h = harness($, on)
+
+    expect(await h.edit(`${CWD}/Cargo.toml`, 'a-impl')).toEqual(RAN)
   },
 )
 

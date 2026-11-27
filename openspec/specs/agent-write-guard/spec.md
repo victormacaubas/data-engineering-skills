@@ -95,11 +95,19 @@ The agents SHALL work without the mod: their instructions state both boundaries 
 - **THEN** it does not list `agent-write-guard`
 
 ### Requirement: implementer gate-configuration rule
-The mod SHALL have a rule for `Edit`, `Write`, and `NotebookEdit` calls from an `implementer` subagent whose target path, relative to the working directory of the session, matches any of `**/ruff.toml`, `**/.ruff.toml`, `**/mypy.ini`, `**/.mypy.ini`, `**/.importlinter`, `**/.pre-commit-config.yaml`. The rule SHALL NOT match `pyproject.toml`, a `Makefile`, or a CI workflow file.
+The mod SHALL have a rule for `Edit`, `Write`, and `NotebookEdit` calls from an `implementer` subagent whose target path, relative to the working directory of the session, matches any of `**/ruff.toml`, `**/.ruff.toml`, `**/mypy.ini`, `**/.mypy.ini`, `**/.importlinter`, `**/.pre-commit-config.yaml`, `**/clippy.toml`, `**/.clippy.toml`, `**/rustfmt.toml`, `**/.rustfmt.toml`, `**/deny.toml`. The rule SHALL NOT match `pyproject.toml`, `Cargo.toml`, a `Makefile`, or a CI workflow file.
 
 #### Scenario: implementer edits the linter configuration
 - **WHEN** an `implementer` subagent calls `Edit` on `ruff.toml`
 - **THEN** the gate-configuration rule matches the call
+
+#### Scenario: implementer edits the Rust linter configuration
+- **WHEN** an `implementer` subagent calls `Edit` on `clippy.toml`
+- **THEN** the gate-configuration rule matches the call
+
+#### Scenario: implementer edits Cargo.toml
+- **WHEN** an `implementer` subagent calls `Edit` on `Cargo.toml`
+- **THEN** the gate-configuration rule does not match the call
 
 #### Scenario: implementer edits pyproject.toml
 - **WHEN** an `implementer` subagent calls `Edit` on `pyproject.toml`

@@ -109,9 +109,10 @@ tasks.
 
 **Check the gate configuration.** Run `git diff --name-only` for the slice and compare it with these
 paths: the linter, formatter, type-checker, and import-contract sections of `pyproject.toml`; `ruff.toml`,
-`mypy.ini`, `.importlinter`, `.pre-commit-config.yaml`; the gate target of the `Makefile`; CI workflow
-files. For a mixed file such as `pyproject.toml`, read the changed hunks; the pytest section belongs
-to `test-author`. Rule on each change that no task names, as on a disputed test: accept it and record
+`mypy.ini`, `.importlinter`, `.pre-commit-config.yaml`; the `[lints]` and `[workspace.lints]` sections
+of `Cargo.toml`; `clippy.toml`, `rustfmt.toml`, `deny.toml`, with or without a leading dot; the gate
+target of the `Makefile`; CI workflow files. For a mixed file such as `pyproject.toml` or `Cargo.toml`,
+read the changed hunks; the pytest section of `pyproject.toml` belongs to `test-author`. Rule on each change that no task names, as on a disputed test: accept it and record
 it in the plan source, or have the `implementer` revert it. Do not tick the task before the ruling. A
 relaxed lint rule makes the check prove nothing. When the receipt's `Config changes needed` is not
 `_none_`, read the report's `Needed configuration changes` and rule on each: add the change as a task
