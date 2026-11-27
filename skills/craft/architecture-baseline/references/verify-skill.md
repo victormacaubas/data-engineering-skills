@@ -15,7 +15,7 @@ The skill reports the command it ran and the evidence it captured, then pass or 
 
 ## Only commands someone gave you
 
-Every command in the skill comes from the design doc or from the person. When the design doc doesn't say how the program starts, ask. Don't write a plausible `python -m` line.
+Every command in the skill comes from the design doc or from the person. When the design doc doesn't say how the program starts, ask. Don't invent a plausible launch command.
 
 Before the first feature there is usually nothing to run. Then the skill names the declared entry point and says that the flow does not run yet, and that the first feature change makes it run and fills in the command. The skill is a file in the project, so the change that alters the entry point also updates it.
 
@@ -35,38 +35,14 @@ Before the first feature there is usually nothing to run. Then the skill names t
 
     Report the command, the captured evidence, and pass or fail.
 
-## Examples
+## Before the first feature (nothing runs yet)
 
-**Data pipeline** (`main.py`, argparse):
-- Start: `uv run python -m pipeline.main --run-date 2024-01-01 --source tests/fixtures/orders_small.csv --target-db /tmp/verify.duckdb`
-- Drive: one run on the 20-row fixture.
-- Evidence: exit status; `SELECT count(*), count(DISTINCT order_id) FROM orders` against the target.
-- Pass: exit 0, 20 rows, 20 distinct `order_id` (one row per order, the declared grain). A second run gives the same counts.
-
-**Service** (`main.py`, app factory):
-- Start: `uv run uvicorn service.main:create_app --factory --port 8765`, in the background.
-- Drive: `curl -s -w '%{http_code}' -X POST localhost:8765/quotes -d @tests/fixtures/quote_request.json`
-- Evidence: the status code and the response body. Stop the server after.
-- Pass: 201, and the body has the `id` and `total` fields with `total` equal to the fixture's expected value.
-
-**CLI tool** (`cli.py`, click or typer):
-- Start: `uv run tool-name summarize tests/fixtures/sample.log`
-- Drive: the one command on the fixture.
-- Evidence: the exit status and stdout.
-- Pass: exit 0, and stdout equals `tests/fixtures/sample.summary.txt`.
-
-**Library** (no entry point; the public API is the contract):
-- Start: `uv run python -c "from package_name.api import parse; print(parse(open('tests/fixtures/input.txt').read()))"`
-- Drive: one call through the public API, the way a caller imports it.
-- Evidence: the printed result.
-- Pass: it equals `tests/fixtures/input.expected.txt`, and the import uses only names from `api.py`.
-
-**Before the first feature** (nothing runs yet):
-
-    1. Start: through `pipeline/main.py` (declared in Decision 1). It does not run yet.
+    1. Start: through `<declared entrypoint from Decision 1>`. It does not run yet.
        The first feature change makes this flow run and replaces this step with the command.
-    2. Drive: one run on `tests/fixtures/orders_small.csv` (to be added with the first feature).
-    3. Evidence: exit status and the row count and distinct key count in the target.
-    4. Pass: exit 0; one row per order.
+    2. Drive: one run on `tests/fixtures/<fixture>` (to be added with the first feature).
+    3. Evidence: exit status and the output or target counts to check.
+    4. Pass: exit 0; output matches the declared grain or expected fixture.
 
-The commands above are illustrations of shape. In a real project, each one comes from the design doc or the person.
+## Language-specific examples
+
+Read the **Verify skill examples** section of the active language pack (`references/python.md` or `references/rust.md`) for archetype illustrations (pipeline/streaming engine, service, CLI tool, library). In a real project, every command comes from the design doc or the person.
