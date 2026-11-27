@@ -179,7 +179,7 @@ Two rules follow, and both are easy to get wrong because neither fails loudly:
 
 Cursor CLI has no `skills` frontmatter field, so its variants name the skill in prose instead and try both forms — the namespaced one for a marketplace install, the bare one for a skill installed by `scripts/install-cursor-skills.sh`, which writes a flat, unprefixed target.
 
-Current preloads: `implementer` → `craft:python-engineering-standards`, `code-auditor` → `craft:code-audit`, `structure-reviewer` → `craft:structure-review`.
+Current preloads: `implementer` → `craft:python-engineering-standards` and `craft:rust-engineering-standards`, `code-auditor` → `craft:code-audit`, `structure-reviewer` → `craft:structure-review`.
 
 ### Restricting an agent's writes
 
