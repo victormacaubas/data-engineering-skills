@@ -1,6 +1,6 @@
 ---
 name: code-audit
-description: Produces a non-destructive, language-agnostic code review as a machine-parseable JSON artifact under `./.code-audit/`, with a human markdown report rendered on request. Scores security, correctness, performance, architecture, error handling, and readability across six weighted dimensions with severity-counted findings, excerpt-anchored locations, and concrete before/after fixes. Loads a language pack (Python, SQL, JS/TS, React, Terraform) for language-specific footguns. Read-only on source — never edits the code under review — but may run the existing test suite or a throwaway scratch script to confirm a theory before raising it. Use whenever the user or an orchestrating agent wants to review, audit, grade, critique, assess, or gate code in any language — a file, module, PR, or branch diff — even if they do not say the word "review".
+description: Produces a non-destructive, language-agnostic code review as a machine-parseable JSON artifact under `./.code-audit/`, with a human markdown report rendered on request. Scores security, correctness, performance, architecture, error handling, and readability across six weighted dimensions with severity-counted findings, excerpt-anchored locations, and concrete before/after fixes. Loads a language pack (Python, SQL, JS/TS, React, Terraform, Rust) for language-specific footguns. Read-only on source — never edits the code under review — but may run the existing test suite or a throwaway scratch script to confirm a theory before raising it. Use whenever the user or an orchestrating agent wants to review, audit, grade, critique, assess, or gate code in any language — a file, module, PR, or branch diff — even if they do not say the word "review".
 ---
 
 # Code Reviewer
@@ -64,17 +64,18 @@ Raise every finding with its origin. Don't drop a `pre-existing` finding to keep
 
 ## Step 2: Detect language(s) and load the matching pack
 
-Identify the languages in scope from file extensions, shebangs, import syntax, and config files (`pyproject.toml`, `package.json`, `*.tf`, `dbt_project.yml`). Load the matching pack(s) from `references/` **fully before scoring** — each maps its footguns to the six rubric dimensions and changes what counts as Critical vs Low in that language. Resolve the path relative to this `SKILL.md`; do not hard-code an install path.
+Identify the languages in scope from file extensions, shebangs, import syntax, and config files (`pyproject.toml`, `Cargo.toml`, `package.json`, `*.tf`, `dbt_project.yml`). Load the matching pack(s) from `references/` **fully before scoring** — each maps its footguns to the six rubric dimensions and changes what counts as Critical vs Low in that language. Resolve the path relative to this `SKILL.md`; do not hard-code an install path.
 
 | If the scope contains… | Load |
 |---|---|
 | `.py`, `pyproject.toml`, `requirements.txt`, Python shebangs | `references/python.md` |
+| `.rs`, `Cargo.toml`, Rust crates/workspaces | `references/rust.md` |
 | `.sql`, dbt models, `dbt_project.yml`, warehouse queries | `references/sql.md` |
 | `.js`, `.ts`, `.mjs`, `.cjs`, Node `package.json` (non-React) | `references/javascript-typescript.md` |
 | `.jsx`, `.tsx`, React components/hooks | `references/react.md` **and** `references/javascript-typescript.md` |
 | `.tf`, `.tfvars`, Terraform/HCL modules | `references/terraform.md` |
 
-For mixed scope, load every relevant pack. If no pack exists for a language in scope (Go, Rust, Bash, YAML), review against the generic rubric and note in `notes` that language-specific footguns may be under-covered.
+For mixed scope, load every relevant pack. If no pack exists for a language in scope (Go, Bash, YAML), review against the generic rubric and note in `notes` that language-specific footguns may be under-covered.
 
 ### Read the declared conventions
 

@@ -47,23 +47,23 @@ Every rule an ADR produces gets one home. If a tool can check it, the home is th
 
 ### 0001. Layer map and dependency direction
 
-The table from Decision 1: which packages exist, what each owns, what each may import.
+The table from Decision 1: which packages or crates exist, what each owns, what each may import or depend on.
 
-Record: why this decomposition rather than the obvious alternative (usually flat, or split by technology instead of responsibility). Name the enforcement — "checked by the `Layered architecture` contract in `pyproject.toml`" — because a layer map without a named check is a wish and the ADR should be honest about which it is.
+Record: why this decomposition rather than the obvious alternative (usually flat, or split by technology instead of responsibility). Name the enforcement — e.g., the `Layered architecture` contract in `pyproject.toml`, or workspace crate boundaries in `Cargo.toml` plus any module-direction rules in `docs/rules.yaml` — because a layer map without a named check is a wish and the ADR should be honest about which parts are tool-checked versus review-checked.
 
 Consequences worth stating: what becomes awkward. Every layering has something it makes harder, and naming it prevents the future argument where someone discovers the friction and assumes nobody noticed.
 
 ### 0002. Runtime stack and dependencies
 
-The libraries this project depends on, each paired with the package that owns it, and the notable things deliberately excluded.
+The libraries or crates this project depends on, each paired with the package or crate that owns it, and the notable things deliberately excluded.
 
 Record the exclusions with their reasons — that's the half nobody writes and the half that pays off. "No ORM, because the queries are simple and hand-written SQL stays legible" prevents the question being re-litigated by someone who assumes it was never considered. An absent dependency with no recorded reason reads as an oversight.
 
-List dev tooling separately from runtime dependencies, and keep the two lists consistent with each other and with the lockfile: an ADR that adopts a tool another ADR rejects leaves a reader no way to tell which one won. The registry's YAML parser is dev tooling.
+List dev tooling separately from runtime dependencies, and keep the two lists consistent with each other and with the lockfile: an ADR that adopts a tool another ADR rejects leaves a reader no way to tell which one won. The registry test's YAML parser is dev tooling.
 
-Record also that the set is closed: additions are decisions, not implementation details. This is the ADR that gives a delegated implementer grounds to stop and hand back a task that needs a new library, rather than picking one.
+Record also that the set is closed: additions (including new feature flags or build/proc-macro dependencies in Rust) are decisions, not implementation details. This is the ADR that gives a delegated implementer grounds to stop and hand back a task that needs a new library, rather than picking one.
 
-Consequences worth stating: what you gave up by choosing the lighter option. If you took `argparse` over `click`, say what you'll miss when the command surface grows, so the future person adding the fifth subcommand knows the tradeoff was priced rather than overlooked.
+Consequences worth stating: what you gave up by choosing the lighter option. If you took a minimal argument parser over a full CLI framework, or skipped an async runtime, say what you'll miss if requirements grow, so a future contributor knows the tradeoff was priced rather than overlooked.
 
 ### 0003. Identity and grain
 
@@ -75,7 +75,7 @@ Also record what you chose *not* to key on and why.
 
 ### 0004. Seams
 
-The list of injected dependencies, each with its Protocol, and the rule that decided membership.
+The list of injected dependencies, each with its interface (`Protocol` in Python, `trait` in Rust — plus static vs dynamic dispatch and async-trait style where applicable), and the rule that decided membership.
 
 Record the rule, not just the list, because the list grows and the next person needs the criterion rather than an inventory. Note explicitly which candidates were considered and rejected as non-seams — that's what stops the list from expanding on vibes.
 
@@ -83,13 +83,13 @@ Consequences: injection makes the composition root the one place that knows abou
 
 ### 0005. Error taxonomy and translation boundaries
 
-The base exception, the initial domain errors, and the rule that packages translate foreign exceptions at their own boundary.
+The domain error taxonomy (base exception or error enum), the initial domain errors, and the rule that adapters translate foreign errors at their own boundary.
 
-Record where the mapping to exit codes lives, and the corollary that code inside a package with a taxonomy doesn't raise bare builtins. This is the decision most likely to erode quietly, so the ADR is worth writing even though it feels obvious while you're writing it.
+Record where the mapping to exit codes lives, and the corollary that code under a taxonomy stops raising bare builtins or leaking untyped/driver errors (such as `ValueError`/`RuntimeError` in Python or `anyhow::Error`/`Result<T, String>` from Rust library APIs). This is the decision most likely to erode quietly, so the ADR is worth writing even though it feels obvious while you're writing it.
 
 ### 0006. Testing approach
 
-Factories, fakes, the integration marker, and what tests may assert against.
+Builders/factories, fakes, how real-infrastructure integration tests are excluded from default runs (and how the integration lane runs), and what tests may assert against.
 
 Record the litmus test — a behavior-preserving change that breaks a test means the test was wrong — because it's a norm rather than a check, and norms only survive if they're written where people look.
 
@@ -99,9 +99,9 @@ The tools, the single gate command, and what CI runs.
 
 The substance here isn't the tool list — it's the commitment that architectural rules are enforced mechanically rather than by review. Record that principle, because it's the one that makes the difference and it's invisible in the config file.
 
-Record deliberate exceptions too: if mypy is strict everywhere except one package, that exception belongs here with its reason and, ideally, the condition under which it goes away.
+Record deliberate exceptions too: if strict type-checking or a lint group is relaxed for one package or crate, that exception belongs here with its reason and, ideally, the condition under which it goes away.
 
-Record also that the gate was run and came back green against the declarations the baseline wrote, and that each contract was made to fail once on a deliberate violation before it was trusted. An untested contract is a claim, and this is the ADR where the difference is visible.
+Record also that the gate was run and came back green against the declarations the baseline wrote, and that each contract or check was made to fail once on a deliberate violation before it was trusted. An untested contract is a claim, and this is the ADR where the difference is visible.
 
 ## One ADR per decision
 
